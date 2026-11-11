@@ -140,7 +140,7 @@ function pickWeighted(st, list, w) { let tot = 0; for (const x of list) tot += w
 function newState() {
   return {
     v: 1, seed: (Date.now() % 2147483647) >>> 0,
-    gold: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0, mitico: 0, astrale: 0 }, astri: 0, shop: null, zone: 1, maxZone: 1, cleared: 0, battle: 1, maxBattle: 1, maxGlobal: 1,
+    gold: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0, mitico: 0, astrale: 0, arcano: 0 }, astri: 0, shop: null, zone: 1, maxZone: 1, cleared: 0, battle: 1, maxBattle: 1, maxGlobal: 1,
     team: ['hero'], roster: { hero: newMember('hero', 1) }, inventory: [], chest: [], rareLog: [], nextId: 1,
     tree: { forza: 0, vita: 0, branco: 0, scudo: 0, lama: 0, tesoro: 0, cometa: 0, richiamo: 0 },
     hunt: {}, // uccisioni per specie non ancora catturata
@@ -481,7 +481,7 @@ function equipTo(s, itemId, memberId) {
 function unequip(s, memberId, slot) { const m = s.roster[memberId]; if (m && m.eq[slot]) { s.inventory.push(m.eq[slot]); m.eq[slot] = null; } }
 function sellItem(s, itemId) { const i = s.inventory.findIndex(x => x.id === itemId); if (i < 0 || isProtected(s, s.inventory[i])) return 0; const [it] = s.inventory.splice(i, 1); const g = sellValue(it); s.gold += g; return g; }
 // Rune: ognuna porta un oggetto alla sua rarità (dalla rarità precedente), si vendono per Astri e potenziano gli slot
-const RUNE_KEYS = ['astrale', 'mitico', 'leggendaria', 'epica', 'rara', 'noncomune']; // dal più raro, per il tiro del drop
+const RUNE_KEYS = ['arcano', 'astrale', 'mitico', 'leggendaria', 'epica', 'rara', 'noncomune']; // dal più raro, per il tiro del drop
 const RUNE = {
   noncomune:   { label: 'Runa verde',     color: '#6CCB5F', from: 'comune',    value: 2 },
   rara:        { label: 'Runa blu',       color: '#5B9BFF', from: 'noncomune', value: 5 },
@@ -489,19 +489,20 @@ const RUNE = {
   leggendaria: { label: 'Runa arancione', color: '#F2994A', from: 'epica',     value: 15 },
   mitico:      { label: 'Runa dorata',    color: '#FFD34D', from: 'leggendaria', value: 30 },
   astrale:     { label: 'Runa rosa',      color: '#FF7AD9', from: 'mitico',    value: 60 },
+  arcano:      { label: 'Runa cremisi',   color: '#E8334F', from: 'astrale',   value: 120 },
 };
 // probabilità per nemico (provvisorie, da tarare sui dati reali)
-const RUNE_DROP = { noncomune: 0.0004, rara: 0.00015, epica: 0.00005, leggendaria: 0.00001, mitico: 0.000003, astrale: 0.000001 };
+const RUNE_DROP = { noncomune: 0.0004, rara: 0.00015, epica: 0.00005, leggendaria: 0.00001, mitico: 0.000003, astrale: 0.000001, arcano: 0.0000003 };
 function addRune(s, k, n, ev) { s.runes[k] += n; s.stats.runes = (s.stats.runes || 0) + n; if (ev) ev.push({ type: 'rune', rune: k, n }); }
 function totalRunes(s) { let t = 0; for (const k in s.runes) t += s.runes[k]; return t; }
-function nextRarity(it) { const i = ITEM_RARITY.findIndex(r => r.key === it.rarity); return i >= 0 && i < 6 ? ITEM_RARITY[i + 1].key : null; } // le rune arrivano fino all'Astrale
+function nextRarity(it) { const i = ITEM_RARITY.findIndex(r => r.key === it.rarity); return i >= 0 && i < 7 ? ITEM_RARITY[i + 1].key : null; } // le rune arrivano fino all'Arcano
 function canRaise(s, it) { const n = nextRarity(it); return !!n && s.runes[n] > 0; }
 function raiseRarity(s, it) { const n = nextRarity(it); if (!n || s.runes[n] < 1) return false; s.runes[n]--; it.rarity = n; rollBonus(s, it); if (n === 'leggendaria') s.stats.legendary++; return true; }
 function slotRune(l) { return l < 4 ? 'noncomune' : l < 7 ? 'rara' : l < 9 ? 'epica' : 'leggendaria'; }
 function slotCost(l) { return 1; }
 function upgradeSlot(s, id, sl) { const m = s.roster[id]; if (!m) return false; const l = m.slv[sl] || 0, k = slotRune(l); if (l >= 10 || s.runes[k] < 1) return false; s.runes[k] -= 1; m.slv[sl] = l + 1; return true; }
 // Rune in vendita nello Shop per Astri (provvisorio)
-const RUNE_BUY = { epica: 250, leggendaria: 500, mitico: 1000, astrale: 2000 }; // verde e blu non si vendono: si trovano spesso
+const RUNE_BUY = { epica: 100, leggendaria: 250, mitico: 500, astrale: 1000, arcano: 2000 }; // verde e blu non si vendono: si trovano spesso
 function buyRune(s, k) { const c = RUNE_BUY[k]; if (!c || s.astri < c) return false; s.astri -= c; s.runes[k]++; return true; }
 function sellRunes(s, k, n) { n = Math.min(n, s.runes[k]); s.runes[k] -= n; const g = n * RUNE[k].value; s.astri += g; return g; }
 // Negozio: 6 oggetti, rinnovati alle 0, 8 e 16 (ora locale), rarità con le stesse probabilità dei drop
@@ -549,7 +550,7 @@ function moveSpeed(s) { return 1 + 0.05 * (s.tree.cometa || 0); }
 function migrate(s) {
   if (s.zone === undefined) { s.zone = 1; s.maxZone = 1; s.cleared = 0; s.battle = 1; s.maxBattle = 1; s.maxGlobal = 1; delete s.bossCleared; }
   if (typeof s.runes !== 'object' || s.runes === null) s.runes = { noncomune: s.runes || 0, rara: 0, epica: 0, leggendaria: 0 };
-  if (s.runes.mitico === undefined) s.runes.mitico = 0; if (s.runes.astrale === undefined) s.runes.astrale = 0;
+  if (s.runes.mitico === undefined) s.runes.mitico = 0; if (s.runes.astrale === undefined) s.runes.astrale = 0; if (s.runes.arcano === undefined) s.runes.arcano = 0;
   if (s.tree.corona) { const c = [200000, 20000000, 2000000000]; for (let l = 0; l < s.tree.corona; l++) s.gold += c[l]; }
   delete s.tree.corona;
   for (const k in TREE) if (s.tree[k] === undefined) s.tree[k] = 0;
