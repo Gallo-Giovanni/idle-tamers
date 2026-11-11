@@ -343,7 +343,7 @@ function rerollBonus(s, id, locks) {
   const out = []; let ki = 0, ni = keep.length; for (let i = 0; i < n; i++) out.push(locks.includes(i) ? it.bonus[ki++] : it.bonus[ni++]); it.bonus = out; return true;
 }
 // Fusione: 20 oggetti della stessa rarità (fino all'Epico) diventano 1 oggetto della rarità successiva
-const FUSE_N = 5, FUSE_MAX = 6; // fino ad Astrale → Arcano (come la runa cremisi)
+const FUSE_N = 10, FUSE_MAX = 6; // fino ad Astrale → Arcano (come la runa cremisi)
 function fusable(s, rk) { return s.inventory.filter(it => it.rarity === rk && !isProtected(s, it) && !it.locked); }
 function fuse(s, rk) {
   const ri = rarityIndex(rk); if (ri < 0 || ri > FUSE_MAX) return null; const list = fusable(s, rk).sort((a, b) => itemPower(a) - itemPower(b)); if (list.length < FUSE_N) return null;
