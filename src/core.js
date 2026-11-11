@@ -112,7 +112,7 @@ const ACH = [
   { id: 'full',  name: 'Squadra al completo', desc: 'Sblocca e riempi tutti i posti della squadra', test: s => creaturesInTeam(s) >= CREATURE_SLOTS, astri: 20 },
 ];
 
-const OFFLINE_CAP = 8 * 3600; // 16 ore col Pass
+const OFFLINE_CAP = 4 * 3600; // 8 ore col Pass
 const BOSS_BATTLE = 30;
 
 function rnd(st) { // mulberry32 sul seed dello stato, così la simulazione è riproducibile
@@ -139,10 +139,10 @@ function newMember(species, lvl) {
 }
 function capturedCount(s) { return ALL_SPECIES.filter(k => s.roster[k]).length; }
 // Squadra: 4 posti per le creature; gli eroi (Guerriero gratis, gli altri dal negozio) non occupano posti
-// Si parte con 2 posti; ogni boss indicato sblocca un posto in più
-let SLOT_UNLOCKS = [1, 3, 5, 7, 9];
+// Si parte con 4 posti (eroi esclusi); ogni boss indicato sblocca un posto in più
+let SLOT_UNLOCKS = [3, 6, 9];
 if (typeof process !== 'undefined' && process.env && process.env.SLOTS) SLOT_UNLOCKS = JSON.parse(process.env.SLOTS);
-const BASE_SLOTS = 2;
+const BASE_SLOTS = 4;
 const CREATURE_SLOTS = BASE_SLOTS + SLOT_UNLOCKS.length; // massimo
 function isHero(id) { return !!(SPECIES[id] && SPECIES[id].hero); }
 function slotCount(s) { return BASE_SLOTS + SLOT_UNLOCKS.filter(z => s.cleared >= z).length; }
@@ -158,7 +158,7 @@ function dayKey(now) { const d = new Date(now); return d.getFullYear() * 10000 +
 function dailyReady(s, now) { return s.daily !== dayKey(now || Date.now()); }
 function claimDaily(s, now) { if (!dailyReady(s, now)) return 0; s.daily = dayKey(now || Date.now()); s.astri += DAILY_ASTRI; return DAILY_ASTRI; }
 function nextMidnight(now) { const d = new Date(now); d.setHours(24, 0, 0, 0); return d.getTime(); }
-function buyHero(s, id) { if (!isHero(id) || s.roster[id]) return false; s.roster[id] = newMember(id, Math.max(1, Math.floor(s.roster.hero.lvl * 0.8))); s.team.push(id); return true; }
+function buyHero(s, id) { if (!isHero(id) || s.roster[id]) return false; s.roster[id] = newMember(id, 1); s.team.push(id); return true; }
 const LEVEL_CAP = 30;
 function xpNeed(l) { return Math.round(100 * Math.pow(1.5, l - 1)); }
 // ---------- Statistiche degli oggetti ----------
@@ -213,9 +213,6 @@ function memberStats(s, id) {
     atk += (st.atk || 0) * sm; hp += (st.hp || 0) * sm; def += (st.def || 0) * sm;
     crit += (st.crit || 0) * sm; critDmg += (st.critDmg || 0) * sm; aspd += (st.aspd || 0) * sm; block += (st.block || 0) * sm; dodge += (st.dodge || 0) * sm;
   }
-  const cc = classCounts(s), n = cc[cls];
-  const syn = n >= 6 ? 0.4 : n >= 4 ? 0.25 : n >= 2 ? 0.1 : 0;
-  atk *= 1 + syn; hp *= 1 + syn;
   if (SPECIES[m.species].hero) hp *= 1 + 0.06 * s.tree.vita; else hp *= 1 + 0.06 * s.tree.branco;
   atk *= 1 + 0.05 * s.tree.forza;
   def *= 1 + 0.05 * s.tree.scudo;
@@ -380,8 +377,7 @@ function tryCapture(s, e, ev) {
   const tutorial = capturedCount(s) === 0 && sp === 'glimmo' && gIndex(s.zone, s.battle) >= 3;
   const pity = s.hunt[sp] >= 3 / RARITY[SPECIES[sp].rarity].p; // rete di sicurezza a 3 volte il tempo medio
   if (tutorial || pity || rnd(s) < p) {
-    const lv = Math.max(1, Math.round(avgLevel(s) * 0.8));
-    const m = newMember(sp, lv); m.waitKills = s.hunt[sp]; s.roster[sp] = m;
+    const m = newMember(sp, 1); m.waitKills = s.hunt[sp]; s.roster[sp] = m; // chi si unisce parte dal livello 1
     delete s.hunt[sp];
     if (!teamFull(s)) s.team.push(sp);
     if (ev) ev.push({ type: 'capture', species: sp });
@@ -404,10 +400,8 @@ function dropItem(s, boss, ev) {
   if (RARE_FEED.includes(r.key)) { s.stats.rare = s.stats.rare || {}; s.stats.rare[r.key] = (s.stats.rare[r.key] || 0) + 1; (s.rareLog = s.rareLog || []).unshift({ t: Date.now(), rarity: r.key, slot, zone: s.zone, ilvl: it.ilvl }); s.rareLog.length = Math.min(s.rareLog.length, 50); if (ev) ev.push({ type: 'rare', item: it }); }
   // filtro del bottino: sotto la rarità minima scelta l'oggetto si vende subito (le rune non passano di qui)
   if (rarityIndex(r.key) < minKeep(s)) { const g = sellValue(it); s.gold += g; s.stats.autoSold = (s.stats.autoSold || 0) + 1; return; }
-  if (s.inventory.length >= bagCap(s)) { // zaino pieno: tiene il più forte tra il nuovo e il più debole dello zaino
-    let wi = 0; for (let k = 1; k < s.inventory.length; k++) if (itemPower(s.inventory[k]) < itemPower(s.inventory[wi])) wi = k;
-    if (!s.inventory.length || itemPower(it) <= itemPower(s.inventory[wi]) || rarityIndex(s.inventory[wi].rarity) > rarityIndex(it.rarity)) { s.gold += sellValue(it); s.stats.bagFull = (s.stats.bagFull || 0) + 1; return; }
-    const [w] = s.inventory.splice(wi, 1); s.gold += sellValue(w);
+  if (s.inventory.length >= bagCap(s)) { // zaino pieno: l'oggetto va perso (niente vendita automatica nascosta)
+    s.stats.lost = (s.stats.lost || 0) + 1; if (ev) ev.push({ type: 'lost', item: it }); return;
   }
   s.inventory.push(it);
   if (ev) ev.push({ type: 'drop', item: it });
@@ -450,7 +444,10 @@ function toChest(s, id) { const i = s.inventory.findIndex(x => x.id === id); if 
 function fromChest(s, id) { const i = s.chest.findIndex(x => x.id === id); if (i < 0 || s.inventory.length >= bagCap(s)) return false; s.inventory.push(s.chest.splice(i, 1)[0]); return true; }
 function offlineCap(s) { return OFFLINE_CAP * (hasPass(s) ? 2 : 1); }
 function maxFilter(s) { return hasPass(s) ? ITEM_RARITY.length - 1 : FREE_MAX_FILTER; }
-function minKeep(s) { return Math.min(rarityIndex(s.settings.minRarity || 'comune'), maxFilter(s)); }
+function minKeep(s) { return Math.min(rarityIndex(s.settings.minRarity || 'comune'), maxFilter(s), protectIdx(s)); }
+// "Tieni sempre da ... in su": queste rarità non si vendono mai (né a mano né in automatico)
+function protectIdx(s) { const k = s.settings.protect || 'leggendaria'; return k === 'none' ? ITEM_RARITY.length : rarityIndex(k); }
+function isProtected(s, it) { return rarityIndex(it.rarity) >= protectIdx(s); }
 function sellBelow(s) { const min = minKeep(s); let gold = 0, n = 0; s.inventory = s.inventory.filter(it => { if (rarityIndex(it.rarity) < min) { gold += sellValue(it); n++; return false; } return true; }); s.gold += gold; return { gold, n }; }
 function sellRest(s) {
   // vende ciò che non migliora nessuno nella squadra né nella riserva
@@ -458,7 +455,7 @@ function sellRest(s) {
   const keep = [];
   for (const it of s.inventory) {
     const useful = Object.keys(s.roster).some(id => { const m = s.roster[id]; if (m.locked || !canUse(m, it)) return false; const c = m.eq[targetSlot(m, it)]; return !c || itemPower(it) > itemPower(c); });
-    if (useful) keep.push(it); else { gold += sellValue(it); n++; }
+    if (useful || isProtected(s, it)) keep.push(it); else { gold += sellValue(it); n++; }
   }
   s.inventory = keep; s.gold += gold; return { gold, n };
 }
@@ -467,7 +464,7 @@ function equipTo(s, itemId, memberId) {
   const sl = targetSlot(m, it), cur = m.eq[sl]; s.inventory = s.inventory.filter(x => x.id !== itemId); if (cur) s.inventory.push(cur); m.eq[sl] = it; it.isNew = false; return true;
 }
 function unequip(s, memberId, slot) { const m = s.roster[memberId]; if (m && m.eq[slot]) { s.inventory.push(m.eq[slot]); m.eq[slot] = null; } }
-function sellItem(s, itemId) { const i = s.inventory.findIndex(x => x.id === itemId); if (i < 0) return 0; const [it] = s.inventory.splice(i, 1); const g = sellValue(it); s.gold += g; return g; }
+function sellItem(s, itemId) { const i = s.inventory.findIndex(x => x.id === itemId); if (i < 0 || isProtected(s, s.inventory[i])) return 0; const [it] = s.inventory.splice(i, 1); const g = sellValue(it); s.gold += g; return g; }
 // Rune: ognuna porta un oggetto alla sua rarità (dalla rarità precedente), si vendono per Astri e potenziano gli slot
 const RUNE_KEYS = ['leggendaria', 'epica', 'rara', 'noncomune']; // dal più raro, per il tiro del drop
 const RUNE = {
@@ -486,6 +483,9 @@ function raiseRarity(s, it) { const n = nextRarity(it); if (!n || s.runes[n] < 1
 function slotRune(l) { return l < 4 ? 'noncomune' : l < 7 ? 'rara' : l < 9 ? 'epica' : 'leggendaria'; }
 function slotCost(l) { return 1; }
 function upgradeSlot(s, id, sl) { const m = s.roster[id]; if (!m) return false; const l = m.slv[sl] || 0, k = slotRune(l); if (l >= 10 || s.runes[k] < 1) return false; s.runes[k] -= 1; m.slv[sl] = l + 1; return true; }
+// Rune in vendita nello Shop per Astri (5 volte il valore di vendita)
+const RUNE_BUY = { noncomune: 5, rara: 10, epica: 20, leggendaria: 40 };
+function buyRune(s, k) { const c = RUNE_BUY[k]; if (!c || s.astri < c) return false; s.astri -= c; s.runes[k]++; return true; }
 function sellRunes(s, k, n) { n = Math.min(n, s.runes[k]); s.runes[k] -= n; const g = n * RUNE[k].value; s.astri += g; return g; }
 // Negozio: 6 oggetti, rinnovati alle 0, 8 e 16 (ora locale), rarità con le stesse probabilità dei drop
 const SHOP_PRICE = { comune: 10, noncomune: 20, rara: 40, epica: 100, leggendaria: 250, astrale: 800, arcano: 2500, segreto: 8000 };
@@ -578,7 +578,7 @@ function checkAch(s) {
 // Simulazione offline: stesso motore, senza grafica, a passi più ampi
 function simulateOffline(s, seconds, noCap) {
   if (!noCap) seconds = Math.min(seconds, offlineCap(s));
-  const before = { gold: s.gold, kills: s.stats.kills, items: s.stats.items, runes: Object.assign({}, s.runes), lv: {} };
+  const before = { lost: s.stats.lost || 0, gold: s.gold, kills: s.stats.kills, items: s.stats.items, runes: Object.assign({}, s.runes), lv: {} };
   for (const id in s.roster) before.lv[id] = s.roster[id].lvl;
   const ev = [];
   const b = startBattle(s);
@@ -591,10 +591,10 @@ function simulateOffline(s, seconds, noCap) {
     t += dt;
   }
   const lv = []; for (const id in s.roster) if (before.lv[id] !== undefined && s.roster[id].lvl > before.lv[id]) lv.push({ id, from: before.lv[id], to: s.roster[id].lvl });
-  return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
+  return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
