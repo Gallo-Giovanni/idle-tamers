@@ -459,7 +459,7 @@ const BAG_BASE = 20;
 function bagCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraBag || 0); }
 function chestCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraChest || 0); }
 // Spazi extra nello Shop: per sempre, ma se ne possono comprare pochi ogni mese
-const SPACE_PACK = { n: 5, cost: 200, perMonth: 4 };
+const SPACE_PACK = { n: 2, cost: 500, perMonth: 2 };
 function monthKey(now) { const d = new Date(now || Date.now()); return d.getFullYear() * 100 + d.getMonth() + 1; }
 function spaceLeft(s, kind) { const m = monthKey(); if (!s.spaceBuys || s.spaceBuys.m !== m) return SPACE_PACK.perMonth; return SPACE_PACK.perMonth - (s.spaceBuys[kind] || 0); }
 function buySpace(s, kind) { if (spaceLeft(s, kind) < 1 || s.astri < SPACE_PACK.cost) return false; const m = monthKey(); if (!s.spaceBuys || s.spaceBuys.m !== m) s.spaceBuys = { m, bag: 0, chest: 0 }; s.spaceBuys[kind]++; s.astri -= SPACE_PACK.cost; if (kind === 'bag') s.extraBag = (s.extraBag || 0) + SPACE_PACK.n; else s.extraChest = (s.extraChest || 0) + SPACE_PACK.n; return true; }

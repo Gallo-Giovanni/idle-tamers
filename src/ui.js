@@ -328,7 +328,7 @@ function eqHTML(id) {
   const m = S.roster[id], cls = F.SPECIES[m.species].cls;
   return `<div class="eqgrid">${F.SLOTS.map(sl => { const it = m.eq[sl], lv = m.slv[sl] || 0, k = F.kindOf(sl), sel = selSlot === id + ':' + sl;
       const r = it ? F.ITEM_RARITY.find(x => x.key === it.rarity) : null, col = r ? r.color : '#4A5088';
-      return `<button class="eqt${sel ? ' sel' : ''}${it ? '' : ' empty'}" style="border-color:${col}" data-act="selslot" data-id="${id}" data-slot="${sl}" aria-label="${F.SLOT_LABEL[sl]}${it ? ': ' + esc(F.itemName(it)) : ' vuoto'}">${itemIcon(k, it ? it.cls : cls, col, 22)}<span>${it ? cfmt(Math.round(F.itemPower(it) * (1 + 0.1 * lv))) : F.SLOT_LABEL[sl]}</span>${lv ? `<i>+${lv}</i>` : ''}</button>`; }).join('')}</div>
+      return `<button class="eqt${sel ? ' sel' : ''}${it ? '' : ' empty'}${it && F.rarityIndex(it.rarity) >= 4 ? ' fx fx-' + it.rarity : ''}" style="border-color:${col};--c:${col}" data-act="selslot" data-id="${id}" data-slot="${sl}" aria-label="${F.SLOT_LABEL[sl]}${it ? ': ' + esc(F.itemName(it)) : ' vuoto'}">${itemIcon(k, it ? it.cls : cls, col, 22)}<span>${it ? cfmt(Math.round(F.itemPower(it) * (1 + 0.1 * lv))) : F.SLOT_LABEL[sl]}</span>${lv ? `<i>+${lv}</i>` : ''}</button>`; }).join('')}</div>
     ${(() => { if (!selSlot || selSlot.split(':')[0] !== id) return '<div class="note">Tocca un posto per vederlo, togliere l\'oggetto o potenziare lo slot.</div>';
       const sl = selSlot.split(':')[1], it = m.eq[sl], lv = m.slv[sl] || 0, c = F.slotCost(lv), rk = F.slotRune(lv), rr = F.RUNE[rk];
       const r = it ? F.ITEM_RARITY.find(x => x.key === it.rarity) : null;
@@ -357,7 +357,7 @@ function bagForMember(id) {
       <div class="row2"><button class="pb" data-act="eqto" data-item="${it.id}" data-id="${id}">Equipaggia</button><button class="sb" data-act="sell" data-item="${it.id}">Vendi · ${cfmt(F.sellValue(it))}</button></div></div>`;
   }
   return `<div class="ph"><h2 style="font-size:13px">Zaino</h2><span>${inv.length} oggetti adatti</span></div>${det}
-  <div class="igrid">${inv.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), cur = m.eq[F.targetSlot(m, it)], up = !cur || F.itemPower(it) > F.itemPower(cur); return `<button class="it${eqSel === it.id ? ' sel' : ''}" style="border-color:${r.color}" data-act="eqpick" data-item="${it.id}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b>${up ? '<i class="upar">▲</i>' : ''}</button>`; }).join('') || '<div class="note" style="grid-column:1/-1">Nessun oggetto adatto nello zaino.</div>'}</div>`;
+  <div class="igrid">${inv.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), cur = m.eq[F.targetSlot(m, it)], up = !cur || F.itemPower(it) > F.itemPower(cur); return `<button class="it${eqSel === it.id ? ' sel' : ''}${F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${r.color};--c:${r.color}" data-act="eqpick" data-item="${it.id}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b>${up ? '<i class="upar">▲</i>' : ''}</button>`; }).join('') || '<div class="note" style="grid-column:1/-1">Nessun oggetto adatto nello zaino.</div>'}</div>`;
 }
 function pSquadra() {
   const slots = F.slotCount(S), n = F.creaturesInTeam(S);
@@ -371,9 +371,13 @@ function pSquadra() {
 }
 function rcls(r) { return r.rainbow ? ' rbw' : ''; }
 function itemGrid(list, empty, sellMode) {
-  return `<div class="igrid">${list.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it); return `<button class="it${selItem === it.id ? ' sel' : ''}${r.rainbow ? ' rbo' : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selit" data-item="${it.id}" aria-label="${esc(F.itemName(it))}, ${r.label}, potere ${F.itemPower(it)}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b><em>${sellMode ? (prot ? 'protetto' : cfmt(F.sellValue(it)) + ' oro') : it.cls ? it.cls : F.SLOT_LABEL[it.slot]}</em>${it.isNew ? '<i>nuovo</i>' : ''}${(it.locked || (prot && sellMode)) ? `<i class="plk">${icon('lock', '#F2C14E', 10)}</i>` : ''}</button>`; }).join('') || `<div class="note" style="grid-column:1/-1">${empty}</div>`}</div>`;
+  return `<div class="igrid">${list.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it); return `<button class="it${selItem === it.id ? ' sel' : ''}${F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selit" data-item="${it.id}" aria-label="${esc(F.itemName(it))}, ${r.label}, potere ${F.itemPower(it)}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b><em>${sellMode ? (prot ? 'protetto' : cfmt(F.sellValue(it)) + ' oro') : it.cls ? it.cls : F.SLOT_LABEL[it.slot]}</em>${it.isNew ? '<i>nuovo</i>' : ''}${(it.locked || (prot && sellMode)) ? `<i class="plk">${icon('lock', '#F2C14E', 10)}</i>` : ''}</button>`; }).join('') || `<div class="note" style="grid-column:1/-1">${empty}</div>`}</div>`;
 }
 const byPower = l => l.slice().sort((a, b) => F.itemPower(b) - F.itemPower(a));
+function wareDetail() { const it = selShop !== null && S.shop.items[selShop]; if (!it) return ''; const r = F.ITEM_RARITY.find(x => x.key === it.rarity);
+    return `<div class="card idet" style="border-color:${r.color}"><div class="iname${rcls(r)}" style="color:${r.color};display:flex;align-items:center;gap:6px">${itemIcon(it.slot, it.cls, r.color, 26)}${esc(F.itemName(it))}</div>
+    <div class="msub">${r.label} · ${F.SLOT_LABEL[it.slot]}${it.cls ? ' · solo ' + it.cls : ' · tutte le classi'} · Lv oggetto ${it.ilvl} · punteggio ${fmt(F.itemPower(it))}</div>${statsHTML(it, 0)}
+    <div class="row2"><button class="pb" data-act="buy" data-i="${selShop}" ${it.sold || S.astri < it.price || S.inventory.length >= F.bagCap(S) ? 'disabled' : ''}>${it.sold ? 'Venduto' : S.inventory.length >= F.bagCap(S) ? 'Zaino pieno' : `Compra · ${it.price} Astri`}</button></div></div>`; }
 function itemDetail(it, where) {
   const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it);
   const head = `<div class="iname${rcls(r)}" style="color:${r.color};display:flex;align-items:center;gap:6px">${itemIcon(it.slot, it.cls, r.color, 26)}${esc(F.itemName(it))}${it.up ? ' +' + it.up : ''}</div>
@@ -413,7 +417,6 @@ function pZaino() {
   const det = inBag ? itemDetail(inBag, 'bag') : inChest ? itemDetail(inChest, 'chest') : '';
   return `<div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><button class="sb" data-act="sellrest">Vendi il resto</button></div>
   ${(() => { const k = F.minKeep(S), r = F.ITEM_RARITY[k]; return `<button class="card autos2" data-act="autoopen"><span>Vendita automatica</span><b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${k === 0 ? 'disattivata' : 'conserva da ' + r.label + ' in su'}</b><i>›</i></button>`; })()}
-  ${selRune ? runeDetail(selRune) : det}
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio</span></div>
   ${runeTiles()}
   <div class="ph"><h2 style="font-size:13px">Zaino</h2><span${S.inventory.length >= F.bagCap(S) ? ' style="color:#FF8A96"' : ''}>${S.inventory.length}/${F.bagCap(S)}</span></div>
@@ -445,20 +448,15 @@ function pNegozio() {
   const pi = F.protectIdx(S);
   return `<div class="ph"><h2>Mercante</h2><span>merce nuova tra ${h} h ${mi} min</span></div>
   <div class="row2"><div class="card wallet" style="flex:1;margin:0">${icon('gem', '#F49AC1', 16)} <b>${fmt(S.astri)}</b> Astri</div><button class="sb" data-act="reroll" ${S.astri < F.REROLL_COST ? 'disabled' : ''}>Rinnova · ${F.REROLL_COST} Astri</button></div>
-  ${(() => { const it = selShop !== null && S.shop.items[selShop]; if (!it) return ''; const r = F.ITEM_RARITY.find(x => x.key === it.rarity);
-    return `<div class="card idet" style="border-color:${r.color}"><div class="iname${rcls(r)}" style="color:${r.color};display:flex;align-items:center;gap:6px">${itemIcon(it.slot, it.cls, r.color, 26)}${esc(F.itemName(it))}</div>
-    <div class="msub">${r.label} · ${F.SLOT_LABEL[it.slot]}${it.cls ? ' · solo ' + it.cls : ' · tutte le classi'} · Lv oggetto ${it.ilvl} · punteggio ${fmt(F.itemPower(it))}</div>${statsHTML(it, 0)}
-    <div class="row2"><button class="pb" data-act="buy" data-i="${selShop}" ${it.sold || S.astri < it.price || S.inventory.length >= F.bagCap(S) ? 'disabled' : ''}>${it.sold ? 'Venduto' : S.inventory.length >= F.bagCap(S) ? 'Zaino pieno' : `Compra · ${it.price} Astri`}</button></div></div>`; })()}
+
   <div class="igrid shopg">${S.shop.items.map((it, i) => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity);
-    return `<button class="it${selShop === i ? ' sel' : ''}${r.rainbow ? ' rbo' : ''}${it.sold ? ' sold' : ''}" style="border-color:${it.sold ? 'var(--line)' : r.color}" data-act="selshop" data-i="${i}" aria-label="${esc(F.itemName(it))}, ${r.label}, ${it.price} Astri">${itemIcon(it.slot, it.cls, r.color, 24)}<b>${cfmt(F.itemPower(it))}</b><em>${it.sold ? 'venduto' : it.price + ' Astri'}</em></button>`; }).join('')}</div>
+    return `<button class="it${selShop === i ? ' sel' : ''}${it.sold ? ' sold' : F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${it.sold ? 'var(--line)' : r.color};--c:${r.color}" data-act="selshop" data-i="${i}" aria-label="${esc(F.itemName(it))}, ${r.label}, ${it.price} Astri">${itemIcon(it.slot, it.cls, r.color, 24)}<b>${cfmt(F.itemPower(it))}</b><em>${it.sold ? 'venduto' : it.price + ' Astri'}</em></button>`; }).join('')}</div>
   <div class="note">Tocca un oggetto per vedere i bonus. Cambia merce alle 0, alle 8 e alle 16, con le stesse probabilità dei drop.</div>
   <div class="ph"><h2>Il tuo zaino</h2><span>${S.inventory.length}/${F.bagCap(S)} · tocca per vendere</span></div>
   <div class="row2"><label for="prot">Tieni sempre</label><select id="prot" data-act="prot">${F.ITEM_RARITY.slice(1).map((r, k) => `<option value="${r.key}" ${pi === k + 1 ? 'selected' : ''}>da ${r.label} in su</option>`).join('')}<option value="none" ${pi >= F.ITEM_RARITY.length ? 'selected' : ''}>Nessuna protezione</option></select></div>
   <button class="sb wide" data-act="sellrest">Vendi tutto ciò che non migliora nessuno</button>
-  ${sel ? itemDetail(sel, 'shop') : ''}
   ${itemGrid(byPower(S.inventory), 'Zaino vuoto.', true)}
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio · tocca per vendere</span></div>
-  ${selRune ? runeDetail(selRune) : ''}
   ${runeTiles()}`;
 }
 function pBestiario() {
@@ -560,11 +558,35 @@ function drawChart() {
   g.fillStyle = '#7FE3F0';
   vals.forEach((v, i) => { const h = (H - 50) * v / max; g.fillRect(48 + i * bw, H - 30 - h, bw - 4, h); });
 }
+// Tendina con i bonus: si apre sotto l'oggetto toccato
+function popContent() {
+  if (tab === 'zaino' || tab === 'negozio') {
+    if (selRune) return [runeDetail(selRune), `[data-act=selrune][data-k="${selRune}"]`];
+    if (selItem) { const b = S.inventory.find(x => x.id === selItem), c = S.chest.find(x => x.id === selItem);
+      if (b) return [itemDetail(b, tab === 'negozio' ? 'shop' : 'bag'), `[data-act=selit][data-item="${selItem}"]`];
+      if (c && tab === 'zaino') return [itemDetail(c, 'chest'), `[data-act=selit][data-item="${selItem}"]`]; }
+    if (tab === 'negozio' && selShop !== null) return [wareDetail(), `[data-act=selshop][data-i="${selShop}"]`];
+  }
+  return null;
+}
+function placePop() {
+  const pc = popContent(); if (!pc) { popKey = null; return; }
+  const p = $('#panel'), anc = p.querySelector(pc[1]); if (!anc) return;
+  const d = document.createElement('div'); d.className = 'pop'; d.innerHTML = pc[0]; p.appendChild(d);
+  const pr = p.getBoundingClientRect(), ar = anc.getBoundingClientRect();
+  const top = ar.bottom - pr.top + p.scrollTop + 6, ax = ar.left + ar.width / 2 - pr.left;
+  d.style.top = top + 'px'; d.style.setProperty('--ax', Math.max(14, Math.min(pr.width - 14, ax)) + 'px');
+  // se esce dal fondo, la apre sopra l'oggetto
+  if (top + d.offsetHeight > p.scrollTop + p.clientHeight && ar.top - pr.top > d.offsetHeight + 10) { d.style.top = (ar.top - pr.top + p.scrollTop - d.offsetHeight - 6) + 'px'; d.classList.add('up'); }
+  // appena aperta, scorre quanto basta per mostrarla tutta
+  if (popKey !== pc[1]) { popKey = pc[1]; const b = d.offsetTop + d.offsetHeight + 8 - (p.scrollTop + p.clientHeight); if (b > 0) p.scrollTop += b; }
+}
+let popKey = null;
 function render() {
   const p = $('#panel');
   const y = p.scrollTop;
   p.innerHTML = tab === 'squadra' ? pSquadra() : tab === 'zaino' ? pZaino() : tab === 'negozio' ? pNegozio() : tab === 'shop' ? pShop() : tab === 'mappa' ? pMappa() : tab === 'bestiario' ? pBestiario() : tab === 'stelle' ? pStelle() : pAltro();
-  p.scrollTop = y;
+  p.scrollTop = y; placePop();
   if (tab === 'altro') drawChart();
   document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-current', t.dataset.tab === tab ? 'page' : 'false'));
   dirty = false;
@@ -698,7 +720,8 @@ setInterval(() => { shareDrops(); chatPeek(); }, 60000); setTimeout(() => { shar
 
 // ---------- input ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-act],[data-tab]'); if (!t) return;
+  const t = e.target.closest('[data-act],[data-tab]');
+  if (!t) { if (!e.target.closest('.pop') && (selItem || selRune || selShop !== null) && e.target.closest('#panel')) { selItem = null; selRune = null; selShop = null; render(); } return; }
   if (t.dataset.tab) { tab = t.dataset.tab; selItem = null; selRune = null; selShop = null; render(); $('#panel').scrollTop = 0; return; }
   const a = t.dataset.act, id = t.dataset.id, item = +t.dataset.item;
   const rebuild = () => { B = F.startBattle(S); buildScene(); };
