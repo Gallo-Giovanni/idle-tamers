@@ -198,6 +198,14 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .zlk{opacity:.55;filter:saturate(.3)}.lockc{font-size:10.5px;color:var(--muted);margin-top:4px}
 .herel{font-size:11px;color:#F2C14E;font-weight:700;margin-top:4px}.go{min-height:28px;margin-top:4px;font-size:11px}
 .slotm{background:#16323a;color:#7FE3FF}
+.chatbtn{cursor:pointer;color:var(--txt);padding:2px 6px}.chatbtn.dot{box-shadow:0 0 0 2px var(--gold)}
+.chatmod{display:flex;flex-direction:column;max-height:86vh}
+.chatlist{flex:1;overflow-y:auto;min-height:200px;max-height:52vh;display:flex;flex-direction:column;gap:4px;padding:4px 0}
+.cmsg{background:#10143A;border:1px solid var(--line);border-radius:10px;padding:5px 8px;font-size:12.5px;line-height:1.35;word-break:break-word}
+.cmsg.me{border-color:#5BD8E6;background:#122046}.cmsg .cn{font-weight:700;color:#7FE3FF;margin-right:6px}.cmsg time{float:right;font-size:10px;color:var(--muted);margin-left:6px}
+.cmsg .rep{background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;padding:0 0 0 6px;float:right}
+.chatform{display:flex;gap:6px;margin-top:6px}.chatform input{flex:1;min-width:0;min-height:40px;background:#10143A;border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:0 10px;font-size:14px}
+.dropg{display:flex;align-items:center;gap:8px;font-size:12px}
 </style>
 </head>
 <body>
@@ -209,6 +217,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
    <div class="pill"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F2C14E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Oro"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4"/></svg><span id="gold">0</span></div>
    
    <div class="pill"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F49AC1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Astri"><path d="M6 4h12l3 5-9 11L3 9z"/><path d="M3 9h18M9 4l3 16M15 4l-3 16"/></svg><span id="astri">0</span></div>
+   <button class="pill chatbtn" id="chatbtn" data-chat="open" aria-label="Chat globale"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7FE3FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></button>
   </div>
  </div>
  <div class="pbar"><b id="prog"></b></div>

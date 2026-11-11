@@ -200,7 +200,7 @@ function handle(ev) {
     else if (e.type === 'drop') { const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); if (e.item.rarity !== 'comune') toast(`Trovato: <b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${esc(F.itemName(e.item))}</b> · ${r.label}`, r.color); dirty = true; }
     else if (e.type === 'level') { const now = Date.now(); if (now - lvlToastAt > 4000) { lvlToastAt = now; toast(`${esc(S.roster[e.id].name)} sale al livello ${e.lvl}`); } dirty = true; }
     else if (e.type === 'capture') { capQueue.push(e.species); dirty = true; }
-    else if (e.type === 'rare') { const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); banner('DROP ' + r.label.toUpperCase() + '!'); toast(`<b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}!</b> ${esc(F.itemName(e.item))}`, r.color); dirty = true; }
+    else if (e.type === 'rare') { setTimeout(shareDrops, 500); const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); banner('DROP ' + r.label.toUpperCase() + '!'); toast(`<b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}!</b> ${esc(F.itemName(e.item))}`, r.color); dirty = true; }
     else if (e.type === 'rune') { const r = F.RUNE[e.rune]; toast(`${icon('rune', r.color, 14)} +${e.n} <b style="color:${r.color}">${r.label}</b>`, r.color); dirty = true; }
     else if (e.type === 'unlock') { toast(e.text, '#F2C14E'); dirty = true; }
     else if (e.type === 'battle') { buildScene(); banner(e.result === 'win' ? (S.battle === F.BOSS_BATTLE ? 'BOSS: ' + F.SPECIES[F.ZONES[S.zone].boss].name.toUpperCase() : (S.battle === 1 ? 'ZONA ' + S.zone + ' · ' : '') + 'BATTAGLIA ' + S.battle) : 'SCONFITTA · SI RIPARTE DALLA BATTAGLIA 1'); dirty = true; }
@@ -509,6 +509,76 @@ function skipTime(hours) {
   setTimeout(run, 30);
 }
 function closeModal() { equipOpen = null; $('#modal').hidden = true; $('#modal').innerHTML = ''; }
+
+// ---------- chat globale e drop rari (Supabase) ----------
+const NET = { url: 'https://nvfpiwrienohvavvceqi.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52ZnBpd3JpZW5vaHZhdnZjZXFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NTQ4MzYsImV4cCI6MjEwODQzMDgzNn0.M_fmOZlu6qbdXw5flxwQsdvJxCgeMTY-WOpxwcLRSpA' };
+const BAD = ['cazz', 'stronz', 'vaffanc', 'puttan', 'merd', 'coglion', 'troia', 'fuck', 'shit', 'bitch', 'negr', 'fanculo'];
+const clean = t => BAD.reduce((x, w) => x.replace(new RegExp(w + '\\w*', 'gi'), m => '*'.repeat(m.length)), t);
+async function api(path, body) {
+  const r = await fetch(NET.url + '/rest/v1/' + path, { method: body ? 'POST' : 'GET', headers: { apikey: NET.key, Authorization: 'Bearer ' + NET.key, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  if (!r.ok) { let m = 'errore'; try { m = (await r.json()).message || m; } catch (e) {} throw new Error(m); }
+  const txt = await r.text(); return txt ? JSON.parse(txt) : null;
+}
+let chatOpen = false, chatTab = 'chat', chatMsgs = [], chatDrops = [], chatTimer = null, chatErr = '', lastSeenChat = 0;
+const ago = t => { const d = (Date.now() - new Date(t).getTime()) / 1000; return d < 60 ? 'ora' : d < 3600 ? Math.floor(d / 60) + ' min' : d < 86400 ? Math.floor(d / 3600) + ' h' : Math.floor(d / 86400) + ' g'; };
+async function chatLoad() {
+  try {
+    if (chatTab === 'chat') chatMsgs = (await api('it_chat?select=id,player_id,nickname,body,created_at&order=id.desc&limit=60')).reverse();
+    else chatDrops = await api('it_drops?select=id,nickname,rarity,slot,zone,ilvl,created_at&order=id.desc&limit=40');
+    chatErr = '';
+    if (chatMsgs.length) { lastSeenChat = chatMsgs[chatMsgs.length - 1].id; try { localStorage.setItem('it_seen', lastSeenChat); } catch (e) {} }
+  } catch (e) { chatErr = 'Connessione non riuscita. Riprovo tra poco.'; }
+  if (chatOpen && document.querySelector('#modal .chatmod')) chatRender();
+}
+function chatRender() {
+  const me = S.net && S.net.id, list = $('#chatlist'), atBottom = !list || list.scrollHeight - list.scrollTop - list.clientHeight < 40;
+  let body;
+  if (chatTab === 'chat') {
+    body = `<div class="chatlist" id="chatlist">${chatMsgs.map(m => `<div class="cmsg${m.player_id === me ? ' me' : ''}"><time>${ago(m.created_at)}</time>${m.player_id !== me && me ? `<button class="rep" data-chat="report" data-id="${m.id}" aria-label="Segnala">segnala</button>` : ''}<span class="cn">${esc(m.nickname)}</span>${esc(clean(m.body))}</div>`).join('') || '<div class="note">Ancora nessun messaggio. Rompi il ghiaccio!</div>'}</div>
+    ${S.net ? `<form class="chatform" id="chatform"><input id="chatin" maxlength="200" placeholder="Scrivi come ${esc(S.net.nick)}…" autocomplete="off" aria-label="Messaggio"><button class="pb" type="submit">Invia</button></form>`
+      : `<form class="chatform" id="nickform"><input id="nickin" maxlength="16" minlength="3" placeholder="Scegli un nickname (3-16)" autocomplete="off" aria-label="Nickname"><button class="pb" type="submit">Entra</button></form><div class="note">Il nickname sarà visibile a tutti e non si può cambiare. Niente insulti: i messaggi segnalati da 3 giocatori spariscono.</div>`}`;
+  } else {
+    body = `<div class="note">Gli ultimi oggetti Astrale, Arcano e Segreto trovati da tutti i giocatori.</div><div class="chatlist">${chatDrops.map(d => { const r = F.ITEM_RARITY.find(x => x.key === d.rarity); return `<div class="cmsg dropg">${itemIcon(d.slot, null, r.color, 20)}<div style="flex:1"><span class="cn">${esc(d.nickname)}</span>ha trovato <b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</b> · ${F.SLOT_LABEL[d.slot] || esc(d.slot)} Lv ${d.ilvl}<div class="msub">Zona ${d.zone} · ${ago(d.created_at)}</div></div></div>`; }).join('') || '<div class="note">Nessun drop raro ancora: il primo potresti essere tu.</div>'}</div>`;
+  }
+  $('#modal').innerHTML = `<div class="mod chatmod" role="dialog" aria-modal="true" aria-label="Chat globale"><div class="eqhead"><h2 style="margin:0;font-size:18px">Community</h2><button class="ib" data-chat="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
+  <div class="tabs2"><button class="sb${chatTab === 'chat' ? ' on' : ''}" data-chat="tab" data-v="chat">Chat</button><button class="sb${chatTab === 'drops' ? ' on' : ''}" data-chat="tab" data-v="drops">Drop rari</button></div>
+  ${chatErr ? `<div class="note" style="color:#FF8A96">${chatErr}</div>` : ''}${body}</div>`;
+  $('#modal').hidden = false;
+  const l = $('#chatlist'); if (l && atBottom) l.scrollTop = l.scrollHeight;
+}
+function chatShow() { chatOpen = true; $('#chatbtn').classList.remove('dot'); chatRender(); chatLoad(); clearInterval(chatTimer); chatTimer = setInterval(chatLoad, 6000); }
+function chatClose() { chatOpen = false; clearInterval(chatTimer); closeModal(); }
+// invia al server i drop rari non ancora condivisi (anche quelli trovati offline)
+async function shareDrops() {
+  if (!S.net || !S.rareLog) return;
+  for (const e of S.rareLog.filter(x => !x.sent).reverse().slice(0, 5)) {
+    try { await api('rpc/it_post_drop', { p_token: S.net.token, p_rarity: e.rarity, p_slot: e.slot, p_zone: e.zone, p_ilvl: e.ilvl }); e.sent = true; } catch (err) { e.sent = true; }
+  }
+}
+// pallino sul pulsante se ci sono messaggi nuovi
+async function chatPeek() { if (chatOpen) return; try { const r = await api('it_chat?select=id&order=id.desc&limit=1'); const seen = +(localStorage.getItem('it_seen') || 0); if (r && r[0] && r[0].id > seen) $('#chatbtn').classList.add('dot'); } catch (e) {} }
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-chat]'); if (!t) return;
+  const a = t.dataset.chat;
+  if (a === 'open') chatShow();
+  else if (a === 'close') chatClose();
+  else if (a === 'tab') { chatTab = t.dataset.v; chatRender(); chatLoad(); }
+  else if (a === 'report') { try { await api('rpc/it_report', { p_token: S.net.token, p_chat_id: +t.dataset.id }); toast('Segnalazione inviata, grazie'); } catch (err) { toast('Segnalazione non riuscita'); } }
+});
+document.addEventListener('submit', async e => {
+  if (e.target.id === 'nickform') {
+    e.preventDefault(); const v = $('#nickin').value.trim();
+    if (v.length < 3) { toast('Il nickname deve avere almeno 3 caratteri'); return; }
+    if (BAD.some(w => v.toLowerCase().includes(w))) { toast('Scegli un nickname senza parolacce'); return; }
+    try { const r = await api('rpc/it_register', { p_nickname: v }); S.net = { id: r.id, token: r.token, nick: r.nickname }; save(); toast('Benvenuto in chat, ' + esc(r.nickname) + '!', '#7FE3FF'); shareDrops(); chatRender(); }
+    catch (err) { toast(/taken/.test(err.message) ? 'Nickname già usato, scegline un altro' : /check/.test(err.message) ? 'Usa solo lettere, numeri, spazi, _ . -' : 'Registrazione non riuscita'); }
+  } else if (e.target.id === 'chatform') {
+    e.preventDefault(); const inp = $('#chatin'), v = inp.value.trim(); if (!v) return;
+    try { await api('rpc/it_post_message', { p_token: S.net.token, p_body: v }); inp.value = ''; await chatLoad(); const l = $('#chatlist'); if (l) l.scrollTop = l.scrollHeight; }
+    catch (err) { toast(/too_fast/.test(err.message) ? 'Piano! Aspetta qualche secondo' : 'Messaggio non inviato'); }
+  }
+});
+setInterval(() => { shareDrops(); chatPeek(); }, 60000); setTimeout(() => { shareDrops(); chatPeek(); }, 3000);
 
 // ---------- input ----------
 document.addEventListener('click', e => {
