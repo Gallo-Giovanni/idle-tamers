@@ -15,5 +15,8 @@ t = t.replace('</head>', pwa + '</head>', 1)
 sw = ("<script>try{if('serviceWorker' in navigator)navigator.serviceWorker"
       ".register('sw.js').catch(function(){});}catch(e){}</script>\n")
 t = t.replace('</body>', sw + '</body>', 1)
+import datetime
+stamp = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=1))).strftime('%d/%m %H:%M')
+t = t.replace('/*BUILD*/', stamp)
 (root/'index.html').write_text(t, encoding='utf-8')
 print('index.html costruito')
