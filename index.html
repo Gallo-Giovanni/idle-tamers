@@ -225,7 +225,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .giveform input{flex:1;min-width:0;min-height:36px;background:#10143A;border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:0 10px;font-size:14px}
 .shopg{grid-template-columns:repeat(3,minmax(0,1fr))!important}.shopg .it{min-height:62px}.it.sold{opacity:.4}
 .sb.on{background:var(--gold);color:#1B1F3B;border-color:var(--gold)}
-.autos{padding:6px 8px}.autol{display:block;font-size:12.5px;font-weight:700;margin-bottom:4px;color:var(--gold)}.autos select{flex:1;min-width:0;min-height:36px}.autos .note{margin:4px 0 0}
+.autos{padding:6px 8px}.autosub{font-weight:500;color:var(--muted);font-size:11.5px}.autol{display:block;font-size:12.5px;font-weight:700;margin-bottom:4px;color:var(--gold)}.autos select{flex:1;min-width:0;min-height:36px}.autos .note{margin:4px 0 0}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -1223,8 +1223,8 @@ function pZaino() {
   const inBag = selItem && S.inventory.find(x => x.id === selItem), inChest = selItem && S.chest.find(x => x.id === selItem);
   const det = inBag ? itemDetail(inBag, 'bag') : inChest ? itemDetail(inChest, 'chest') : '';
   return `<div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><button class="sb" data-act="sellrest">Vendi il resto</button></div>
-  <div class="card autos"><label for="minr" class="autol">Vendita automatica</label><div class="row2" style="margin:0"><select id="minr" data-act="minr">${F.ITEM_RARITY.map((r, i) => { const lab = i === 0 ? 'Disattivata' : i === 1 ? 'Solo comuni' : 'Fino a ' + F.ITEM_RARITY[i - 1].label.toLowerCase(); return i > F.maxFilter(S) ? `<option disabled>${lab} · Pass</option>` : `<option value="${r.key}" ${F.minKeep(S) === i ? 'selected' : ''}>${lab}</option>`; }).join('')}</select><button class="sb" data-act="sellbelow">Vendi ora</button></div>
-  <div class="note">Tutto viene raccolto in automatico; gli oggetti scelti si vendono appena cadono. Le rune, gli oggetti bloccati (lucchetto) e le rarità protette (Mercante) non si vendono mai.${S.stats.autoSold ? ` Venduti finora: ${fmt(S.stats.autoSold)}.` : ''}${F.hasPass(S) ? '' : `<br><span style="color:var(--gold)">${icon('lock', '#F2C14E', 12)} Gratis solo i comuni; per le altre rarità serve il Pass Astrale (Shop).</span>`}</div></div>
+  <div class="card autos"><label for="minr" class="autol">Vendita automatica <span class="autosub">· conserva da questo grado in su</span></label><div class="row2" style="margin:0"><select id="minr" data-act="minr">${F.ITEM_RARITY.map((r, i) => { const lab = r.label + ' in su' + (i === 0 ? ' (tieni tutto)' : ''); return i > F.maxFilter(S) ? `<option disabled>${lab} · Pass</option>` : `<option value="${r.key}" ${F.minKeep(S) === i ? 'selected' : ''}>${lab}</option>`; }).join('')}</select><button class="sb" data-act="sellbelow">Vendi ora</button></div>
+  <div class="note">Tutto viene raccolto; gli oggetti sotto il grado scelto si vendono appena cadono. Le rune, gli oggetti bloccati (lucchetto) e le rarità protette (Mercante) non si vendono mai.${S.stats.autoSold ? ` Venduti finora: ${fmt(S.stats.autoSold)}.` : ''}${F.hasPass(S) ? '' : `<br><span style="color:var(--gold)">${icon('lock', '#F2C14E', 12)} Gratis fino a "Non comune in su" (si vendono i comuni); per i gradi più alti serve il Pass Astrale (Shop).</span>`}</div></div>
   ${selRune ? runeDetail(selRune) : det}
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio</span></div>
   ${runeTiles()}
