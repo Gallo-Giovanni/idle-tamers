@@ -236,7 +236,8 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .autos2{display:flex;align-items:center;gap:8px;width:100%;text-align:left;cursor:pointer;color:var(--txt);padding:8px 10px;font-size:12.5px;min-height:44px}
 .autos2 span{color:var(--muted)}.autos2 b{flex:1;font-size:13.5px}.autos2 i{font-style:normal;font-size:20px;color:var(--muted)}
 .rarbar.big{grid-template-columns:repeat(2,1fr);gap:6px}.rarbar.big .rb1{font-size:13px;padding:8px 6px;cursor:pointer;color:inherit;background-clip:padding-box}.rarbar.big .rb1 em{font-size:11px}
-.rb1.cur{box-shadow:0 0 0 2px var(--c)}.rb1:disabled{opacity:.7;cursor:not-allowed}.passm{color:var(--gold);font-weight:600}
+.rb1.cur{box-shadow:0 0 0 2px var(--c)}.rb1{position:relative;overflow:hidden}.rb1:disabled{cursor:not-allowed;background:repeating-linear-gradient(135deg,#10143A 0 6px,#1b2050 6px 12px)}.rb1:disabled em{opacity:.5}
+.passov{position:absolute;top:0;right:0;background:#F2C14E;color:#1B1F3B;font-size:9.5px;font-weight:900;letter-spacing:1px;padding:2px 6px;border-bottom-left-radius:6px}.passm{color:var(--gold);font-weight:600}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -729,7 +730,7 @@ function hasPass(s) { return !!s.pass && s.pass > Date.now(); }
 function activatePass(s) { s.pass = Math.max(Date.now(), s.pass || 0) + 30 * 86400000; }
 function rarityIndex(k) { return ITEM_RARITY.findIndex(r => r.key === k); }
 // Gratis si vendono da soli solo i comuni (al massimo "tieni da Non comune in su"); oltre serve il Pass
-const FREE_MAX_FILTER = 2; // gratis: comuni e non comuni
+const FREE_MAX_FILTER = 1; // gratis: si vendono solo i comuni
 // Zaino e forziere: 20 posti ciascuno, il doppio col Pass. Le rune non occupano posto.
 const BAG_BASE = 20;
 function bagCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1); }
@@ -1234,8 +1235,8 @@ function showAutoSell() {
   const k = F.minKeep(S), pi = F.protectIdx(S), mx = F.maxFilter(S);
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-labelledby="ast"><div class="eqhead"><h2 id="ast" style="margin:0;font-size:18px">Vendita automatica</h2><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
   <div class="msub" style="margin:4px 0 8px">Tocca il grado <b>da cui conservare</b>: quelli sotto si vendono in oro appena cadono.</div>
-  <div class="rarbar big">${F.ITEM_RARITY.map((r, i) => { const sell = i < k, lock = i > mx; return `<button class="rb1 ${sell ? 'sell' : 'keep'}${i === k ? ' cur' : ''}" style="--c:${r.color}" data-act="setkeep" data-k="${r.key}" ${lock ? 'disabled' : ''}><i class="${r.rainbow ? 'rbg' : ''}"></i><span class="${r.rainbow && !sell ? 'rbw' : ''}">${r.label}</span><em>${sell ? 'vendi' : i >= pi ? 'sempre tenuto' : 'tieni'}${lock ? ' <small class="passm">· Pass</small>' : ''}</em></button>`; }).join('')}</div>
-  <div class="note">Le rune, gli oggetti bloccati col lucchetto e le rarità protette dal Mercante non si vendono mai.${F.hasPass(S) ? '' : '<br><span style="color:var(--gold)">Gratis puoi vendere comuni e non comuni; dai rari in su serve il Pass Astrale (Shop).</span>'}</div>
+  <div class="rarbar big">${F.ITEM_RARITY.map((r, i) => { const sell = i < k, lock = i > mx; return `<button class="rb1 ${sell ? 'sell' : 'keep'}${i === k ? ' cur' : ''}" style="--c:${r.color}" data-act="setkeep" data-k="${r.key}" ${lock ? 'disabled' : ''}><i class="${r.rainbow ? 'rbg' : ''}"></i><span class="${r.rainbow && !sell ? 'rbw' : ''}">${r.label}</span><em>${sell ? 'vendi' : i >= pi ? 'sempre tenuto' : 'tieni'}</em>${lock ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : ''}</button>`; }).join('')}</div>
+  <div class="note">Le rune, gli oggetti bloccati col lucchetto e le rarità protette dal Mercante non si vendono mai.${F.hasPass(S) ? '' : '<br><span style="color:var(--gold)">Gratis puoi vendere in automatico solo i comuni. Le scelte con la scritta PASS si sbloccano col Pass Astrale (Shop).</span>'}</div>
   <div class="row2"><button class="sb" data-act="sellbelow">Vendi ora quelli nello zaino</button><button class="pb" data-act="close">Fatto</button></div></div>`;
   $('#modal').hidden = false;
 }
@@ -1372,7 +1373,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 19:05</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 19:07</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {

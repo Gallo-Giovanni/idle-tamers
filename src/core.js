@@ -447,7 +447,7 @@ function hasPass(s) { return !!s.pass && s.pass > Date.now(); }
 function activatePass(s) { s.pass = Math.max(Date.now(), s.pass || 0) + 30 * 86400000; }
 function rarityIndex(k) { return ITEM_RARITY.findIndex(r => r.key === k); }
 // Gratis si vendono da soli solo i comuni (al massimo "tieni da Non comune in su"); oltre serve il Pass
-const FREE_MAX_FILTER = 2; // gratis: comuni e non comuni
+const FREE_MAX_FILTER = 1; // gratis: si vendono solo i comuni
 // Zaino e forziere: 20 posti ciascuno, il doppio col Pass. Le rune non occupano posto.
 const BAG_BASE = 20;
 function bagCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1); }
