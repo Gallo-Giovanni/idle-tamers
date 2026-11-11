@@ -48,21 +48,53 @@ const SPECIES = {
   ghiacciolo: { name: 'Ghiacciolo', cls: 'Curatore', rarity: 'noncomune', quote: "Le mie cure sono fresche come la luna." },
   lunella: { name: 'Lunella', cls: 'Arciere', rarity: 'comune', quote: "Danzo intorno alla luce della luna." },
   riflessa: { name: 'Riflessa', cls: 'Mago', rarity: 'rara', quote: "Guardami bene: dentro di me ci sei tu." },
+  braciolo: { name: "Braciolo", cls: 'Guerriero', rarity: 'comune', quote: "Scotto un po', ma ti voglio bene." },
+  lavarospo: { name: "Lavarospo", cls: 'Tank', rarity: 'comune', quote: "Salto poco, resisto tanto." },
+  fiammella: { name: "Fiammella", cls: 'Mago', rarity: 'comune', quote: "Sono piccola, ma brucio di entusiasmo." },
+  cenerino: { name: "Cenerino", cls: 'Arciere', rarity: 'comune', quote: "Sono fatto di cenere, ma ho la mira di fuoco." },
+  magmolo: { name: "Magmolo", cls: 'Curatore', rarity: 'comune', quote: "Il mio calore guarisce. Ma non toccarmi." },
+  salamandro: { name: "Salamandro", cls: 'Guerriero', rarity: 'noncomune', quote: "Coda di fuoco, cuore d'oro." },
+  vulcanello: { name: "Vulcanello", cls: 'Tank', rarity: 'noncomune', quote: "Se mi arrabbio, erutto. Di solito no." },
+  fenicino: { name: "Fenicino", cls: 'Curatore', rarity: 'noncomune', quote: "Rinasco dalle mie ceneri. E dalle tue." },
+  scoriatto: { name: "Scoriatto", cls: 'Arciere', rarity: 'comune', quote: "Miao. Ma con le scintille." },
+  draghetto: { name: "Draghetto", cls: 'Mago', rarity: 'rara', quote: "Un giorno sarò enorme. Per ora ti proteggo lo stesso." },
+  ossidiana: { name: "Ossidiana", cls: 'Tank', rarity: 'noncomune', quote: "Lucido, duro, affidabile." },
+  lapillo: { name: "Lapillo", cls: 'Arciere', rarity: 'noncomune', quote: "Volo tra i fumi e non sbaglio un colpo." },
+  solforo: { name: "Solforo", cls: 'Mago', rarity: 'rara', quote: "Puzzo un po', ma i miei incantesimi profumano di vittoria." },
+  imperatore: { name: "Imperatore Magma", cls: 'Tank', rarity: 'boss', quote: "Il fuoco obbedisce a me. E io, da oggi, a te." },
+  ombretto: { name: "Ombretto", cls: 'Guerriero', rarity: 'comune', quote: "Vivo nel buio, ma mi piace la tua luce." },
+  abissale: { name: "Abissale", cls: 'Curatore', rarity: 'comune', quote: "Le mie cure arrivano dal profondo." },
+  lanternino: { name: "Lanternino", cls: 'Arciere', rarity: 'comune', quote: "Seguimi: conosco la strada nel buio." },
+  nullo: { name: "Nullo", cls: 'Tank', rarity: 'comune', quote: "Sono un cubo. Niente mi attraversa." },
+  sussurro: { name: "Sussurro", cls: 'Mago', rarity: 'comune', quote: "Shhh. Sto lanciando un incantesimo." },
+  tentacula: { name: "Tentacula", cls: 'Guerriero', rarity: 'noncomune', quote: "Otto braccia per abbracciarti. O per difenderti." },
+  corvonero: { name: "Corvonero", cls: 'Arciere', rarity: 'noncomune', quote: "Gracchio poco, colpisco molto." },
+  guscionero: { name: "Guscionero", cls: 'Tank', rarity: 'noncomune', quote: "Chele forti, guscio più forte." },
+  eclissa: { name: "Eclissa", cls: 'Curatore', rarity: 'noncomune', quote: "Quando il sole si spegne, io curo." },
+  milleocchi: { name: "Milleocchi", cls: 'Mago', rarity: 'rara', quote: "Ti vedo. Ti ho sempre visto." },
+  colosso: { name: "Colosso", cls: 'Tank', rarity: 'noncomune', quote: "Grande come una luna. Gentile come un gatto." },
+  spettrina: { name: "Spettrina", cls: 'Arciere', rarity: 'comune', quote: "Una freccia d'ombra, un sorriso di luce." },
+  stellanera: { name: "Stellanera", cls: 'Mago', rarity: 'rara', quote: "Sono una stella che ha scelto il buio. E te." },
+  divoratore: { name: "Divoratore di Stelle", cls: 'Mago', rarity: 'boss', quote: "Ho mangiato mille stelle. La mille-e-una sarai tu... da proteggere." },
   reginaquarzo: { name: 'Regina di Quarzo', cls: 'Arciere', rarity: 'boss', quote: 'Una regina non si arrende. Sceglie solo chi servire.' },
 };
 // Pianeti e zone: 10 zone da 30 battaglie, 5 per pianeta
 const PLANETS = [
   { name: 'Prati Stellari', zones: [1, 5], species: ['glimmo', 'cometuga', 'fiorastro', 'sporello', 'polvino', 'meteorino', 'bzzt', 'radichino', 'lucciolo', 'astrillo', 'pipistrella', 'nebulina', 'orbo', 'revuoto'] },
   { name: 'Luna di Cristallo', zones: [6, 10], species: ['scheggia', 'geodino', 'brinello', 'lumispettro', 'stalagmo', 'cristallux', 'gemmerla', 'gufolunare', 'lunella', 'quarzillo', 'ghiacciolo', 'prismella', 'riflessa', 'reginaquarzo'] },
+  { name: 'Nebulosa di Fuoco', zones: [11, 15], species: ['braciolo', 'lavarospo', 'fiammella', 'cenerino', 'magmolo', 'salamandro', 'vulcanello', 'fenicino', 'scoriatto', 'draghetto', 'ossidiana', 'lapillo', 'solforo', 'imperatore'] },
+  { name: 'Abisso Stellare', zones: [16, 20], species: ['ombretto', 'abissale', 'lanternino', 'nullo', 'sussurro', 'tentacula', 'corvonero', 'guscionero', 'eclissa', 'milleocchi', 'colosso', 'spettrina', 'stellanera', 'divoratore'] },
 ];
 // Ogni zona porta 3 creature nuove; nei combattimenti compaiono anche quelle delle zone precedenti dello stesso pianeta
 const ZONE_NEW = [null,
   ['glimmo', 'cometuga', 'fiorastro'], ['sporello', 'polvino', 'meteorino'], ['bzzt', 'radichino', 'lucciolo'], ['astrillo', 'pipistrella', 'nebulina'], ['orbo'],
   ['scheggia', 'geodino', 'brinello'], ['lumispettro', 'stalagmo', 'cristallux'], ['gemmerla', 'gufolunare', 'lunella'], ['quarzillo', 'ghiacciolo', 'prismella'], ['riflessa'],
+  ['braciolo', 'lavarospo', 'fiammella'], ['cenerino', 'magmolo', 'salamandro'], ['vulcanello', 'fenicino', 'scoriatto'], ['ossidiana', 'lapillo', 'draghetto'], ['solforo'],
+  ['ombretto', 'abissale', 'lanternino'], ['nullo', 'sussurro', 'tentacula'], ['corvonero', 'guscionero', 'eclissa'], ['colosso', 'spettrina', 'milleocchi'], ['stellanera'],
 ];
-const ZONE_BOSS = [null, 'cometuga', 'sporello', 'bzzt', 'astrillo', 'revuoto', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo', 'reginaquarzo'];
-const ZONES = [null]; for (let z = 1; z <= 10; z++) { const first = z <= 5 ? 1 : 6, pool = []; for (let k = first; k <= z; k++) pool.push(...ZONE_NEW[k]); ZONES.push({ pool, boss: ZONE_BOSS[z] }); }
-const MAX_ZONE = 10;
+const ZONE_BOSS = [null, 'cometuga', 'sporello', 'bzzt', 'astrillo', 'revuoto', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo', 'reginaquarzo', 'lavarospo', 'salamandro', 'vulcanello', 'ossidiana', 'imperatore', 'lanternino', 'tentacula', 'guscionero', 'colosso', 'divoratore'];
+const ZONES = [null]; for (let z = 1; z <= 20; z++) { const first = Math.floor((z - 1) / 5) * 5 + 1, pool = []; for (let k = first; k <= z; k++) pool.push(...ZONE_NEW[k]); ZONES.push({ pool, boss: ZONE_BOSS[z] }); }
+const MAX_ZONE = 20;
 const ALL_SPECIES = PLANETS.flatMap(p => p.species);
 function planetOf(z) { return PLANETS.find(p => z >= p.zones[0] && z <= p.zones[1]); }
 function zoneOf(sp) { for (let z = 1; z <= MAX_ZONE; z++) if (ZONES[z].pool.includes(sp) || ZONES[z].boss === sp) return z; return 1; }
@@ -126,9 +158,9 @@ const STARMAP = {
 
 // ===== Albero delle costellazioni (grande): anelli di stelle intorno al centro =====
 // Si accende una stella collegata a una già accesa. Gli anelli esterni si aprono con i boss.
-let SKY_RINGS = 10, SKY_COST0 = 20, SKY_COSTG = 3.0;
+let SKY_RINGS = 15, SKY_COST0 = 20, SKY_COSTG = 3.0;
 if (typeof process !== 'undefined' && process.env && process.env.SKYG) { SKY_COSTG = +process.env.SKYG; SKY_COST0 = +(process.env.SKY0 || SKY_COST0); }
-const SKY_GATES = [0, 0, 0, 0, 2, 2, 4, 4, 6, 6, 8]; // anello -> zona da completare (indice = anello)
+const SKY_GATES = [0, 0, 0, 0, 2, 2, 4, 4, 6, 6, 8, 10, 12, 14, 16, 18]; // anello -> zona da completare (indice = anello)
 const SKY_SECTORS = [
   { name: 'Attacco', color: '#E2504A', ic: '⚔', kinds: [['atk', 0.04, 'Danni'], ['atk', 0.04, 'Danni'], ['aspd', 0.01, "Vel. d'attacco"]] },
   { name: 'Vita', color: '#7ED36F', ic: '♥', kinds: [['hp', 0.05, 'Vita'], ['hp', 0.05, 'Vita'], ['heal', 0.04, 'Cure']] },
@@ -193,6 +225,10 @@ const ACH = [
   { id: 'c1',    name: 'Primo amico', desc: 'Cattura la prima creatura', test: s => capturedCount(s) >= 1, astri: 5 },
   { id: 'c4',    name: 'Piccolo zoo', desc: 'Cattura 4 creature', test: s => capturedCount(s) >= 4, astri: 10 },
   { id: 'c7',    name: 'Bestiario dei Prati', desc: 'Cattura tutte le creature di Prati Stellari', test: s => PLANETS[0].species.every(k => s.roster[k]), astri: 40 },
+  { id: 'boss3', name: 'Domatore di fiamme', desc: "Sconfiggi l'Imperatore Magma (zona 15)", test: s => s.cleared >= 15, astri: 45 },
+  { id: 'boss4', name: "Oltre l'Abisso", desc: 'Sconfiggi il Divoratore di Stelle (zona 20)', test: s => s.cleared >= 20, astri: 80 },
+  { id: 'c21', name: 'Bestiario del Fuoco', desc: 'Cattura tutte le creature della Nebulosa di Fuoco', test: s => PLANETS[2].species.every(k => s.roster[k]), astri: 80 },
+  { id: 'c28', name: "Bestiario dell'Abisso", desc: "Cattura tutte le creature dell'Abisso Stellare", test: s => PLANETS[3].species.every(k => s.roster[k]), astri: 100 },
   { id: 'c14',   name: 'Bestiario della Luna', desc: 'Cattura tutte le creature della Luna di Cristallo', test: s => PLANETS[1].species.every(k => s.roster[k]), astri: 60 },
   { id: 'leg',   name: 'Bagliore leggendario', desc: 'Trova un oggetto leggendario o superiore', test: s => s.stats.legendary >= 1, astri: 10 },
   { id: 'full',  name: 'Squadra al completo', desc: 'Sblocca e riempi tutti i posti della squadra', test: s => creaturesInTeam(s) >= CREATURE_SLOTS, astri: 20 },
@@ -367,9 +403,9 @@ function memberPower(s, id) { const st = memberStats(s, id); return Math.round(s
 let WZ = 1.03; if (typeof process !== 'undefined' && process.env && process.env.WZ) WZ = +process.env.WZ;
 function withinZone(n) { return Math.pow(WZ, n - 1); }
 // Passo tra le zone: sul primo pianeta più dolce, sul secondo più ripido (la squadra è già grande)
-let ZONE_K = [0, 0, 2.0, 2.0, 2.0, 2.0, 1.78, 1.78, 1.78, 1.78, 1.68]; // tarato: 10 zone in circa 14-15 giorni (simulazione con giocatore che controlla ogni 4 ore)
+let ZONE_K = [0, 0, 2.0, 2.0, 2.0, 2.0, 1.78, 1.78, 1.78, 1.78, 1.68, 1.5, 1.5, 1.5, 1.5, 1.5, 1.38, 1.38, 1.38, 1.38, 1.38]; // tarato: 20 zone in circa 30-35 giorni (giocatore che controlla ogni 4 ore)
 if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JSON.parse(process.env.ZK);
-const ZONE_BASE = [0, 1]; for (let z = 2; z <= 10; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
+const ZONE_BASE = [0, 1]; for (let z = 2; z <= MAX_ZONE; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n); }
 
 function makeEnemies(s) {
