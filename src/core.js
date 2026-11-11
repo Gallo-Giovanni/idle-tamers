@@ -411,7 +411,7 @@ function dropItem(s, boss, ev) {
   if (rarityIndex(r.key) >= 4) s.stats.legendary++;
   if (RARE_FEED.includes(r.key)) { s.stats.rare = s.stats.rare || {}; s.stats.rare[r.key] = (s.stats.rare[r.key] || 0) + 1; (s.rareLog = s.rareLog || []).unshift({ t: Date.now(), rarity: r.key, slot, zone: s.zone, ilvl: it.ilvl }); s.rareLog.length = Math.min(s.rareLog.length, 50); if (ev) ev.push({ type: 'rare', item: it }); }
   // filtro del bottino: sotto la rarità minima scelta l'oggetto si vende subito (le rune non passano di qui)
-  if (rarityIndex(r.key) < minKeep(s)) { if (s.settings.autoMode === 'elimina') s.stats.autoDeleted = (s.stats.autoDeleted || 0) + 1; else { s.gold += sellValue(it); s.stats.autoSold = (s.stats.autoSold || 0) + 1; } return; }
+  if (rarityIndex(r.key) < minKeep(s)) { s.gold += sellValue(it); s.stats.autoSold = (s.stats.autoSold || 0) + 1; return; }
   if (s.inventory.length >= bagCap(s)) { // zaino pieno: l'oggetto va perso (niente vendita automatica nascosta)
     s.stats.lost = (s.stats.lost || 0) + 1; if (ev) ev.push({ type: 'lost', item: it }); return;
   }
@@ -458,10 +458,10 @@ function offlineCap(s) { return OFFLINE_CAP * (hasPass(s) ? 2 : 1); }
 function maxFilter(s) { return hasPass(s) ? ITEM_RARITY.length - 1 : FREE_MAX_FILTER; }
 function minKeep(s) { return Math.min(rarityIndex(s.settings.minRarity || 'comune'), maxFilter(s), protectIdx(s)); }
 // "Tieni sempre da ... in su": queste rarità non si vendono mai (né a mano né in automatico)
-function protectIdx(s) { const k = s.settings.protect || 'leggendaria'; return k === 'none' ? ITEM_RARITY.length : rarityIndex(k); }
+function protectIdx(s) { const k = s.settings.protect || 'segreto'; return k === 'none' ? ITEM_RARITY.length : rarityIndex(k); }
 function isProtected(s, it) { return !!it.locked || rarityIndex(it.rarity) >= protectIdx(s); }
 function toggleLock(s, id) { const it = s.inventory.find(x => x.id === id) || s.chest.find(x => x.id === id); if (!it) return false; it.locked = !it.locked; return it.locked; }
-function sellBelow(s) { const min = minKeep(s); let gold = 0, n = 0; s.inventory = s.inventory.filter(it => { if (rarityIndex(it.rarity) < min && !isProtected(s, it)) { if (s.settings.autoMode !== 'elimina') gold += sellValue(it); n++; return false; } return true; }); s.gold += gold; return { gold, n }; }
+function sellBelow(s) { const min = minKeep(s); let gold = 0, n = 0; s.inventory = s.inventory.filter(it => { if (rarityIndex(it.rarity) < min && !isProtected(s, it)) { gold += sellValue(it); n++; return false; } return true; }); s.gold += gold; return { gold, n }; }
 function sellRest(s) {
   // vende ciò che non migliora nessuno nella squadra né nella riserva
   let gold = 0, n = 0;
@@ -549,7 +549,7 @@ function migrate(s) {
   delete s.tree.corona;
   for (const k in TREE) if (s.tree[k] === undefined) s.tree[k] = 0;
   if (!s.chest) s.chest = []; if (!s.rareLog) s.rareLog = [];
-  delete s.settings.autoStars; delete s._nextStar;
+  delete s.settings.autoStars; delete s.settings.autoMode; delete s._nextStar;
   { const keep = []; let n = 0; for (const id of s.team) { if (isHero(id)) keep.push(id); else if (n < slotCount(s)) { keep.push(id); n++; } } s.team = keep; }
   delete s.dust; delete s.train; delete s.move;
   if (s.shop && s.shop.items.some(i => i.price !== SHOP_PRICE[i.rarity])) s.shop = null;

@@ -330,14 +330,20 @@ function runeDetail(k) {
     <div class="stbox"><div class="srow2"><span>Valore di una runa</span><b>${r.value} ${icon('gem', '#F49AC1', 11)}</b></div><div class="srow2"><span>Valore di tutte (${fmt(n)})</span><b>${fmt(n * r.value)} ${icon('gem', '#F49AC1', 11)}</b></div></div>
     <div class="row2"><button class="sb" data-act="sellrune1" data-k="${k}" ${n < 1 ? 'disabled' : ''}>Vendi 1 · ${r.value} Astri</button><button class="sb" data-act="sellruneall" data-k="${k}" ${n < 1 ? 'disabled' : ''}>Vendi tutte · ${fmt(n * r.value)} Astri</button></div></div>`;
 }
+function showAutoSell() {
+  const k = F.minKeep(S), pi = F.protectIdx(S), mx = F.maxFilter(S);
+  $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-labelledby="ast"><div class="eqhead"><h2 id="ast" style="margin:0;font-size:18px">Vendita automatica</h2><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
+  <div class="msub" style="margin:4px 0 8px">Tocca il grado <b>da cui conservare</b>: quelli sotto si vendono in oro appena cadono.</div>
+  <div class="rarbar big">${F.ITEM_RARITY.map((r, i) => { const sell = i < k, lock = i > mx; return `<button class="rb1 ${sell ? 'sell' : 'keep'}${i === k ? ' cur' : ''}" style="--c:${r.color}" data-act="setkeep" data-k="${r.key}" ${lock ? 'disabled' : ''}><i class="${r.rainbow ? 'rbg' : ''}"></i><span class="${r.rainbow && !sell ? 'rbw' : ''}">${r.label}</span><em>${sell ? 'vendi' : i >= pi ? 'sempre tenuto' : 'tieni'}${lock ? ' <small class="passm">· Pass</small>' : ''}</em></button>`; }).join('')}</div>
+  <div class="note">Le rune, gli oggetti bloccati col lucchetto e le rarità protette dal Mercante non si vendono mai.${F.hasPass(S) ? '' : '<br><span style="color:var(--gold)">Gratis puoi vendere comuni e non comuni; dai rari in su serve il Pass Astrale (Shop).</span>'}</div>
+  <div class="row2"><button class="sb" data-act="sellbelow">Vendi ora quelli nello zaino</button><button class="pb" data-act="close">Fatto</button></div></div>`;
+  $('#modal').hidden = false;
+}
 function pZaino() {
   const inBag = selItem && S.inventory.find(x => x.id === selItem), inChest = selItem && S.chest.find(x => x.id === selItem);
   const det = inBag ? itemDetail(inBag, 'bag') : inChest ? itemDetail(inChest, 'chest') : '';
   return `<div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><button class="sb" data-act="sellrest">Vendi il resto</button></div>
-  <div class="card autos"><label for="minr" class="autol">Vendita automatica <span class="autosub">· conserva da questo grado in su</span></label><div class="row2" style="margin:0"><select id="minr" data-act="minr" style="color:${F.ITEM_RARITY[F.minKeep(S)].color};font-weight:700">${F.ITEM_RARITY.map((r, i) => { const lab = r.label + ' in su' + (i === 0 ? ' (tieni tutto)' : ''); return i > F.maxFilter(S) ? `<option disabled style="color:#7C84BC">${lab} · Pass</option>` : `<option value="${r.key}" style="color:${r.color}" ${F.minKeep(S) === i ? 'selected' : ''}>${lab}</option>`; }).join('')}</select><button class="sb" data-act="sellbelow">${S.settings.autoMode === 'elimina' ? 'Elimina ora' : 'Vendi ora'}</button></div>
-  <div class="tabs2 amode"><button class="sb${S.settings.autoMode !== 'elimina' ? ' on' : ''}" data-act="amode" data-v="vendi">Vendi (ricevi oro)</button><button class="sb${S.settings.autoMode === 'elimina' ? ' on del' : ''}" data-act="amode" data-v="elimina">Elimina (niente oro)</button></div>
-  ${(() => { const k = F.minKeep(S), pi = F.protectIdx(S); return `<div class="rarbar">${F.ITEM_RARITY.map((r, i) => { const sell = i < k; return `<div class="rb1 ${sell ? 'sell' : 'keep'}" style="--c:${r.color}"><i class="${r.rainbow ? 'rbg' : ''}"></i><span class="${r.rainbow && !sell ? 'rbw' : ''}">${r.label}</span><em>${sell ? (S.settings.autoMode === 'elimina' ? 'elimina' : 'vendi') : i >= pi ? '🔒 tieni' : 'tieni'}</em></div>`; }).join('')}</div>`; })()}
-  <div class="note">Tutto viene raccolto; gli oggetti sotto il grado scelto vengono venduti (oro) o eliminati appena cadono. Le rune, gli oggetti bloccati (lucchetto) e le rarità protette (Mercante) non si vendono mai.${S.stats.autoSold ? ` Venduti finora: ${fmt(S.stats.autoSold)}.` : ''}${F.hasPass(S) ? '' : `<br><span style="color:var(--gold)">${icon('lock', '#F2C14E', 12)} Gratis per comuni e non comuni; dai rari in su serve il Pass Astrale (Shop).</span>`}</div></div>
+  ${(() => { const k = F.minKeep(S), r = F.ITEM_RARITY[k]; return `<button class="card autos2" data-act="autoopen"><span>Vendita automatica</span><b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${k === 0 ? 'disattivata' : 'conserva da ' + r.label + ' in su'}</b><i>›</i></button>`; })()}
   ${selRune ? runeDetail(selRune) : det}
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio</span></div>
   ${runeTiles()}
@@ -631,7 +637,8 @@ document.addEventListener('click', e => {
   else if (a === 'uneq') F.unequip(S, id, t.dataset.slot);
   else if (a === 'selit') { selItem = selItem === item ? null : item; selRune = null; }
   else if (a === 'lockit') { const on = F.toggleLock(S, item); toast(on ? 'Oggetto bloccato: non verrà mai venduto' : 'Oggetto sbloccato'); }
-  else if (a === 'amode') { S.settings.autoMode = t.dataset.v; }
+  else if (a === 'autoopen') { showAutoSell(); return; }
+  else if (a === 'setkeep') { S.settings.minRarity = t.dataset.k; dirty = true; showAutoSell(); return; }
   else if (a === 'selrune') { selRune = selRune === t.dataset.k ? null : t.dataset.k; selItem = null; }
   else if (a === 'selshop') selShop = selShop === +t.dataset.i ? null : +t.dataset.i;
   else if (a === 'equipall') { const n = F.autoEquip(S); toast(n ? `Equipaggiati ${n} oggetti` : 'Nessun miglioramento disponibile'); }
@@ -648,7 +655,7 @@ document.addEventListener('click', e => {
   else if (a === 'buy') { if (F.buyShop(S, +t.dataset.i)) toast('Acquistato: lo trovi nello zaino'); }
   else if (a === 'reroll') { selShop = null; if (F.rerollShop(S)) toast('Il mercante ha cambiato la merce', '#F49AC1'); }
   else if (a === 'skip') { skipTime(+t.dataset.h); return; }
-  else if (a === 'sellbelow') { const r = F.sellBelow(S); toast(r.n ? (S.settings.autoMode === 'elimina' ? `Eliminati ${r.n} oggetti` : `Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro`) : 'Niente sotto la soglia'); }
+  else if (a === 'sellbelow') { const r = F.sellBelow(S); toast(r.n ? `Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro` : 'Niente sotto la soglia'); }
   else if (a === 'claim') { const r = F.claimMission(S, id); if (r) toast(`Missione completata: +${r.astri} Astri, +1 ${F.RUNE[r.rune[0]].label.toLowerCase()}`, '#F2C14E'); }
   else if (a === 'buyhero') { if (F.buyHero(S, id)) { toast(F.SPECIES[id].name + ' si unisce alla squadra! (versione di prova)', '#F2C14E'); rebuild(); } }
   else if (a === 'bagview') { bagView = t.dataset.v; selItem = null; }
