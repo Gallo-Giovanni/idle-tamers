@@ -147,6 +147,12 @@ function teamFull(s) { return creaturesInTeam(s) >= CREATURE_SLOTS; }
 // Eroi extra in vendita (prezzi in euro; nella versione di prova si sbloccano gratis)
 const HERO_SHOP = [{ id: 'hero_arc', price: '1,99 €' }, { id: 'hero_mag', price: '4,99 €' }];
 const PASS_PRICE = '9,99 € / mese';
+// Astri gratuiti ogni giorno: si riscuotono una volta, si rinnovano a mezzanotte (ora locale)
+const DAILY_ASTRI = 10;
+function dayKey(now) { const d = new Date(now); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
+function dailyReady(s, now) { return s.daily !== dayKey(now || Date.now()); }
+function claimDaily(s, now) { if (!dailyReady(s, now)) return 0; s.daily = dayKey(now || Date.now()); s.astri += DAILY_ASTRI; return DAILY_ASTRI; }
+function nextMidnight(now) { const d = new Date(now); d.setHours(24, 0, 0, 0); return d.getTime(); }
 function buyHero(s, id) { if (!isHero(id) || s.roster[id]) return false; s.roster[id] = newMember(id, Math.max(1, Math.floor(s.roster.hero.lvl * 0.8))); s.team.push(id); return true; }
 const LEVEL_CAP = 30;
 function xpNeed(l) { return Math.round(100 * Math.pow(1.5, l - 1)); }
@@ -579,7 +585,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;

@@ -64,7 +64,7 @@ header{padding:6px 10px 5px;display:flex;flex-direction:column;gap:4px;flex-shri
 .toast{background:rgba(22,26,58,.96);border:1px solid var(--line);border-left:4px solid var(--cyan);border-radius:8px;padding:8px 10px;font-size:12.5px;animation:tin .25s ease-out}
 @keyframes tin{from{opacity:0;transform:translateY(-6px)}}
 nav{display:flex;gap:2px;padding:3px 6px calc(4px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#0E1230;flex-shrink:0}
-.tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:44px;padding:4px 0;background:none;border:none;border-radius:8px;color:var(--muted);font-size:9.5px;font-weight:600;cursor:pointer}
+.tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:44px;padding:4px 0;background:none;border:none;border-radius:8px;color:var(--muted);font-size:9px;font-weight:600;cursor:pointer}
 .tab[aria-current=page]{color:var(--gold);background:#1E2350}
 .ph{display:flex;justify-content:space-between;align-items:baseline;margin:8px 0 5px;padding-bottom:3px;border-bottom:1px solid var(--line)}
 .ph h2{margin:0;font-family:'Pixelify Sans',sans-serif;font-size:15px;color:var(--gold)}.ph span{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px}
@@ -172,6 +172,8 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .tabs2{display:flex;gap:4px;margin:4px 0}.tabs2 button{flex:1}.tabs2 .on{background:var(--gold);color:#1B1F3B;border-color:var(--gold)}
 .herocard{display:flex;align-items:center;gap:10px}.herocard .mspr{width:48px}
 .feed{display:flex;align-items:center;gap:8px;font-size:12px}
+.daily{display:flex;align-items:center;gap:10px;border-color:#F49AC1}.daily .big{font-size:22px;font-weight:800;color:#F49AC1}
+.shopsec{font-size:11px;color:var(--muted);margin:2px 0 6px}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -205,7 +207,8 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
  <button class="tab" data-tab="squadra"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15 14.5c3 0 6 2 6 5.5"/></svg>Squadra</button>
  <button class="tab" data-tab="zaino"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l1 12H5zM9 8V6a3 3 0 0 1 6 0v2"/></svg>Zaino</button>
  <button class="tab" data-tab="mappa"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>Mappa</button>
- <button class="tab" data-tab="negozio"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9l1.5-5h13L20 9M4 9h16v11H4zM4 9c0 1.7 1.8 3 4 3s4-1.3 4-3c0 1.7 1.8 3 4 3s4-1.3 4-3"/></svg>Negozio</button>
+ <button class="tab" data-tab="negozio"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9l1.5-5h13L20 9M4 9h16v11H4zM4 9c0 1.7 1.8 3 4 3s4-1.3 4-3c0 1.7 1.8 3 4 3s4-1.3 4-3"/></svg>Mercante</button>
+ <button class="tab" data-tab="shop"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M12 9v12"/></svg>Shop</button>
  <button class="tab" data-tab="bestiario"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M9 7h6"/></svg>Bestiario</button>
  <button class="tab" data-tab="stelle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="17" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="19" cy="14" r="1.6"/><path d="M6.3 16l4.5-8.6M13.4 6.8l4.6 6.2"/></svg>Stelle</button>
  <button class="tab" data-tab="altro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Stats</button>
@@ -362,6 +365,12 @@ function teamFull(s) { return creaturesInTeam(s) >= CREATURE_SLOTS; }
 // Eroi extra in vendita (prezzi in euro; nella versione di prova si sbloccano gratis)
 const HERO_SHOP = [{ id: 'hero_arc', price: '1,99 €' }, { id: 'hero_mag', price: '4,99 €' }];
 const PASS_PRICE = '9,99 € / mese';
+// Astri gratuiti ogni giorno: si riscuotono una volta, si rinnovano a mezzanotte (ora locale)
+const DAILY_ASTRI = 10;
+function dayKey(now) { const d = new Date(now); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
+function dailyReady(s, now) { return s.daily !== dayKey(now || Date.now()); }
+function claimDaily(s, now) { if (!dailyReady(s, now)) return 0; s.daily = dayKey(now || Date.now()); s.astri += DAILY_ASTRI; return DAILY_ASTRI; }
+function nextMidnight(now) { const d = new Date(now); d.setHours(24, 0, 0, 0); return d.getTime(); }
 function buyHero(s, id) { if (!isHero(id) || s.roster[id]) return false; s.roster[id] = newMember(id, Math.max(1, Math.floor(s.roster.hero.lvl * 0.8))); s.team.push(id); return true; }
 const LEVEL_CAP = 30;
 function xpNeed(l) { return Math.round(100 * Math.pow(1.5, l - 1)); }
@@ -794,7 +803,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
@@ -1013,7 +1022,7 @@ function handle(ev) {
 
 // ---------- HUD ----------
 function hud() {
-  const mr = F.missionsReady(S), bt = document.querySelector('[data-tab=bestiario]'); if (bt) bt.classList.toggle('dot', mr > 0);
+  const mr = F.missionsReady(S), bt = document.querySelector('[data-tab=bestiario]'); if (bt) bt.classList.toggle('dot', mr > 0); const shb = document.querySelector('[data-tab=shop]'); if (shb) shb.classList.toggle('dot', F.dailyReady(S));
   $('#gold').textContent = cfmt(S.gold); $('#astri').textContent = cfmt(S.astri);
   const pl = F.planetOf(S.zone); $('#ptitle').textContent = pl.name; $('#where').textContent = `Zona ${S.zone} · Battaglia ${S.battle}/30`;
   scene().classList.toggle('p2', pl === F.PLANETS[1]);
@@ -1132,19 +1141,26 @@ function pZaino() {
   ${runeBar()}${capNote}
   <div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><button class="sb" data-act="sellrest">Vendi il resto</button></div>
   <div class="row2"><label for="minr">Raccolta automatica da</label><select id="minr" data-act="minr">${F.ITEM_RARITY.map((r, i) => i > F.maxFilter(S) ? `<option disabled>${r.label} in su · Pass</option>` : `<option value="${r.key}" ${F.minKeep(S) === i ? 'selected' : ''}>${r.label} in su</option>`).join('')}</select><button class="sb" data-act="sellbelow">Vendi quelli sotto</button></div>
-  <div class="note">Si raccoglie tutto; gli oggetti sotto la rarità scelta si vendono appena cadono, in oro. Le rune si tengono sempre.${S.stats.autoSold ? ` Venduti finora: ${fmt(S.stats.autoSold)}.` : ''}${F.hasPass(S) ? '' : `<br><span style="color:var(--gold)">${icon('lock', '#F2C14E', 12)} Gratis si vendono da soli solo i comuni; per le altre rarità serve il Pass Astrale (Negozio).</span>`}</div>
+  <div class="note">Si raccoglie tutto; gli oggetti sotto la rarità scelta si vendono appena cadono, in oro. Le rune si tengono sempre.${S.stats.autoSold ? ` Venduti finora: ${fmt(S.stats.autoSold)}.` : ''}${F.hasPass(S) ? '' : `<br><span style="color:var(--gold)">${icon('lock', '#F2C14E', 12)} Gratis si vendono da soli solo i comuni; per le altre rarità serve il Pass Astrale (Shop).</span>`}</div>
   ${det}
   ${grid}`;
 }
 function runeBar() { return `<div class="runebar">${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<span title="${r.label}">${icon('rune', r.color, 16, r.label)}<b>${fmt(S.runes[k])}</b></span>`; }).join('')}</div>`; }
-function pNegozio() {
-  const left = Math.max(0, F.nextRefresh(Date.now()) - Date.now()), h = Math.floor(left / 3600000), mi = Math.floor(left % 3600000 / 60000);
-  const inv = S.inventory.slice().sort((a, b) => F.itemPower(a) - F.itemPower(b));
-  return `<div class="ph"><h2>Mercante</h2><span>nuovi oggetti tra ${h} h ${mi} min</span></div>
-  <div class="note">Il mercante cambia merce 3 volte al giorno (alle 0, alle 8 e alle 16). Le rarità hanno le stesse probabilità dei drop.</div>
+function pShop() {
+  const left = Math.max(0, F.nextMidnight(Date.now()) - Date.now()), h = Math.floor(left / 3600000), mi = Math.floor(left % 3600000 / 60000), ready = F.dailyReady(S);
+  return `<div class="ph"><h2>Shop</h2><span>${icon('gem', '#F49AC1', 14)} ${fmt(S.astri)} Astri</span></div>
+  <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min (a mezzanotte).`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
+  <div class="ph"><h2 style="font-size:13px">Abbonamento</h2></div>
   <div class="card passc"><div><b style="color:var(--gold)">Pass Astrale · ${F.PASS_PRICE}</b><div class="msub">Vendita automatica di tutte le rarità · zaino e forziere ×2 · guadagno offline fino a 16 ore (invece di 8).</div>${F.hasPass(S) ? `<div class="msub" style="color:#7ED36F">Attivo fino al ${new Date(S.pass).toLocaleDateString('it-IT')}</div>` : ''}</div><button class="pb" data-act="pass">${F.hasPass(S) ? 'Rinnova' : 'Attiva'}<br><small>prova gratis</small></button></div>
   <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
   ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr">${sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}<br><small>prova gratis</small></button>`}</div>`; }).join('')}
+  <div class="note">Versione di prova: gli acquisti si sbloccano gratis, nessun pagamento reale.</div>`;
+}
+function pNegozio() {
+  const left = Math.max(0, F.nextRefresh(Date.now()) - Date.now()), h = Math.floor(left / 3600000), mi = Math.floor(left % 3600000 / 60000);
+  const inv = S.inventory.slice().sort((a, b) => F.itemPower(a) - F.itemPower(b));
+  return `<div class="ph"><h2>Mercante</h2><span>merce nuova tra ${h} h ${mi} min</span></div>
+  <div class="note">Il mercante cambia merce 3 volte al giorno (alle 0, alle 8 e alle 16). Le rarità hanno le stesse probabilità dei drop.</div>
   <div class="card wallet"><div>${icon('gem', '#F49AC1', 18)} <b>${fmt(S.astri)}</b> Astri</div></div>
   ${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<div class="card srow"><div style="display:flex;align-items:center;gap:8px">${icon('rune', r.color, 22)}<div><b style="color:${r.color}">${r.label}</b> × ${fmt(S.runes[k])}<div class="msub">Vale ${r.value} ${r.value === 1 ? 'Astro' : 'Astri'}</div></div></div><div class="mbtns"><button class="sb" data-act="sellrune1" data-k="${k}" ${S.runes[k] < 1 ? 'disabled' : ''}>Vendi 1</button><button class="sb" data-act="sellruneall" data-k="${k}" ${S.runes[k] < 1 ? 'disabled' : ''}>Tutte</button></div></div>`; }).join('')}
   <div class="note">Ogni runa porta un oggetto alla sua rarità partendo da quella precedente (verde: da comune a non comune, blu: a raro, viola: a epico, arancione: a leggendario). Astrale, Arcano e Segreto si trovano solo come drop. Basta 1 runa per potenziare uno slot: vendi solo quelle in più.</div>
@@ -1230,7 +1246,7 @@ function drawChart() {
 function render() {
   const p = $('#panel');
   const y = p.scrollTop;
-  p.innerHTML = tab === 'squadra' ? pSquadra() : tab === 'zaino' ? pZaino() : tab === 'negozio' ? pNegozio() : tab === 'mappa' ? pMappa() : tab === 'bestiario' ? pBestiario() : tab === 'stelle' ? pStelle() : pAltro();
+  p.innerHTML = tab === 'squadra' ? pSquadra() : tab === 'zaino' ? pZaino() : tab === 'negozio' ? pNegozio() : tab === 'shop' ? pShop() : tab === 'mappa' ? pMappa() : tab === 'bestiario' ? pBestiario() : tab === 'stelle' ? pStelle() : pAltro();
   p.scrollTop = y;
   if (tab === 'altro') drawChart();
   document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-current', t.dataset.tab === tab ? 'page' : 'false'));
@@ -1325,6 +1341,7 @@ document.addEventListener('click', e => {
   else if (a === 'bagview') { bagView = t.dataset.v; selItem = null; }
   else if (a === 'tochest') { F.toChest(S, +t.dataset.item); selItem = null; }
   else if (a === 'fromchest') { F.fromChest(S, +t.dataset.item); selItem = null; }
+  else if (a === 'daily') { const g = F.claimDaily(S); if (g) toast(`+${g} ${icon('gem', '#F49AC1', 14)} Astri: regalo del giorno`, '#F49AC1'); }
   else if (a === 'pass') { F.activatePass(S); toast('Pass Astrale attivo per 30 giorni (versione di prova)', '#F2C14E'); }
   else if (a === 'zone') { if (F.setZone(S, +t.dataset.z)) { rebuild(); banner('ZONA ' + S.zone); } }
   else if (a === 'tree') { F.buyTree(S, t.dataset.k); }
