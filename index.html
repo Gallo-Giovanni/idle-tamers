@@ -208,7 +208,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .dropg{display:flex;align-items:center;gap:8px;font-size:12px}
 .sett{margin:4px 0}.sett summary{font-size:12px;color:var(--muted);cursor:pointer;min-height:32px;display:flex;align-items:center}.sett summary b{color:var(--txt);margin-left:4px}
 .it .plk{position:absolute;top:2px;left:2px;right:auto;background:none;padding:0}
-.runes4{grid-template-columns:repeat(4,1fr)!important}.runes4 .sitem{padding:6px 4px}.runes4 .pb{min-height:30px;padding:0 6px}
+.runes4{grid-template-columns:repeat(4,1fr)!important;gap:4px}.runes4 .sitem{padding:6px 4px}.runes4 .pb{min-height:30px;padding:0 6px}
 .kv.sub{font-size:12px;padding-left:8px;opacity:.95}
 
 .skymap{position:relative;height:330px;margin:4px 0 8px;border-radius:14px;background:radial-gradient(circle at 50% 50%,#26306e 0,#141a46 55%,#0b0e24 100%);overflow:hidden}
@@ -347,12 +347,14 @@ const ITEM_RARITY = [ // chiavi interne invariate per compatibilità dei salvata
   { key: 'noncomune',   label: 'Non comune',  mult: 1.4, weight: 25,    color: '#6CCB5F' },
   { key: 'rara',        label: 'Raro',        mult: 2,   weight: 10,    color: '#5B9BFF' },
   { key: 'epica',       label: 'Epico',       mult: 3,   weight: 4,     color: '#B07CF0' },
-  { key: 'leggendaria', label: 'Leggendario', mult: 5,   weight: 0.9,   color: '#F2994A' },
-  { key: 'astrale',     label: 'Astrale',     mult: 7,   weight: 0.09,  color: '#FF7AD9' },
-  { key: 'arcano',      label: 'Arcano',      mult: 10,  weight: 0.008, color: '#E8334F' },
+  { key: 'leggendaria', label: 'Leggendario', mult: 5,   weight: 0.75,  color: '#F2994A' },
+  { key: 'mitico',      label: 'Mitico',      mult: 6,   weight: 0.25,  color: '#FFD34D' },
+  { key: 'astrale',     label: 'Astrale',     mult: 7,   weight: 0.1,   color: '#FF7AD9' },
+  { key: 'arcano',      label: 'Arcano',      mult: 10,  weight: 0.01,  color: '#E8334F' },
+  { key: 'eterno',      label: 'Eterno',      mult: 12,  weight: 0.004, color: '#1FE0D0' },
   { key: 'segreto',     label: 'Segreto',     mult: 15,  weight: 0.002, color: '#FFFFFF', rainbow: true },
 ];
-const RARE_FEED = ['astrale', 'arcano', 'segreto']; // drop annunciati nella sezione dei drop rari
+const RARE_FEED = ['astrale', 'arcano', 'eterno', 'segreto']; // drop annunciati nella sezione dei drop rari
 // 11 posti di equipaggiamento; gli oggetti hanno 10 tipi (l'anello va in due posti)
 const SLOTS = ['arma', 'secondaria', 'elmo', 'corazza', 'gambe', 'stivali', 'guanti', 'collana', 'orecchini', 'anello1', 'anello2'];
 const KINDS = ['arma', 'secondaria', 'elmo', 'corazza', 'gambe', 'stivali', 'guanti', 'collana', 'orecchini', 'anello'];
@@ -421,7 +423,7 @@ function pickWeighted(st, list, w) { let tot = 0; for (const x of list) tot += w
 function newState() {
   return {
     v: 1, seed: (Date.now() % 2147483647) >>> 0,
-    gold: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0 }, astri: 0, shop: null, zone: 1, maxZone: 1, cleared: 0, battle: 1, maxBattle: 1, maxGlobal: 1,
+    gold: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0, mitico: 0, astrale: 0 }, astri: 0, shop: null, zone: 1, maxZone: 1, cleared: 0, battle: 1, maxBattle: 1, maxGlobal: 1,
     team: ['hero'], roster: { hero: newMember('hero', 1) }, inventory: [], chest: [], rareLog: [], nextId: 1,
     tree: { forza: 0, vita: 0, branco: 0, scudo: 0, lama: 0, tesoro: 0, cometa: 0, richiamo: 0 },
     hunt: {}, // uccisioni per specie non ancora catturata
@@ -463,7 +465,7 @@ const PCT_STATS = ['crit', 'critDmg', 'aspd', 'block', 'dodge'];
 const BONUS_KEYS = ['atk', 'hp', 'def', 'crit', 'critDmg', 'aspd', 'block', 'dodge'];
 const BONUS_DEF = { atk: 0.12, hp: 0.8, def: 0.04, crit: 0.02, critDmg: 0.08, aspd: 0.04, block: 0.03, dodge: 0.03 };
 const SUFFIX = { atk: 'della Furia', hp: 'del Gigante', def: 'della Roccia', crit: 'del Falco', critDmg: 'della Tempesta', aspd: 'del Vento', block: 'del Bastione', dodge: "dell'Ombra" };
-const BONUS_COUNT = { comune: 0, noncomune: 1, rara: 2, epica: 3, leggendaria: 4, astrale: 4, arcano: 5, segreto: 5 };
+const BONUS_COUNT = { comune: 0, noncomune: 1, rara: 2, epica: 3, leggendaria: 4, mitico: 4, astrale: 4, arcano: 5, eterno: 5, segreto: 5 };
 const rarMult = k => ITEM_RARITY.find(r => r.key === k).mult;
 function itemBase(it) { return 4 * Math.pow(1.04, it.ilvl) * rarMult(it.rarity) * (1 + 0.1 * (it.up || 0)); }
 function pctScale(it) { return Math.sqrt(rarMult(it.rarity)) * (1 + it.ilvl / 300); }
@@ -762,29 +764,31 @@ function equipTo(s, itemId, memberId) {
 function unequip(s, memberId, slot) { const m = s.roster[memberId]; if (m && m.eq[slot]) { s.inventory.push(m.eq[slot]); m.eq[slot] = null; } }
 function sellItem(s, itemId) { const i = s.inventory.findIndex(x => x.id === itemId); if (i < 0 || isProtected(s, s.inventory[i])) return 0; const [it] = s.inventory.splice(i, 1); const g = sellValue(it); s.gold += g; return g; }
 // Rune: ognuna porta un oggetto alla sua rarità (dalla rarità precedente), si vendono per Astri e potenziano gli slot
-const RUNE_KEYS = ['leggendaria', 'epica', 'rara', 'noncomune']; // dal più raro, per il tiro del drop
+const RUNE_KEYS = ['astrale', 'mitico', 'leggendaria', 'epica', 'rara', 'noncomune']; // dal più raro, per il tiro del drop
 const RUNE = {
   noncomune:   { label: 'Runa verde',     color: '#6CCB5F', from: 'comune',    value: 2 },
   rara:        { label: 'Runa blu',       color: '#5B9BFF', from: 'noncomune', value: 5 },
   epica:       { label: 'Runa viola',     color: '#B07CF0', from: 'rara',      value: 10 },
   leggendaria: { label: 'Runa arancione', color: '#F2994A', from: 'epica',     value: 15 },
+  mitico:      { label: 'Runa dorata',    color: '#FFD34D', from: 'leggendaria', value: 30 },
+  astrale:     { label: 'Runa rosa',      color: '#FF7AD9', from: 'mitico',    value: 60 },
 };
 // probabilità per nemico (provvisorie, da tarare sui dati reali)
-const RUNE_DROP = { noncomune: 0.0004, rara: 0.00015, epica: 0.00005, leggendaria: 0.00001 };
+const RUNE_DROP = { noncomune: 0.0004, rara: 0.00015, epica: 0.00005, leggendaria: 0.00001, mitico: 0.000003, astrale: 0.000001 };
 function addRune(s, k, n, ev) { s.runes[k] += n; s.stats.runes = (s.stats.runes || 0) + n; if (ev) ev.push({ type: 'rune', rune: k, n }); }
 function totalRunes(s) { let t = 0; for (const k in s.runes) t += s.runes[k]; return t; }
-function nextRarity(it) { const i = ITEM_RARITY.findIndex(r => r.key === it.rarity); return i >= 0 && i < 4 ? ITEM_RARITY[i + 1].key : null; } // le rune arrivano fino al Leggendario
+function nextRarity(it) { const i = ITEM_RARITY.findIndex(r => r.key === it.rarity); return i >= 0 && i < 6 ? ITEM_RARITY[i + 1].key : null; } // le rune arrivano fino all'Astrale
 function canRaise(s, it) { const n = nextRarity(it); return !!n && s.runes[n] > 0; }
 function raiseRarity(s, it) { const n = nextRarity(it); if (!n || s.runes[n] < 1) return false; s.runes[n]--; it.rarity = n; rollBonus(s, it); if (n === 'leggendaria') s.stats.legendary++; return true; }
 function slotRune(l) { return l < 4 ? 'noncomune' : l < 7 ? 'rara' : l < 9 ? 'epica' : 'leggendaria'; }
 function slotCost(l) { return 1; }
 function upgradeSlot(s, id, sl) { const m = s.roster[id]; if (!m) return false; const l = m.slv[sl] || 0, k = slotRune(l); if (l >= 10 || s.runes[k] < 1) return false; s.runes[k] -= 1; m.slv[sl] = l + 1; return true; }
-// Rune in vendita nello Shop per Astri (10 volte il valore di vendita, provvisorio)
-const RUNE_BUY = { noncomune: 20, rara: 50, epica: 100, leggendaria: 150 };
+// Rune in vendita nello Shop per Astri (provvisorio)
+const RUNE_BUY = { epica: 250, leggendaria: 500, mitico: 1000, astrale: 2000 }; // verde e blu non si vendono: si trovano spesso
 function buyRune(s, k) { const c = RUNE_BUY[k]; if (!c || s.astri < c) return false; s.astri -= c; s.runes[k]++; return true; }
 function sellRunes(s, k, n) { n = Math.min(n, s.runes[k]); s.runes[k] -= n; const g = n * RUNE[k].value; s.astri += g; return g; }
 // Negozio: 6 oggetti, rinnovati alle 0, 8 e 16 (ora locale), rarità con le stesse probabilità dei drop
-const SHOP_PRICE = { comune: 10, noncomune: 20, rara: 40, epica: 100, leggendaria: 250, astrale: 800, arcano: 2500, segreto: 8000 };
+const SHOP_PRICE = { comune: 10, noncomune: 20, rara: 40, epica: 100, leggendaria: 250, mitico: 450, astrale: 800, arcano: 2500, eterno: 5000, segreto: 8000 };
 const REROLL_COST = 20;
 function shopPeriod(now) { const d = new Date(now); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate() + '-' + Math.floor(d.getHours() / 8); }
 function nextRefresh(now) { const d = new Date(now); d.setMinutes(0, 0, 0); d.setHours((Math.floor(d.getHours() / 8) + 1) * 8); return d.getTime(); }
@@ -828,6 +832,7 @@ function moveSpeed(s) { return 1 + 0.05 * (s.tree.cometa || 0); }
 function migrate(s) {
   if (s.zone === undefined) { s.zone = 1; s.maxZone = 1; s.cleared = 0; s.battle = 1; s.maxBattle = 1; s.maxGlobal = 1; delete s.bossCleared; }
   if (typeof s.runes !== 'object' || s.runes === null) s.runes = { noncomune: s.runes || 0, rara: 0, epica: 0, leggendaria: 0 };
+  if (s.runes.mitico === undefined) s.runes.mitico = 0; if (s.runes.astrale === undefined) s.runes.astrale = 0;
   if (s.tree.corona) { const c = [200000, 20000000, 2000000000]; for (let l = 0; l < s.tree.corona; l++) s.gold += c[l]; }
   delete s.tree.corona;
   for (const k in TREE) if (s.tree[k] === undefined) s.tree[k] = 0;
@@ -1260,7 +1265,7 @@ function pShop() {
   return `<div class="ph"><h2>Shop</h2><span>${icon('gem', '#F49AC1', 14)} ${fmt(S.astri)} Astri</span></div>
   <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min (a mezzanotte).`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>si pagano in Astri</span></div>
-  <div class="sgrid runes4">${Object.keys(F.RUNE_BUY).map(k => { const r = F.RUNE[k]; return `<div class="card sitem" style="border-color:${r.color}">${icon('rune', r.color, 24)}<b style="color:${r.color}">${r.label.replace('Runa ', '')}</b><span>hai ${fmt(S.runes[k])}</span><button class="pb" data-act="buyrune" data-k="${k}" ${S.astri < F.RUNE_BUY[k] ? 'disabled' : ''}>${F.RUNE_BUY[k]} ${icon('gem', '#1B1F3B', 11)}</button></div>`; }).join('')}</div>
+  <div class="sgrid runes4">${Object.keys(F.RUNE_BUY).map(k => { const r = F.RUNE[k]; return `<div class="card sitem" style="border-color:${r.color}">${icon('rune', r.color, 24)}<b style="color:${r.color}">${r.label.replace('Runa ', '')}</b><span>→ ${F.ITEM_RARITY.find(x => x.key === k).label}</span><span>hai ${fmt(S.runes[k])}</span><button class="pb" data-act="buyrune" data-k="${k}" ${S.astri < F.RUNE_BUY[k] ? 'disabled' : ''}>${F.RUNE_BUY[k]} ${icon('gem', '#1B1F3B', 11)}</button></div>`; }).join('')}</div>
   <div class="ph"><h2 style="font-size:13px">Abbonamento</h2></div>
   <div class="card passc"><div><b style="color:var(--gold)">Pass Astrale · ${F.PASS_PRICE}</b><div class="msub">Vendita automatica di tutte le rarità · zaino e forziere ×2 · guadagno offline fino a 8 ore (invece di 4).</div>${F.hasPass(S) ? `<div class="msub" style="color:#7ED36F">Attivo fino al ${new Date(S.pass).toLocaleDateString('it-IT')}</div>` : ''}</div><button class="pb" data-act="pass">${F.hasPass(S) ? 'Rinnova' : 'Attiva'}<br><small>prova gratis</small></button></div>
   <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
@@ -1349,8 +1354,8 @@ function dur(sec) { const d = Math.floor(sec / 86400), h = Math.floor(sec % 8640
 function pAltro() {
   const st = S.stats, h = Math.floor(st.played / 3600), mi = Math.floor(st.played % 3600 / 60);
   const RL = S.rareLog || [], when = t => { const d = Date.now() - t; return d < 3600000 ? Math.max(1, Math.round(d / 60000)) + ' min fa' : d < 86400000 ? Math.round(d / 3600000) + ' h fa' : Math.round(d / 86400000) + ' g fa'; };
-  const rare = `<div class="ph"><h2>Drop rari</h2><span>Astrale · Arcano · Segreto</span></div>
-  <div class="note">Le tre rarità più alte possono cadere da qualsiasi nemico, in ogni zona, con la stessa probabilità. Qui trovi i tuoi; quando ci sarà la chat globale vedrai anche quelli degli altri giocatori.</div>
+  const rare = `<div class="ph"><h2>Drop rari</h2><span>Astrale · Arcano · Eterno · Segreto</span></div>
+  <div class="note">Le rarità più alte (Astrale, Arcano, Eterno, Segreto) possono cadere da qualsiasi nemico, in ogni zona, con la stessa probabilità. Qui trovi i tuoi; quando ci sarà la chat globale vedrai anche quelli degli altri giocatori.</div>
   <div class="chips">${F.RARE_FEED.map(k => { const r = F.ITEM_RARITY.find(x => x.key === k); return `<span class="chip"><i style="background:${r.color}"></i><span class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</span> <em>${(st.rare && st.rare[k]) || 0}</em></span>`; }).join('')}</div>
   ${RL.slice(0, 10).map(e => { const r = F.ITEM_RARITY.find(x => x.key === e.rarity); return `<div class="card feed">${itemIcon(e.slot, null, r.color, 20)}<div style="flex:1"><b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</b> · ${F.SLOT_LABEL[e.slot]} · Lv ${e.ilvl}<div class="msub">Zona ${e.zone} · ${when(e.t)}</div></div></div>`; }).join('') || '<div class="note">Nessuno ancora. Buona fortuna!</div>'}`;
   return `<div class="ph"><h2>Statistiche</h2></div>
@@ -1373,7 +1378,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 19:16</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 19:45</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -1431,7 +1436,7 @@ function showOffline(r) {
 }
 function skipTime(hours) {
   const total = hours * 3600, chunk = 6 * 3600;
-  let done = 0; const sum = { byRar: {}, skip: true, seconds: 0, gold: 0, kills: 0, items: 0, lost: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0 }, levels: {}, events: [] };
+  let done = 0; const sum = { byRar: {}, skip: true, seconds: 0, gold: 0, kills: 0, items: 0, lost: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0, mitico: 0, astrale: 0 }, levels: {}, events: [] };
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true"><h2>Avanti veloce</h2><p class="msub" id="skipst">Simulazione in corso…</p><div class="bar"><b id="skipbar" style="width:0%"></b></div></div>`;
   $('#modal').hidden = false;
   const run = () => {
@@ -1482,7 +1487,7 @@ function chatRender() {
     ${S.net ? `<form class="chatform" id="chatform"><input id="chatin" maxlength="200" placeholder="Scrivi come ${esc(S.net.nick)}…" autocomplete="off" aria-label="Messaggio"><button class="pb" type="submit">Invia</button></form>`
       : `<form class="chatform" id="nickform"><input id="nickin" maxlength="16" minlength="3" placeholder="Scegli un nickname (3-16)" autocomplete="off" aria-label="Nickname"><button class="pb" type="submit">Entra</button></form><div class="note">Il nickname sarà visibile a tutti e non si può cambiare. Niente insulti: i messaggi segnalati da 3 giocatori spariscono.</div>`}`;
   } else {
-    body = `<div class="note">Gli ultimi oggetti Astrale, Arcano e Segreto trovati da tutti i giocatori.</div><div class="chatlist">${chatDrops.map(d => { const r = F.ITEM_RARITY.find(x => x.key === d.rarity); return `<div class="cmsg dropg">${itemIcon(d.slot, null, r.color, 20)}<div style="flex:1"><span class="cn">${esc(d.nickname)}</span>ha trovato <b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</b> · ${F.SLOT_LABEL[d.slot] || esc(d.slot)} Lv ${d.ilvl}<div class="msub">Zona ${d.zone} · ${ago(d.created_at)}</div></div></div>`; }).join('') || '<div class="note">Nessun drop raro ancora: il primo potresti essere tu.</div>'}</div>`;
+    body = `<div class="note">Gli ultimi oggetti Astrale, Arcano, Eterno e Segreto trovati da tutti i giocatori.</div><div class="chatlist">${chatDrops.map(d => { const r = F.ITEM_RARITY.find(x => x.key === d.rarity); return `<div class="cmsg dropg">${itemIcon(d.slot, null, r.color, 20)}<div style="flex:1"><span class="cn">${esc(d.nickname)}</span>ha trovato <b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</b> · ${F.SLOT_LABEL[d.slot] || esc(d.slot)} Lv ${d.ilvl}<div class="msub">Zona ${d.zone} · ${ago(d.created_at)}</div></div></div>`; }).join('') || '<div class="note">Nessun drop raro ancora: il primo potresti essere tu.</div>'}</div>`;
   }
   $('#modal').innerHTML = `<div class="mod chatmod" role="dialog" aria-modal="true" aria-label="Chat globale"><div class="eqhead"><h2 style="margin:0;font-size:18px">Community</h2><button class="ib" data-chat="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
   <div class="tabs2"><button class="sb${chatTab === 'chat' ? ' on' : ''}" data-chat="tab" data-v="chat">Chat</button><button class="sb${chatTab === 'drops' ? ' on' : ''}" data-chat="tab" data-v="drops">Drop rari</button></div>
