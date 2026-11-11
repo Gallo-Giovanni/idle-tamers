@@ -65,7 +65,7 @@ const ITEM_RARITY = [ // chiavi interne invariate per compatibilità dei salvata
   { key: 'rara',        label: 'Raro',        mult: 2,   weight: 10,    color: '#5B9BFF' },
   { key: 'epica',       label: 'Epico',       mult: 3,   weight: 4,     color: '#B07CF0' },
   { key: 'leggendaria', label: 'Leggendario', mult: 5,   weight: 0.9,   color: '#F2994A' },
-  { key: 'astrale',     label: 'Astrale',     mult: 7,   weight: 0.09,  color: '#7FE3FF' },
+  { key: 'astrale',     label: 'Astrale',     mult: 7,   weight: 0.09,  color: '#FF7AD9' },
   { key: 'arcano',      label: 'Arcano',      mult: 10,  weight: 0.008, color: '#E8334F' },
   { key: 'segreto',     label: 'Segreto',     mult: 15,  weight: 0.002, color: '#FFFFFF', rainbow: true },
 ];
@@ -411,7 +411,7 @@ function dropItem(s, boss, ev) {
   if (rarityIndex(r.key) >= 4) s.stats.legendary++;
   if (RARE_FEED.includes(r.key)) { s.stats.rare = s.stats.rare || {}; s.stats.rare[r.key] = (s.stats.rare[r.key] || 0) + 1; (s.rareLog = s.rareLog || []).unshift({ t: Date.now(), rarity: r.key, slot, zone: s.zone, ilvl: it.ilvl }); s.rareLog.length = Math.min(s.rareLog.length, 50); if (ev) ev.push({ type: 'rare', item: it }); }
   // filtro del bottino: sotto la rarità minima scelta l'oggetto si vende subito (le rune non passano di qui)
-  if (rarityIndex(r.key) < minKeep(s)) { const g = sellValue(it); s.gold += g; s.stats.autoSold = (s.stats.autoSold || 0) + 1; return; }
+  if (rarityIndex(r.key) < minKeep(s)) { if (s.settings.autoMode === 'elimina') s.stats.autoDeleted = (s.stats.autoDeleted || 0) + 1; else { s.gold += sellValue(it); s.stats.autoSold = (s.stats.autoSold || 0) + 1; } return; }
   if (s.inventory.length >= bagCap(s)) { // zaino pieno: l'oggetto va perso (niente vendita automatica nascosta)
     s.stats.lost = (s.stats.lost || 0) + 1; if (ev) ev.push({ type: 'lost', item: it }); return;
   }
@@ -447,7 +447,7 @@ function hasPass(s) { return !!s.pass && s.pass > Date.now(); }
 function activatePass(s) { s.pass = Math.max(Date.now(), s.pass || 0) + 30 * 86400000; }
 function rarityIndex(k) { return ITEM_RARITY.findIndex(r => r.key === k); }
 // Gratis si vendono da soli solo i comuni (al massimo "tieni da Non comune in su"); oltre serve il Pass
-const FREE_MAX_FILTER = 1;
+const FREE_MAX_FILTER = 2; // gratis: comuni e non comuni
 // Zaino e forziere: 20 posti ciascuno, il doppio col Pass. Le rune non occupano posto.
 const BAG_BASE = 20;
 function bagCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1); }
@@ -461,7 +461,7 @@ function minKeep(s) { return Math.min(rarityIndex(s.settings.minRarity || 'comun
 function protectIdx(s) { const k = s.settings.protect || 'leggendaria'; return k === 'none' ? ITEM_RARITY.length : rarityIndex(k); }
 function isProtected(s, it) { return !!it.locked || rarityIndex(it.rarity) >= protectIdx(s); }
 function toggleLock(s, id) { const it = s.inventory.find(x => x.id === id) || s.chest.find(x => x.id === id); if (!it) return false; it.locked = !it.locked; return it.locked; }
-function sellBelow(s) { const min = minKeep(s); let gold = 0, n = 0; s.inventory = s.inventory.filter(it => { if (rarityIndex(it.rarity) < min && !isProtected(s, it)) { gold += sellValue(it); n++; return false; } return true; }); s.gold += gold; return { gold, n }; }
+function sellBelow(s) { const min = minKeep(s); let gold = 0, n = 0; s.inventory = s.inventory.filter(it => { if (rarityIndex(it.rarity) < min && !isProtected(s, it)) { if (s.settings.autoMode !== 'elimina') gold += sellValue(it); n++; return false; } return true; }); s.gold += gold; return { gold, n }; }
 function sellRest(s) {
   // vende ciò che non migliora nessuno nella squadra né nella riserva
   let gold = 0, n = 0;
