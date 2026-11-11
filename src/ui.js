@@ -483,7 +483,7 @@ function showOffline(r) {
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-labelledby="offt">
    <h2 id="offt">Bentornato!</h2>
    <p class="msub">Mentre eri via (${h >= 48 ? Math.round(h / 24) + ' giorni' : h + ' h ' + mi + ' min'}${!r.skip && r.seconds >= F.offlineCap(S) ? `, massimo ${F.offlineCap(S) / 3600} ore${F.hasPass(S) ? '' : ' (8 col Pass)'}` : ''}) la squadra ha combattuto da sola.</p>
-   <div class="card"><div class="kv"><span>Nemici sconfitti</span><b>${fmt(r.kills)}</b></div><div class="kv"><span>Oro</span><b>+${cfmt(r.gold)}</b></div><div class="kv"><span>Oggetti trovati</span><b>${fmt(r.items)}</b></div>${Object.keys(r.runes).filter(k => r.runes[k] > 0).map(k => `<div class="kv"><span style="color:${F.RUNE[k].color}">${F.RUNE[k].label}</span><b>+${fmt(r.runes[k])}</b></div>`).join('')}
+   <div class="card"><div class="kv"><span>Nemici sconfitti</span><b>${fmt(r.kills)}</b></div><div class="kv"><span>Oro</span><b>+${cfmt(r.gold)}</b></div><div class="kv"><span>Oggetti trovati</span><b>${fmt(r.items)}</b></div>${F.ITEM_RARITY.filter(x => r.byRar && r.byRar[x.key] > 0).map(x => `<div class="kv sub"><span class="${x.rainbow ? 'rbw' : ''}" style="color:${x.color}">· ${x.label}</span><b>${fmt(r.byRar[x.key])}</b></div>`).join('')}${Object.keys(r.runes).filter(k => r.runes[k] > 0).map(k => `<div class="kv"><span style="color:${F.RUNE[k].color}">${F.RUNE[k].label}</span><b>+${fmt(r.runes[k])}</b></div>`).join('')}
    ${r.levels.map(l => `<div class="kv"><span>${esc(S.roster[l.id].name)}</span><b>Lv ${l.from} → ${l.to}</b></div>`).join('')}</div>
    ${r.lost ? `<div class="card" style="border-color:#FF8A96"><b style="color:#FF8A96">Zaino pieno:</b> ${fmt(r.lost)} oggetti persi. Libera spazio, usa il forziere o attiva la vendita automatica.</div>` : ''}
    ${caps.length ? `<div class="card" style="border-color:#F2C14E"><b style="color:#F2C14E">Catture:</b> ${caps.map(esc).join(', ')}</div>` : ''}
@@ -493,13 +493,13 @@ function showOffline(r) {
 }
 function skipTime(hours) {
   const total = hours * 3600, chunk = 6 * 3600;
-  let done = 0; const sum = { skip: true, seconds: 0, gold: 0, kills: 0, items: 0, lost: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0 }, levels: {}, events: [] };
+  let done = 0; const sum = { byRar: {}, skip: true, seconds: 0, gold: 0, kills: 0, items: 0, lost: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0 }, levels: {}, events: [] };
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true"><h2>Avanti veloce</h2><p class="msub" id="skipst">Simulazione in corso…</p><div class="bar"><b id="skipbar" style="width:0%"></b></div></div>`;
   $('#modal').hidden = false;
   const run = () => {
     const sec = Math.min(chunk, total - done);
     const r = F.simulateOffline(S, sec, true);
-    sum.seconds += r.seconds; sum.gold += r.gold; sum.kills += r.kills; sum.items += r.items; sum.lost += r.lost || 0;
+    sum.seconds += r.seconds; sum.gold += r.gold; sum.kills += r.kills; sum.items += r.items; sum.lost += r.lost || 0; for (const k in (r.byRar || {})) sum.byRar[k] = (sum.byRar[k] || 0) + r.byRar[k];
     for (const k in r.runes) sum.runes[k] += r.runes[k];
     for (const l of r.levels) { if (!sum.levels[l.id]) sum.levels[l.id] = { id: l.id, from: l.from, to: l.to }; else sum.levels[l.id].to = l.to; }
     sum.events.push(...r.events);

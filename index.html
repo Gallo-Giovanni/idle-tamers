@@ -209,6 +209,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .sett{margin:4px 0}.sett summary{font-size:12px;color:var(--muted);cursor:pointer;min-height:32px;display:flex;align-items:center}.sett summary b{color:var(--txt);margin-left:4px}
 .it .plk{position:absolute;top:2px;right:2px;background:none}
 .runes4{grid-template-columns:repeat(4,1fr)!important}.runes4 .sitem{padding:6px 4px}.runes4 .pb{min-height:30px;padding:0 6px}
+.kv.sub{font-size:12px;padding-left:8px;opacity:.95}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -649,7 +650,7 @@ function dropItem(s, boss, ev) {
   const slot = KINDS[Math.floor(rnd(s) * KINDS.length)];
   const cls = slot === 'arma' || slot === 'secondaria' ? Object.keys(CLASSES)[Math.floor(rnd(s) * 4)] : null;
   const it = finishItem(s, { id: s.nextId++, slot, cls, rarity: r.key, ilvl: gIndex(s.zone, s.battle), up: 0, isNew: true });
-  s.stats.items++;
+  s.stats.items++; s.stats.byRar = s.stats.byRar || {}; s.stats.byRar[r.key] = (s.stats.byRar[r.key] || 0) + 1;
   if (rarityIndex(r.key) >= 4) s.stats.legendary++;
   if (RARE_FEED.includes(r.key)) { s.stats.rare = s.stats.rare || {}; s.stats.rare[r.key] = (s.stats.rare[r.key] || 0) + 1; (s.rareLog = s.rareLog || []).unshift({ t: Date.now(), rarity: r.key, slot, zone: s.zone, ilvl: it.ilvl }); s.rareLog.length = Math.min(s.rareLog.length, 50); if (ev) ev.push({ type: 'rare', item: it }); }
   // filtro del bottino: sotto la rarità minima scelta l'oggetto si vende subito (le rune non passano di qui)
@@ -832,7 +833,7 @@ function checkAch(s) {
 // Simulazione offline: stesso motore, senza grafica, a passi più ampi
 function simulateOffline(s, seconds, noCap) {
   if (!noCap) seconds = Math.min(seconds, offlineCap(s));
-  const before = { lost: s.stats.lost || 0, gold: s.gold, kills: s.stats.kills, items: s.stats.items, runes: Object.assign({}, s.runes), lv: {} };
+  const before = { byRar: Object.assign({}, s.stats.byRar || {}), lost: s.stats.lost || 0, gold: s.gold, kills: s.stats.kills, items: s.stats.items, runes: Object.assign({}, s.runes), lv: {} };
   for (const id in s.roster) before.lv[id] = s.roster[id].lvl;
   const ev = [];
   const b = startBattle(s);
@@ -845,7 +846,7 @@ function simulateOffline(s, seconds, noCap) {
     t += dt;
   }
   const lv = []; for (const id in s.roster) if (before.lv[id] !== undefined && s.roster[id].lvl > before.lv[id]) lv.push({ id, from: before.lv[id], to: s.roster[id].lvl });
-  return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
+  return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
 const api = { RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
@@ -1341,7 +1342,7 @@ function showOffline(r) {
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-labelledby="offt">
    <h2 id="offt">Bentornato!</h2>
    <p class="msub">Mentre eri via (${h >= 48 ? Math.round(h / 24) + ' giorni' : h + ' h ' + mi + ' min'}${!r.skip && r.seconds >= F.offlineCap(S) ? `, massimo ${F.offlineCap(S) / 3600} ore${F.hasPass(S) ? '' : ' (8 col Pass)'}` : ''}) la squadra ha combattuto da sola.</p>
-   <div class="card"><div class="kv"><span>Nemici sconfitti</span><b>${fmt(r.kills)}</b></div><div class="kv"><span>Oro</span><b>+${cfmt(r.gold)}</b></div><div class="kv"><span>Oggetti trovati</span><b>${fmt(r.items)}</b></div>${Object.keys(r.runes).filter(k => r.runes[k] > 0).map(k => `<div class="kv"><span style="color:${F.RUNE[k].color}">${F.RUNE[k].label}</span><b>+${fmt(r.runes[k])}</b></div>`).join('')}
+   <div class="card"><div class="kv"><span>Nemici sconfitti</span><b>${fmt(r.kills)}</b></div><div class="kv"><span>Oro</span><b>+${cfmt(r.gold)}</b></div><div class="kv"><span>Oggetti trovati</span><b>${fmt(r.items)}</b></div>${F.ITEM_RARITY.filter(x => r.byRar && r.byRar[x.key] > 0).map(x => `<div class="kv sub"><span class="${x.rainbow ? 'rbw' : ''}" style="color:${x.color}">· ${x.label}</span><b>${fmt(r.byRar[x.key])}</b></div>`).join('')}${Object.keys(r.runes).filter(k => r.runes[k] > 0).map(k => `<div class="kv"><span style="color:${F.RUNE[k].color}">${F.RUNE[k].label}</span><b>+${fmt(r.runes[k])}</b></div>`).join('')}
    ${r.levels.map(l => `<div class="kv"><span>${esc(S.roster[l.id].name)}</span><b>Lv ${l.from} → ${l.to}</b></div>`).join('')}</div>
    ${r.lost ? `<div class="card" style="border-color:#FF8A96"><b style="color:#FF8A96">Zaino pieno:</b> ${fmt(r.lost)} oggetti persi. Libera spazio, usa il forziere o attiva la vendita automatica.</div>` : ''}
    ${caps.length ? `<div class="card" style="border-color:#F2C14E"><b style="color:#F2C14E">Catture:</b> ${caps.map(esc).join(', ')}</div>` : ''}
@@ -1351,13 +1352,13 @@ function showOffline(r) {
 }
 function skipTime(hours) {
   const total = hours * 3600, chunk = 6 * 3600;
-  let done = 0; const sum = { skip: true, seconds: 0, gold: 0, kills: 0, items: 0, lost: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0 }, levels: {}, events: [] };
+  let done = 0; const sum = { byRar: {}, skip: true, seconds: 0, gold: 0, kills: 0, items: 0, lost: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0 }, levels: {}, events: [] };
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true"><h2>Avanti veloce</h2><p class="msub" id="skipst">Simulazione in corso…</p><div class="bar"><b id="skipbar" style="width:0%"></b></div></div>`;
   $('#modal').hidden = false;
   const run = () => {
     const sec = Math.min(chunk, total - done);
     const r = F.simulateOffline(S, sec, true);
-    sum.seconds += r.seconds; sum.gold += r.gold; sum.kills += r.kills; sum.items += r.items; sum.lost += r.lost || 0;
+    sum.seconds += r.seconds; sum.gold += r.gold; sum.kills += r.kills; sum.items += r.items; sum.lost += r.lost || 0; for (const k in (r.byRar || {})) sum.byRar[k] = (sum.byRar[k] || 0) + r.byRar[k];
     for (const k in r.runes) sum.runes[k] += r.runes[k];
     for (const l of r.levels) { if (!sum.levels[l.id]) sum.levels[l.id] = { id: l.id, from: l.from, to: l.to }; else sum.levels[l.id].to = l.to; }
     sum.events.push(...r.events);

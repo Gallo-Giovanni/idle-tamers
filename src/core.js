@@ -395,7 +395,7 @@ function dropItem(s, boss, ev) {
   const slot = KINDS[Math.floor(rnd(s) * KINDS.length)];
   const cls = slot === 'arma' || slot === 'secondaria' ? Object.keys(CLASSES)[Math.floor(rnd(s) * 4)] : null;
   const it = finishItem(s, { id: s.nextId++, slot, cls, rarity: r.key, ilvl: gIndex(s.zone, s.battle), up: 0, isNew: true });
-  s.stats.items++;
+  s.stats.items++; s.stats.byRar = s.stats.byRar || {}; s.stats.byRar[r.key] = (s.stats.byRar[r.key] || 0) + 1;
   if (rarityIndex(r.key) >= 4) s.stats.legendary++;
   if (RARE_FEED.includes(r.key)) { s.stats.rare = s.stats.rare || {}; s.stats.rare[r.key] = (s.stats.rare[r.key] || 0) + 1; (s.rareLog = s.rareLog || []).unshift({ t: Date.now(), rarity: r.key, slot, zone: s.zone, ilvl: it.ilvl }); s.rareLog.length = Math.min(s.rareLog.length, 50); if (ev) ev.push({ type: 'rare', item: it }); }
   // filtro del bottino: sotto la rarità minima scelta l'oggetto si vende subito (le rune non passano di qui)
@@ -578,7 +578,7 @@ function checkAch(s) {
 // Simulazione offline: stesso motore, senza grafica, a passi più ampi
 function simulateOffline(s, seconds, noCap) {
   if (!noCap) seconds = Math.min(seconds, offlineCap(s));
-  const before = { lost: s.stats.lost || 0, gold: s.gold, kills: s.stats.kills, items: s.stats.items, runes: Object.assign({}, s.runes), lv: {} };
+  const before = { byRar: Object.assign({}, s.stats.byRar || {}), lost: s.stats.lost || 0, gold: s.gold, kills: s.stats.kills, items: s.stats.items, runes: Object.assign({}, s.runes), lv: {} };
   for (const id in s.roster) before.lv[id] = s.roster[id].lvl;
   const ev = [];
   const b = startBattle(s);
@@ -591,7 +591,7 @@ function simulateOffline(s, seconds, noCap) {
     t += dt;
   }
   const lv = []; for (const id in s.roster) if (before.lv[id] !== undefined && s.roster[id].lvl > before.lv[id]) lv.push({ id, from: before.lv[id], to: s.roster[id].lvl });
-  return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
+  return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
 const api = { RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
