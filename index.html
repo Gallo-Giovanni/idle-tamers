@@ -279,6 +279,20 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .pop .srow2{padding:1px 0}.pop .row2{margin:4px 0 0;gap:5px;flex-wrap:wrap}.pop .sb,.pop .pb{min-height:30px;font-size:11px;padding:0 8px}.pop select{min-height:30px;font-size:12px}
 .gold3{grid-template-columns:repeat(3,1fr)!important}.gold3 .sitem{padding:6px 4px;text-align:center;align-items:center}.gold3 b{font-size:14px}.gold3 span{font-size:10px}
 .slotbuy{display:flex;align-items:center;gap:10px;border-color:#F2C14E66}
+
+.rings{display:flex;flex-direction:column;gap:0}
+.band{border-radius:14px;padding:8px 6px 22px;background:radial-gradient(120% 90% at 50% 0%,#26306e,#141a46)}
+.band:nth-child(3){background:radial-gradient(120% 90% at 50% 0%,#2c2a72,#16153f)}.band:nth-child(5){background:radial-gradient(120% 90% at 50% 0%,#3a2668,#1a1238)}.band:nth-child(7){background:radial-gradient(120% 90% at 50% 0%,#4a2050,#1e0f2a)}
+.band.blk{filter:saturate(.4);opacity:.75}
+.bhead{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:0 4px 6px}.bhead b{color:#FFE9A8}.bhead span{color:var(--muted);font-size:11px;display:flex;align-items:center;gap:4px}
+.brow{display:flex;justify-content:space-around}
+.blink{height:14px;margin:0 auto;width:2px;background:linear-gradient(#F2C14E,#F2C14E44)}
+.snode2{position:relative;width:62px;height:62px;border-radius:50%;border:none;cursor:pointer;color:var(--txt);
+ background:radial-gradient(circle,#1b2160 56%,transparent 58%),conic-gradient(#F2C14E var(--f),#5a6290 var(--f) var(--cf),#262c5c 0);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
+.snode2 .sic{font-size:18px;line-height:18px;color:#FFE9A8;text-shadow:0 0 8px #F2C14E}.snode2 .slv{font-size:9.5px;font-weight:700;color:#5BD8E6}
+.snode2 .snm{position:absolute;top:64px;font-size:10.5px;font-weight:700;white-space:nowrap;color:#cfd6ff}
+.snode2.slk{filter:grayscale(1);opacity:.6}.snode2.ssel{box-shadow:0 0 0 2px #F2C14E,0 0 18px #F2C14E88}
+.snode2 .sic svg{width:16px!important;height:16px!important}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -438,7 +452,17 @@ const STARMAP = {
   richiamo: { x: 50, y: 87, req: ['lama', 5], ic: '✧' },
   furia:    { x: 85, y: 85, req: ['lama', 5], ic: '✸' },
 };
-function starOpen(s, k) { const r = STARMAP[k] && STARMAP[k].req; return !r || s.tree[r[0]] >= r[1]; }
+// Costellazioni a cieli: ogni boss apre un cielo e alza il limite delle stelle già aperte
+const TIERS = [
+  { zone: 0, name: 'Primo cielo', stars: ['forza', 'vita', 'scudo'] },
+  { zone: 2, name: 'Secondo cielo', stars: ['branco', 'tesoro', 'lama'] },
+  { zone: 4, name: 'Terzo cielo', stars: ['saggezza', 'furia', 'commercio'] },
+  { zone: 6, name: 'Quarto cielo', stars: ['cometa', 'richiamo'] },
+];
+function openTiers(s) { return TIERS.filter(t => s.cleared >= t.zone).length; }
+function tierOf(k) { return TIERS.findIndex(t => t.stars.includes(k)); }
+function starCap(s, k) { const t = TREE[k], ti = tierOf(k), o = openTiers(s); if (ti < 0 || o <= ti) return 0; return Math.ceil(t.max * (o - ti) / (TIERS.length - ti)); }
+function starOpen(s, k) { return (s.tree[k] || 0) < starCap(s, k); }
 const ACH = [
   { id: 'k1',    name: 'Primo sangue stellare', desc: 'Sconfiggi il primo nemico', test: s => s.stats.kills >= 1, astri: 2 },
   { id: 'k100',  name: 'Cento stelle spente', desc: 'Sconfiggi 100 nemici', test: s => s.stats.kills >= 100, astri: 5 },
@@ -964,7 +988,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
@@ -1479,17 +1503,21 @@ function pMappa() {
    ${Array.from({ length: pl.zones[1] - pl.zones[0] + 1 }, (_, i) => isl(pl.zones[0] + i, i, pi)).join('')}</div>`).join('')}`;
 }
 let selStar = 'forza';
+const RIC = { forza: '⚔', vita: '♥', scudo: '⛨', branco: '❀', tesoro: '◈', lama: '✦', saggezza: '✎', furia: '✸', commercio: '⚖', cometa: '☄', corona: '♛', richiamo: '✧' };
 function pStelle() {
-  const M = F.STARMAP, ok = k => F.starOpen(S, k);
-  const lines = Object.keys(M).filter(k => M[k].req).map(k => { const a = M[k], b = M[a.req[0]]; return `<line x1="${b.x}" y1="${b.y}" x2="${a.x}" y2="${a.y}" class="${ok(k) ? 'lon' : ''}"/>`; }).join('');
-  const nodes = Object.keys(M).map(k => { const p = M[k], t = F.TREE[k], l = S.tree[k], unl = ok(k);
-    return `<button class="snode${unl ? '' : ' slk'}${selStar === k ? ' ssel' : ''}${l >= t.max ? ' smax' : ''}" style="left:${p.x}%;top:${p.y}%;--f:${l / t.max * 360}deg" data-act="selstar" data-k="${k}" aria-label="${t.name} ${l} su ${t.max}"><span class="sic">${unl ? p.ic : icon('lock', '#A9B0D6', 16)}</span><span class="slv">${l}/${t.max}</span><span class="snm">${t.name}</span></button>`; }).join('');
-  const k = selStar, t = F.TREE[k], l = S.tree[k], max = l >= t.max, c = max ? 0 : t.cost(l), unl = ok(k), r = M[k].req;
+  const o = F.openTiers(S);
+  const bands = F.TIERS.map((T, ti) => { const open = ti < o;
+    return `<div class="band${open ? '' : ' blk'}"><div class="bhead"><b>${T.name}</b><span>${open ? (ti === 0 ? 'sempre aperto' : 'aperto') : `${icon('lock', '#F2C14E', 12)} sconfiggi il boss della zona ${T.zone}`}</span></div>
+      <div class="brow">${T.stars.map(k => { const t = F.TREE[k], l = S.tree[k], cap = F.starCap(S, k), frac = l / t.max, capf = cap / t.max;
+        return `<button class="snode2${selStar === k ? ' ssel' : ''}${open ? '' : ' slk'}" style="--f:${frac * 360}deg;--cf:${capf * 360}deg" data-act="selstar" data-k="${k}"><span class="sic">${open ? RIC[k] : icon('lock', '#A9B0D6', 16)}</span><span class="slv">${l}/${open ? cap : t.max}</span><span class="snm">${t.name}</span></button>`; }).join('')}</div></div>`; }).join('<div class="blink"></div>');
+  const k = selStar, t = F.TREE[k], l = S.tree[k], cap = F.starCap(S, k), ti = F.tierOf(k), full = l >= cap, c = l >= t.max ? 0 : t.cost(l);
+  const nextT = F.TIERS[o];
   return `<div class="ph"><h2>Costellazioni</h2><span>${icon('coin', '#F2C14E', 14)} ${cfmt(S.gold)} oro</span></div>
-  <div class="skymap"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${lines}</svg>${nodes}<i class="tw" style="left:8%;top:12%"></i><i class="tw" style="left:90%;top:20%;animation-delay:1s"></i><i class="tw" style="left:20%;top:92%;animation-delay:.5s"></i><i class="tw" style="left:82%;top:94%;animation-delay:1.5s"></i></div>
-  <div class="card sdet"><div style="flex:1"><b>${t.name}</b> <span class="lvl">${l}/${t.max}</span><div class="msub">${t.desc}</div>${!unl ? `<div class="msub" style="color:#F2C14E">Si sblocca con ${F.TREE[r[0]].name} a livello ${r[1]}</div>` : ''}</div>
-  <button class="pb" data-act="tree" data-k="${k}" ${max || !unl || S.gold < c ? 'disabled' : ''}>${max ? 'Max' : 'Accendi<br><small>' + cfmt(c) + ' oro</small>'}</button></div>
-  <div class="note">Tocca una stella per vederla. Le stelle più lontane si accendono dopo aver fatto crescere quelle vicine: scegli tu la strada.</div>
+  <div class="card sdet" style="margin-bottom:8px"><div style="flex:1"><b>${t.name}</b> <span class="lvl">${l}/${cap || t.max}</span><div class="msub">${t.desc}</div>
+  ${cap === 0 ? `<div class="msub" style="color:#F2C14E">Si apre con il ${F.TIERS[ti].name.toLowerCase()} (boss zona ${F.TIERS[ti].zone})</div>` : full && l < t.max ? `<div class="msub" style="color:#F2C14E">Limite di questo cielo: sale ancora quando apri il prossimo${nextT ? ` (boss zona ${nextT.zone})` : ''}</div>` : `<div class="msub">Massimo assoluto ${t.max}</div>`}</div>
+  <button class="pb" data-act="tree" data-k="${k}" ${cap === 0 || full || S.gold < c ? 'disabled' : ''}>${l >= t.max ? 'Max' : cap === 0 ? 'Bloccata' : full ? 'Limite' : 'Accendi<br><small>' + cfmt(c) + ' oro</small>'}</button></div>
+  <div class="rings">${bands}</div>
+  <div class="note">Ogni boss apre un nuovo cielo e alza il limite delle stelle già accese: c'è sempre qualcosa da potenziare.</div>
   <button class="sb wide" data-act="treereset">${confirmTree > Date.now() ? 'Tocca di nuovo per confermare' : 'Ridistribuisci tutti i punti'}</button>`;
 }
 function dur(sec) { const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60); return d ? `${d} g ${h} h` : `${h} h ${m} min`; }
@@ -1520,7 +1548,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 21:02</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 21:04</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {

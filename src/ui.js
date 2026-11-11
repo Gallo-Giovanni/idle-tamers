@@ -505,17 +505,21 @@ function pMappa() {
    ${Array.from({ length: pl.zones[1] - pl.zones[0] + 1 }, (_, i) => isl(pl.zones[0] + i, i, pi)).join('')}</div>`).join('')}`;
 }
 let selStar = 'forza';
+const RIC = { forza: '⚔', vita: '♥', scudo: '⛨', branco: '❀', tesoro: '◈', lama: '✦', saggezza: '✎', furia: '✸', commercio: '⚖', cometa: '☄', corona: '♛', richiamo: '✧' };
 function pStelle() {
-  const M = F.STARMAP, ok = k => F.starOpen(S, k);
-  const lines = Object.keys(M).filter(k => M[k].req).map(k => { const a = M[k], b = M[a.req[0]]; return `<line x1="${b.x}" y1="${b.y}" x2="${a.x}" y2="${a.y}" class="${ok(k) ? 'lon' : ''}"/>`; }).join('');
-  const nodes = Object.keys(M).map(k => { const p = M[k], t = F.TREE[k], l = S.tree[k], unl = ok(k);
-    return `<button class="snode${unl ? '' : ' slk'}${selStar === k ? ' ssel' : ''}${l >= t.max ? ' smax' : ''}" style="left:${p.x}%;top:${p.y}%;--f:${l / t.max * 360}deg" data-act="selstar" data-k="${k}" aria-label="${t.name} ${l} su ${t.max}"><span class="sic">${unl ? p.ic : icon('lock', '#A9B0D6', 16)}</span><span class="slv">${l}/${t.max}</span><span class="snm">${t.name}</span></button>`; }).join('');
-  const k = selStar, t = F.TREE[k], l = S.tree[k], max = l >= t.max, c = max ? 0 : t.cost(l), unl = ok(k), r = M[k].req;
+  const o = F.openTiers(S);
+  const bands = F.TIERS.map((T, ti) => { const open = ti < o;
+    return `<div class="band${open ? '' : ' blk'}"><div class="bhead"><b>${T.name}</b><span>${open ? (ti === 0 ? 'sempre aperto' : 'aperto') : `${icon('lock', '#F2C14E', 12)} sconfiggi il boss della zona ${T.zone}`}</span></div>
+      <div class="brow">${T.stars.map(k => { const t = F.TREE[k], l = S.tree[k], cap = F.starCap(S, k), frac = l / t.max, capf = cap / t.max;
+        return `<button class="snode2${selStar === k ? ' ssel' : ''}${open ? '' : ' slk'}" style="--f:${frac * 360}deg;--cf:${capf * 360}deg" data-act="selstar" data-k="${k}"><span class="sic">${open ? RIC[k] : icon('lock', '#A9B0D6', 16)}</span><span class="slv">${l}/${open ? cap : t.max}</span><span class="snm">${t.name}</span></button>`; }).join('')}</div></div>`; }).join('<div class="blink"></div>');
+  const k = selStar, t = F.TREE[k], l = S.tree[k], cap = F.starCap(S, k), ti = F.tierOf(k), full = l >= cap, c = l >= t.max ? 0 : t.cost(l);
+  const nextT = F.TIERS[o];
   return `<div class="ph"><h2>Costellazioni</h2><span>${icon('coin', '#F2C14E', 14)} ${cfmt(S.gold)} oro</span></div>
-  <div class="skymap"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${lines}</svg>${nodes}<i class="tw" style="left:8%;top:12%"></i><i class="tw" style="left:90%;top:20%;animation-delay:1s"></i><i class="tw" style="left:20%;top:92%;animation-delay:.5s"></i><i class="tw" style="left:82%;top:94%;animation-delay:1.5s"></i></div>
-  <div class="card sdet"><div style="flex:1"><b>${t.name}</b> <span class="lvl">${l}/${t.max}</span><div class="msub">${t.desc}</div>${!unl ? `<div class="msub" style="color:#F2C14E">Si sblocca con ${F.TREE[r[0]].name} a livello ${r[1]}</div>` : ''}</div>
-  <button class="pb" data-act="tree" data-k="${k}" ${max || !unl || S.gold < c ? 'disabled' : ''}>${max ? 'Max' : 'Accendi<br><small>' + cfmt(c) + ' oro</small>'}</button></div>
-  <div class="note">Tocca una stella per vederla. Le stelle più lontane si accendono dopo aver fatto crescere quelle vicine: scegli tu la strada.</div>
+  <div class="card sdet" style="margin-bottom:8px"><div style="flex:1"><b>${t.name}</b> <span class="lvl">${l}/${cap || t.max}</span><div class="msub">${t.desc}</div>
+  ${cap === 0 ? `<div class="msub" style="color:#F2C14E">Si apre con il ${F.TIERS[ti].name.toLowerCase()} (boss zona ${F.TIERS[ti].zone})</div>` : full && l < t.max ? `<div class="msub" style="color:#F2C14E">Limite di questo cielo: sale ancora quando apri il prossimo${nextT ? ` (boss zona ${nextT.zone})` : ''}</div>` : `<div class="msub">Massimo assoluto ${t.max}</div>`}</div>
+  <button class="pb" data-act="tree" data-k="${k}" ${cap === 0 || full || S.gold < c ? 'disabled' : ''}>${l >= t.max ? 'Max' : cap === 0 ? 'Bloccata' : full ? 'Limite' : 'Accendi<br><small>' + cfmt(c) + ' oro</small>'}</button></div>
+  <div class="rings">${bands}</div>
+  <div class="note">Ogni boss apre un nuovo cielo e alza il limite delle stelle già accese: c'è sempre qualcosa da potenziare.</div>
   <button class="sb wide" data-act="treereset">${confirmTree > Date.now() ? 'Tocca di nuovo per confermare' : 'Ridistribuisci tutti i punti'}</button>`;
 }
 function dur(sec) { const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60); return d ? `${d} g ${h} h` : `${h} h ${m} min`; }
