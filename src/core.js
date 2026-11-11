@@ -300,6 +300,21 @@ function canUse(m, it) { return (it.slot !== 'arma' && it.slot !== 'secondaria')
 // posto in cui va l'oggetto: quello libero o il più debole tra quelli del suo tipo
 function targetSlot(m, it) { let best = null, bp = Infinity; for (const sl of SLOTS) { if (kindOf(sl) !== it.slot) continue; const c = m.eq[sl], p = c ? itemPower(c) : -1; if (p < bp) { bp = p; best = sl; } } return best; }
 
+// Punti statistica: 5 per livello per ogni personaggio, da distribuire
+const PTS_PER_LEVEL = 5;
+const ATTRS = {
+  atk:  { name: 'Forza',      desc: '+2% danni',                      ic: '⚔', color: '#E2504A' },
+  hp:   { name: 'Vitalità',   desc: '+3% vita',                       ic: '♥', color: '#7ED36F' },
+  def:  { name: 'Tempra',     desc: '+3% difesa e +0,2% blocco',      ic: '⛨', color: '#5B9BFF' },
+  crit: { name: 'Precisione', desc: '+0,3% critico e +1,5% danni critici', ic: '✦', color: '#FFD34D' },
+};
+function ptsOf(m) { return m.pts || (m.pts = { atk: 0, hp: 0, def: 0, crit: 0 }); }
+function ptsFree(m) { const p = ptsOf(m); return PTS_PER_LEVEL * (m.lvl - 1) - (p.atk + p.hp + p.def + p.crit); }
+function addPts(s, id, k, n) { const m = s.roster[id]; if (!m || !ATTRS[k]) return 0; const p = ptsOf(m); n = n > 0 ? Math.min(n, ptsFree(m)) : Math.max(n, -p[k]); p[k] += n; return n; }
+function resetPts(s, id) { const m = s.roster[id]; if (m) m.pts = { atk: 0, hp: 0, def: 0, crit: 0 }; }
+// distribuzione consigliata in base alla classe (usata dal pulsante "Auto" e dalla simulazione)
+const AUTO_PTS = { Tank: { hp: 0.5, def: 0.5 }, Guerriero: { atk: 0.6, crit: 0.2, hp: 0.2 }, Arciere: { atk: 0.5, crit: 0.4, hp: 0.1 }, Mago: { atk: 0.7, crit: 0.2, hp: 0.1 }, Curatore: { atk: 0.5, hp: 0.5 } };
+function autoPts(s, id) { const m = s.roster[id], w = AUTO_PTS[SPECIES[m.species].cls]; let f = ptsFree(m); const keys = Object.keys(w); while (f > 0) { const p = ptsOf(m), tot = p.atk + p.hp + p.def + p.crit + 1; let best = keys[0], gap = -1e9; for (const k of keys) { const g = w[k] - p[k] / tot; if (g > gap) { gap = g; best = k; } } p[best]++; f--; } }
 // Sinergie: bonus per classi uguali (2/4/6) e per la squadra con tutte e 5 le classi
 const SYN_SAME = [[6, 0.20], [4, 0.12], [2, 0.05]], SYN_ALL = 0.08;
 function synergy(s, cls) { const cc = classCounts(s), n = cc[cls] || 0; let v = 0; for (const [k, b] of SYN_SAME) if (n >= k) { v = b; break; } if (Object.values(cc).every(x => x > 0)) v += SYN_ALL; return v; }
@@ -316,6 +331,7 @@ function memberStats(s, id) {
     crit += (st.crit || 0) * sm; critDmg += (st.critDmg || 0) * sm; aspd += (st.aspd || 0) * sm; block += (st.block || 0) * sm; dodge += (st.dodge || 0) * sm;
   }
   const syn = synergy(s, cls); hp *= 1 + syn; atk *= 1 + syn;
+  const pt = ptsOf(m); atk *= 1 + 0.02 * pt.atk; hp *= 1 + 0.03 * pt.hp; def *= 1 + 0.03 * pt.def; block += 0.002 * pt.def; crit += 0.003 * pt.crit; critDmg += 0.015 * pt.crit;
   hp *= 1 + B(s, 'hp');
   atk *= 1 + B(s, 'atk');
   def *= 1 + B(s, 'def');
@@ -331,7 +347,7 @@ function memberPower(s, id) { const st = memberStats(s, id); return Math.round(s
 let WZ = 1.03; if (typeof process !== 'undefined' && process.env && process.env.WZ) WZ = +process.env.WZ;
 function withinZone(n) { return Math.pow(WZ, n - 1); }
 // Passo tra le zone: sul primo pianeta più dolce, sul secondo più ripido (la squadra è già grande)
-let ZONE_K = [0, 0, 1.87, 1.87, 1.87, 1.87, 1.67, 1.67, 1.67, 1.67, 1.57]; // tarato: 10 zone in circa 14-15 giorni (simulazione con giocatore che controlla ogni 4 ore)
+let ZONE_K = [0, 0, 2.0, 2.0, 2.0, 2.0, 1.78, 1.78, 1.78, 1.78, 1.68]; // tarato: 10 zone in circa 14-15 giorni (simulazione con giocatore che controlla ogni 4 ore)
 if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JSON.parse(process.env.ZK);
 const ZONE_BASE = [0, 1]; for (let z = 2; z <= 10; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n); }
@@ -732,7 +748,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;

@@ -335,13 +335,19 @@ function statsHTML(it, lv) {
   const bon = (it.bonus || []).map(b => `<div class="srow2 bon"><span><i style="background:${r.color}"></i>${F.STAT_LABEL[b.k]}</span><b>${val(b.k, F.bonusValue(it, b))}</b></div>`).join('');
   return `<div class="stbox">${rows}${bon ? `<div class="sthead">Bonus</div>${bon}` : ''}<div class="srow2 val"><span>${icon('coin', '#F2C14E', 12)} Valore</span><b>${fmt(F.sellValue(it, S))}</b></div>${lv ? `<div class="sthead" style="color:#5BD8E6">Slot +${lv}: +${lv * 10}% agli attributi</div>` : ''}</div>`;
 }
+function ptsHTML(id) {
+  const m = S.roster[id], p = F.ptsOf(m), free = F.ptsFree(m);
+  return `<div class="ptsbox"><div class="ptshead"><b>Punti statistica</b><span class="${free ? 'pfree' : ''}">${free} da assegnare</span><button class="sb" data-act="ptsauto" data-id="${id}" ${free ? '' : 'disabled'}>Auto</button><button class="sb" data-act="ptsreset" data-id="${id}">Azzera</button></div>
+  ${Object.keys(F.ATTRS).map(k => { const a = F.ATTRS[k]; return `<div class="ptsrow"><span class="pn2" style="color:${a.color}">${a.ic} ${a.name} <b>${p[k]}</b></span><span class="pd">${a.desc}</span><span class="pb2">${[-10, -1].map(n => `<button class="ib" data-act="pts" data-id="${id}" data-k="${k}" data-n="${n}" ${p[k] ? '' : 'disabled'}>${n}</button>`).join('')}${[1, 10].map(n => `<button class="ib" data-act="pts" data-id="${id}" data-k="${k}" data-n="${n}" ${free ? '' : 'disabled'}>+${n}</button>`).join('')}<button class="ib" data-act="pts" data-id="${id}" data-k="${k}" data-n="999" ${free ? '' : 'disabled'}>Max</button></span></div>`; }).join('')}
+  <div class="note">${F.PTS_PER_LEVEL} punti a ogni livello. Puoi azzerarli gratis quando vuoi.</div></div>`;
+}
 function memberRow(id, inTeam, i) {
   const m = S.roster[id], sp = F.SPECIES[m.species], cls = sp.cls, st = F.memberStats(S, id), open = openMember === id;
   const need = F.xpNeed(m.lvl);
   let html = `<div class="card mrow" style="border-left:3px solid ${CC(cls)}">
   <button class="mhead" data-act="openm" data-id="${id}" aria-expanded="${open}">
     <div class="mspr">${sprite(m.species, 2)}</div>
-    <div class="minfo"><div class="mname">${esc(m.name)}${m.locked ? ' ' + icon('lock', '#A9B0D6', 13) : ''}</div><div class="msub"><span style="color:${CC(cls)}">${cls}</span> · Lv ${m.lvl} · Potere ${fmt(F.memberPower(S, id))}</div><div class="xp"><b style="width:${100 * m.xp / need}%"></b></div></div>
+    <div class="minfo"><div class="mname">${esc(m.name)}${m.locked ? ' ' + icon('lock', '#A9B0D6', 13) : ''}${F.ptsFree(m) ? ` <span class="ptsdot">+${F.ptsFree(m)}</span>` : ''}</div><div class="msub"><span style="color:${CC(cls)}">${cls}</span> · Lv ${m.lvl} · Potere ${fmt(F.memberPower(S, id))}</div><div class="xp"><b style="width:${100 * m.xp / need}%"></b></div></div>
   </button>`;
   html += `<button class="eqb" data-act="equip" data-id="${id}" aria-label="Equipaggiamento di ${esc(m.name)}">${itemIcon('corazza', cls, '#F2C14E', 18)}</button>`;
   if (inTeam) html += `<div class="mbtns"><button class="ib" data-act="up" data-id="${id}" aria-label="Sposta su" ${i === 0 ? 'disabled' : ''}>${icon('up')}</button><button class="ib" data-act="down" data-id="${id}" aria-label="Sposta giù" ${i === S.team.length - 1 ? 'disabled' : ''}>${icon('down')}</button></div>`;
@@ -351,6 +357,7 @@ function memberRow(id, inTeam, i) {
     html += `<div class="card detail">
     <div class="stats"><span>Vita <b>${fmt(st.hp)}</b></span><span>Attacco <b>${fmt(st.atk)}</b></span><span>Difesa <b>${st.def}</b></span><span>Critico <b>${Math.round(st.crit * 100)}%</b></span></div>
     <div class="abil"><b style="color:${CC(cls)}">${F.CLASSES[cls].ability}</b> · ${F.CLASSES[cls].desc}</div>
+    ${ptsHTML(id)}
     <div class="row2"><label class="tg"><input type="checkbox" data-act="lockm" data-id="${id}" ${m.locked ? 'checked' : ''}> Blocca equipaggiamento</label>${inTeam && !F.isHero(id) ? `<button class="sb" data-act="bench" data-id="${id}">Metti in riserva</button>` : ''}</div>
     <form class="rename" data-id="${id}"><label for="rn-${id}">Nome</label><input id="rn-${id}" maxlength="16" value="${esc(m.name)}"><button class="sb" type="submit">Salva</button></form>
     </div>`;
@@ -813,6 +820,9 @@ document.addEventListener('click', e => {
   else if (a === 'lockit') { const on = F.toggleLock(S, item); toast(on ? 'Oggetto bloccato: non verrà mai venduto' : 'Oggetto sbloccato'); }
   else if (a === 'autoopen') { showAutoSell(); return; }
   else if (a === 'setkeep') { S.settings.minRarity = t.dataset.k; dirty = true; showAutoSell(); return; }
+  else if (a === 'pts') { F.addPts(S, id, t.dataset.k, +t.dataset.n); rebuild(); }
+  else if (a === 'ptsauto') { F.autoPts(S, id); rebuild(); }
+  else if (a === 'ptsreset') { F.resetPts(S, id); rebuild(); }
   else if (a === 'selrune') { selRune = selRune === t.dataset.k ? null : t.dataset.k; selItem = null; }
   else if (a === 'selshop') selShop = selShop === +t.dataset.i ? null : +t.dataset.i;
   else if (a === 'equipall') { const n = F.autoEquip(S); toast(n ? `Equipaggiati ${n} oggetti` : 'Nessun miglioramento disponibile'); }
