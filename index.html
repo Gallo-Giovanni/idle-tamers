@@ -308,6 +308,9 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .atog{position:relative;overflow:hidden;min-height:36px;min-width:96px;border-radius:8px;border:2px solid var(--c);background:#10143A;color:var(--c);font-weight:700;font-size:12.5px;cursor:pointer;padding:0 10px}
 .atog .passov{font-size:8px;padding:1px 5px;letter-spacing:.5px}.atog{padding:13px 10px 4px}
 .atog.on{background:#2a1220;border-style:dashed;opacity:.8}.atog.on span{text-decoration:line-through}
+.slotgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin:6px 0}
+.sl2{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;min-height:58px;border-radius:8px;border:2px solid var(--line);background:#10143A;color:var(--txt);font-size:9.5px;padding:4px 2px;cursor:pointer;text-align:center}
+.sl2.empty{border-style:dashed;justify-content:center;color:var(--muted)}.sl2.lock{background:repeating-linear-gradient(135deg,#10143A 0 6px,#161b47 6px 12px);justify-content:center;color:#7C84BC;gap:3px}.sl2 small{font-size:8.5px}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -579,12 +582,12 @@ function newMember(species, lvl) {
 function capturedCount(s) { return ALL_SPECIES.filter(k => s.roster[k]).length; }
 // Squadra: 4 posti per le creature; gli eroi (Guerriero gratis, gli altri dal negozio) non occupano posti
 // Si parte con 8 posti (eroi esclusi); ogni boss indicato sblocca un posto in più
-let SLOT_UNLOCKS = [10, 20]; // posti gratis alle zone 10 e 20 (il 20 arriverà con i nuovi pianeti)
+let SLOT_UNLOCKS = [5, 10, 15, 20]; // +1 posto ogni 5 zone completate, in automatico (15 e 20 arriveranno con i nuovi pianeti)
 if (typeof process !== 'undefined' && process.env && process.env.SLOTS) SLOT_UNLOCKS = JSON.parse(process.env.SLOTS);
 const BASE_SLOTS = 8;
 const CREATURE_SLOTS = 12; // massimo: 8 di base + 4 dalle zone (5 e 15 da comprare, 10 e 20 gratis); niente di più, per lasciare spazio alle scelte di squadra
 // Ogni zona completata permette di comprare un posto in più con l'oro
-const SLOT_BUY_ZONES = [5, 15]; // ogni 5 zone un posto: alle zone 5 e 15 si compra con l'oro
+const SLOT_BUY_ZONES = []; // niente più posti a pagamento
 const SLOT_PRICES = [2000000, 2000000000];
 function slotsBuyable(s) { return SLOT_BUY_ZONES.filter(z => s.cleared >= z).length - (s.boughtSlots || 0); }
 function nextSlotPrice(s) { return SLOT_PRICES[s.boughtSlots || 0]; }
@@ -1033,7 +1036,7 @@ function migrate(s) {
   if (typeof s.runes !== 'object' || s.runes === null) s.runes = { noncomune: s.runes || 0, rara: 0, epica: 0, leggendaria: 0 };
   if (s.runes.mitico === undefined) s.runes.mitico = 0; if (s.runes.astrale === undefined) s.runes.astrale = 0; if (s.runes.arcano === undefined) s.runes.arcano = 0;
   if (s.tree.corona) { const c = [500000, 50000000, 5000000000, 500000000000]; for (let l = 0; l < s.tree.corona; l++) s.gold += c[l]; delete s.tree.corona; }
-  if (s.boughtSlots > SLOT_BUY_ZONES.length) { s.gold += 300000 * (s.boughtSlots - SLOT_BUY_ZONES.length); s.boughtSlots = SLOT_BUY_ZONES.length; }
+  if (s.boughtSlots) { s.gold += 2000000 * s.boughtSlots; s.boughtSlots = 0; } // posti comprati: oro restituito, ora si sbloccano da soli
   for (const k in TREE) if (s.tree[k] === undefined) s.tree[k] = 0;
   if (!s.sky) { let back = 0; for (const k in TREE) { for (let l = 0; l < (s.tree[k] || 0); l++) back += TREE[k].cost(l); s.tree[k] = 0; } s.gold += back; s.sky = [0]; }
   if (!s.chest) s.chest = []; if (!s.rareLog) s.rareLog = [];
@@ -1514,12 +1517,14 @@ function pSquadra() {
   const slots = F.slotCount(S), n = F.creaturesInTeam(S);
   const reserve = Object.keys(S.roster).filter(id => !S.team.includes(id));
   return `<div class="ph"><h2>Squadra</h2><span>creature ${n}/${slots} (max ${F.CREATURE_SLOTS}) · eroi esclusi</span></div>
+  <div class="slotgrid">${Array.from({ length: F.CREATURE_SLOTS }, (_, i) => { const crea = S.team.filter(id => !F.isHero(id)), id = crea[i];
+    if (i < F.slotCount(S)) return id ? `<button class="sl2" style="border-color:${CC(F.SPECIES[S.roster[id].species].cls)}" data-act="openm" data-id="${id}">${sprite(S.roster[id].species, 2)}<span>Lv ${S.roster[id].lvl}</span></button>` : `<div class="sl2 empty"><span>Libero</span></div>`;
+    const z = F.SLOT_UNLOCKS[i - F.BASE_SLOTS]; return `<div class="sl2 lock">${icon('lock', '#7C84BC', 14)}<span>Zona ${z}${z > F.MAX_ZONE ? '<br><small>presto</small>' : ''}</span></div>`; }).join('')}</div>
+  <div class="note">8 posti di base, +1 in automatico ogni 5 zone completate: massimo 12 alleati. Gli eroi non occupano posti.</div>
   ${synergyHTML()}
   <div class="note">L'ordine conta: chi sta più in alto riceve per primo l'equipaggiamento.</div>
   ${S.team.map((id, i) => memberRow(id, true, i)).join('')}
-  ${n < slots ? `<div class="card free">Posto libero: aggiungi una creatura dalla riserva o catturane una nuova.</div>` : ''}
-  ${(() => { const can = F.slotsBuyable(S), price = F.nextSlotPrice(S), nb = F.SLOT_BUY_ZONES[S.boughtSlots || 0]; if (F.slotCount(S) >= F.CREATURE_SLOTS) return '';
-    return `<div class="card slotbuy"><div style="flex:1"><b>Posti in squadra</b><div class="msub">8 di base, +1 ogni 5 zone completate (alle zone 5 e 15 si compra con l'oro, alle 10 e 20 è gratis): massimo 12.</div>${nb ? `<div class="msub" style="color:#F2C14E">${can > 0 ? 'Posto della zona ' + nb + ' sbloccato: compralo!' : 'Prossimo posto da comprare: completa la zona ' + nb}</div>` : ''}</div>${price ? `<button class="pb" data-act="buyslot" ${can < 1 || S.gold < price ? 'disabled' : ''}>${can < 1 ? icon('lock', '#1B1F3B', 12) + ' ' : ''}${cfmt(price)}<br><small>oro</small></button>` : ''}</div>`; })()}
+
   ${reserve.length ? `<div class="ph"><h2>Riserva</h2><span>${reserve.length}</span></div>${reserve.map(id => memberRow(id, false)).join('')}` : ''}`;
 }
 function rcls(r) { return r.rainbow ? ' rbw' : ''; }
@@ -1732,7 +1737,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 22:44</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 22:46</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {

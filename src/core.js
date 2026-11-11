@@ -226,12 +226,12 @@ function newMember(species, lvl) {
 function capturedCount(s) { return ALL_SPECIES.filter(k => s.roster[k]).length; }
 // Squadra: 4 posti per le creature; gli eroi (Guerriero gratis, gli altri dal negozio) non occupano posti
 // Si parte con 8 posti (eroi esclusi); ogni boss indicato sblocca un posto in più
-let SLOT_UNLOCKS = [10, 20]; // posti gratis alle zone 10 e 20 (il 20 arriverà con i nuovi pianeti)
+let SLOT_UNLOCKS = [5, 10, 15, 20]; // +1 posto ogni 5 zone completate, in automatico (15 e 20 arriveranno con i nuovi pianeti)
 if (typeof process !== 'undefined' && process.env && process.env.SLOTS) SLOT_UNLOCKS = JSON.parse(process.env.SLOTS);
 const BASE_SLOTS = 8;
 const CREATURE_SLOTS = 12; // massimo: 8 di base + 4 dalle zone (5 e 15 da comprare, 10 e 20 gratis); niente di più, per lasciare spazio alle scelte di squadra
 // Ogni zona completata permette di comprare un posto in più con l'oro
-const SLOT_BUY_ZONES = [5, 15]; // ogni 5 zone un posto: alle zone 5 e 15 si compra con l'oro
+const SLOT_BUY_ZONES = []; // niente più posti a pagamento
 const SLOT_PRICES = [2000000, 2000000000];
 function slotsBuyable(s) { return SLOT_BUY_ZONES.filter(z => s.cleared >= z).length - (s.boughtSlots || 0); }
 function nextSlotPrice(s) { return SLOT_PRICES[s.boughtSlots || 0]; }
@@ -680,7 +680,7 @@ function migrate(s) {
   if (typeof s.runes !== 'object' || s.runes === null) s.runes = { noncomune: s.runes || 0, rara: 0, epica: 0, leggendaria: 0 };
   if (s.runes.mitico === undefined) s.runes.mitico = 0; if (s.runes.astrale === undefined) s.runes.astrale = 0; if (s.runes.arcano === undefined) s.runes.arcano = 0;
   if (s.tree.corona) { const c = [500000, 50000000, 5000000000, 500000000000]; for (let l = 0; l < s.tree.corona; l++) s.gold += c[l]; delete s.tree.corona; }
-  if (s.boughtSlots > SLOT_BUY_ZONES.length) { s.gold += 300000 * (s.boughtSlots - SLOT_BUY_ZONES.length); s.boughtSlots = SLOT_BUY_ZONES.length; }
+  if (s.boughtSlots) { s.gold += 2000000 * s.boughtSlots; s.boughtSlots = 0; } // posti comprati: oro restituito, ora si sbloccano da soli
   for (const k in TREE) if (s.tree[k] === undefined) s.tree[k] = 0;
   if (!s.sky) { let back = 0; for (const k in TREE) { for (let l = 0; l < (s.tree[k] || 0); l++) back += TREE[k].cost(l); s.tree[k] = 0; } s.gold += back; s.sky = [0]; }
   if (!s.chest) s.chest = []; if (!s.rareLog) s.rareLog = [];

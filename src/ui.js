@@ -403,12 +403,14 @@ function pSquadra() {
   const slots = F.slotCount(S), n = F.creaturesInTeam(S);
   const reserve = Object.keys(S.roster).filter(id => !S.team.includes(id));
   return `<div class="ph"><h2>Squadra</h2><span>creature ${n}/${slots} (max ${F.CREATURE_SLOTS}) · eroi esclusi</span></div>
+  <div class="slotgrid">${Array.from({ length: F.CREATURE_SLOTS }, (_, i) => { const crea = S.team.filter(id => !F.isHero(id)), id = crea[i];
+    if (i < F.slotCount(S)) return id ? `<button class="sl2" style="border-color:${CC(F.SPECIES[S.roster[id].species].cls)}" data-act="openm" data-id="${id}">${sprite(S.roster[id].species, 2)}<span>Lv ${S.roster[id].lvl}</span></button>` : `<div class="sl2 empty"><span>Libero</span></div>`;
+    const z = F.SLOT_UNLOCKS[i - F.BASE_SLOTS]; return `<div class="sl2 lock">${icon('lock', '#7C84BC', 14)}<span>Zona ${z}${z > F.MAX_ZONE ? '<br><small>presto</small>' : ''}</span></div>`; }).join('')}</div>
+  <div class="note">8 posti di base, +1 in automatico ogni 5 zone completate: massimo 12 alleati. Gli eroi non occupano posti.</div>
   ${synergyHTML()}
   <div class="note">L'ordine conta: chi sta più in alto riceve per primo l'equipaggiamento.</div>
   ${S.team.map((id, i) => memberRow(id, true, i)).join('')}
-  ${n < slots ? `<div class="card free">Posto libero: aggiungi una creatura dalla riserva o catturane una nuova.</div>` : ''}
-  ${(() => { const can = F.slotsBuyable(S), price = F.nextSlotPrice(S), nb = F.SLOT_BUY_ZONES[S.boughtSlots || 0]; if (F.slotCount(S) >= F.CREATURE_SLOTS) return '';
-    return `<div class="card slotbuy"><div style="flex:1"><b>Posti in squadra</b><div class="msub">8 di base, +1 ogni 5 zone completate (alle zone 5 e 15 si compra con l'oro, alle 10 e 20 è gratis): massimo 12.</div>${nb ? `<div class="msub" style="color:#F2C14E">${can > 0 ? 'Posto della zona ' + nb + ' sbloccato: compralo!' : 'Prossimo posto da comprare: completa la zona ' + nb}</div>` : ''}</div>${price ? `<button class="pb" data-act="buyslot" ${can < 1 || S.gold < price ? 'disabled' : ''}>${can < 1 ? icon('lock', '#1B1F3B', 12) + ' ' : ''}${cfmt(price)}<br><small>oro</small></button>` : ''}</div>`; })()}
+
   ${reserve.length ? `<div class="ph"><h2>Riserva</h2><span>${reserve.length}</span></div>${reserve.map(id => memberRow(id, false)).join('')}` : ''}`;
 }
 function rcls(r) { return r.rainbow ? ' rbw' : ''; }
