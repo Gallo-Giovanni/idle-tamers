@@ -240,6 +240,9 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .passov{position:absolute;top:0;right:0;background:#F2C14E;color:#1B1F3B;font-size:9.5px;font-weight:900;letter-spacing:1px;padding:2px 6px;border-bottom-left-radius:6px}.passm{color:var(--gold);font-weight:600}
 .ipx{image-rendering:pixelated;image-rendering:crisp-edges;display:inline-block;vertical-align:middle;flex-shrink:0}
 .it{background:radial-gradient(circle at 50% 32%,color-mix(in srgb,var(--c,#10143A) 28%,transparent) 0,transparent 62%),#10143A}
+.passbig{border:2px solid #F2C14E;background:radial-gradient(120% 80% at 0% 0%,#4a3a12,#1B1F3B 60%);padding:12px}
+.passbig.on{border-color:#7ED36F}.pbhead{display:flex;align-items:center;gap:12px}.pbic{width:56px;height:56px;border-radius:12px;background:#0B0E24;display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px #F2C14E66}
+.pbt{font-size:19px;color:#F2C14E}.pbp{font-size:13px;font-weight:700;margin-top:2px}.pbl{margin:10px 0;padding-left:18px;font-size:12.5px;line-height:1.6}.pbl b{color:#F2C14E}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -460,8 +463,8 @@ function dailyReady(s, now) { return s.daily !== dayKey(now || Date.now()); }
 function claimDaily(s, now) { if (!dailyReady(s, now)) return 0; s.daily = dayKey(now || Date.now()); s.astri += DAILY_ASTRI; return DAILY_ASTRI; }
 function nextMidnight(now) { const d = new Date(now); d.setHours(24, 0, 0, 0); return d.getTime(); }
 function buyHero(s, id) { if (!isHero(id) || s.roster[id]) return false; s.roster[id] = newMember(id, 1); s.team.push(id); return true; }
-const LEVEL_CAP = 30;
-function xpNeed(l) { return Math.round(100 * Math.pow(1.5, l - 1)); }
+let LEVEL_CAP = 30; if (typeof process !== 'undefined' && process.env && process.env.LCAP) LEVEL_CAP = +process.env.LCAP;
+function xpNeed(l) { return Math.round(100 * Math.pow(1.5, Math.min(l, 30) - 1) * (l > 30 ? Math.pow(l - 29, +(typeof process !== 'undefined' && process.env && process.env.XPP) || 2) : 1)); } // oltre il 30 cresce più piano: si sale sempre un po' anche quando si è bloccati
 // ---------- Statistiche degli oggetti ----------
 // Statistiche principali dal tipo; statistiche bonus casuali: 0 comune, 1 non comune, 2 rara, 3 epica, 4 leggendaria
 const STAT_LABEL = { atk: 'Danni', hp: 'PV massimi', def: 'Difesa', crit: 'Prob. critico', critDmg: 'Danni critici', aspd: "Vel. d'attacco", block: 'Blocco', dodge: 'Schivata' };
@@ -530,7 +533,8 @@ function withinZone(n) {
   return Math.pow(1.03, a) * Math.pow(1.07, b) * Math.pow(1.12, c);
 }
 // Passo tra le zone: sul primo pianeta più dolce, sul secondo più ripido (la squadra è già grande)
-const ZONE_K = [0, 0, 0.55, 0.55, 0.55, 0.55, 0.45, 0.45, 0.45, 0.45, 0.45];
+let ZONE_K = [0, 0, 0.55, 0.55, 0.55, 0.55, 0.45, 0.45, 0.45, 0.45, 0.45];
+if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JSON.parse(process.env.ZK);
 const ZONE_BASE = [0, 1]; for (let z = 2; z <= 10; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n); }
 
@@ -568,7 +572,7 @@ function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
   let dmg = src.atk * mult;
   let crit = false;
   if (rnd(s) < src.crit) { dmg *= src.critDmg; crit = true; }
-  if (!ignoreDef) dmg -= dst.def;
+  if (!ignoreDef) dmg *= src.atk / (src.atk + 1.5 * dst.def); // difesa a rendimento decrescente: niente muri impossibili
   if (dst.mark > 0) dmg *= 1.3;
   if (dst.cls === 'Tank' && dst.side === 'p') dmg *= 0.7;
   if (dst.block && rnd(s) < dst.block) dmg *= 0.5;
@@ -654,9 +658,10 @@ function onKill(s, b, e, ev) {
   const f = enemyScale(s.zone, s.battle);
   s.stats.kills++;
   s.kills = s.kills || {}; s.kills[e.species] = (s.kills[e.species] || 0) + 1;
-  const gold = Math.round(1 * f * (e.boss ? 10 : 1) * (1 + 0.05 * s.tree.tesoro));
+  const pass = hasPass(s) ? 2 : 1; // Pass: oro ed esperienza doppi
+  const gold = Math.round(1 * f * (e.boss ? 10 : 1) * (1 + 0.05 * s.tree.tesoro) * pass);
   s.gold += gold; s.stats.gold += gold; trackMinute(s, 1, gold);
-  const xp = Math.round(3 * f * (e.boss ? 8 : 1));
+  const xp = Math.round(3 * f * (e.boss ? 8 : 1) * pass);
   for (const u of b.party) if (u.hp > 0) gainXp(s, u.id, xp, ev); // solo chi è vivo in campo prende PE
   if (ev) ev.push({ type: 'kill', idx: e.idx, gold });
   // drop
@@ -739,12 +744,18 @@ function rarityIndex(k) { return ITEM_RARITY.findIndex(r => r.key === k); }
 const FREE_MAX_FILTER = 1; // gratis: si vendono solo i comuni
 // Zaino e forziere: 20 posti ciascuno, il doppio col Pass. Le rune non occupano posto.
 const BAG_BASE = 20;
-function bagCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1); }
-function chestCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1); }
+function bagCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraBag || 0); }
+function chestCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraChest || 0); }
+// Spazi extra nello Shop: per sempre, ma se ne possono comprare pochi ogni mese
+const SPACE_PACK = { n: 5, cost: 200, perMonth: 4 };
+function monthKey(now) { const d = new Date(now || Date.now()); return d.getFullYear() * 100 + d.getMonth() + 1; }
+function spaceLeft(s, kind) { const m = monthKey(); if (!s.spaceBuys || s.spaceBuys.m !== m) return SPACE_PACK.perMonth; return SPACE_PACK.perMonth - (s.spaceBuys[kind] || 0); }
+function buySpace(s, kind) { if (spaceLeft(s, kind) < 1 || s.astri < SPACE_PACK.cost) return false; const m = monthKey(); if (!s.spaceBuys || s.spaceBuys.m !== m) s.spaceBuys = { m, bag: 0, chest: 0 }; s.spaceBuys[kind]++; s.astri -= SPACE_PACK.cost; if (kind === 'bag') s.extraBag = (s.extraBag || 0) + SPACE_PACK.n; else s.extraChest = (s.extraChest || 0) + SPACE_PACK.n; return true; }
 function toChest(s, id) { const i = s.inventory.findIndex(x => x.id === id); if (i < 0 || s.chest.length >= chestCap(s)) return false; s.chest.push(s.inventory.splice(i, 1)[0]); return true; }
 function fromChest(s, id) { const i = s.chest.findIndex(x => x.id === id); if (i < 0 || s.inventory.length >= bagCap(s)) return false; s.inventory.push(s.chest.splice(i, 1)[0]); return true; }
 function offlineCap(s) { return OFFLINE_CAP * (hasPass(s) ? 2 : 1); }
-function maxFilter(s) { return hasPass(s) ? ITEM_RARITY.length - 1 : FREE_MAX_FILTER; }
+const PASS_MAX_FILTER = 2; // col Pass si vendono in automatico anche i non comuni, mai oltre
+function maxFilter(s) { return hasPass(s) ? PASS_MAX_FILTER : FREE_MAX_FILTER; }
 function minKeep(s) { return Math.min(rarityIndex(s.settings.minRarity || 'comune'), maxFilter(s), protectIdx(s)); }
 // "Tieni sempre da ... in su": queste rarità non si vendono mai (né a mano né in automatico)
 function protectIdx(s) { const k = s.settings.protect || 'segreto'; return k === 'none' ? ITEM_RARITY.length : rarityIndex(k); }
@@ -901,7 +912,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
@@ -1314,8 +1325,8 @@ function showAutoSell() {
   const k = F.minKeep(S), pi = F.protectIdx(S), mx = F.maxFilter(S);
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-labelledby="ast"><div class="eqhead"><h2 id="ast" style="margin:0;font-size:18px">Vendita automatica</h2><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
   <div class="msub" style="margin:4px 0 8px">Tocca il grado <b>da cui conservare</b>: quelli sotto si vendono in oro appena cadono.</div>
-  <div class="rarbar big">${F.ITEM_RARITY.map((r, i) => { const sell = i < k, lock = i > mx; return `<button class="rb1 ${sell ? 'sell' : 'keep'}${i === k ? ' cur' : ''}" style="--c:${r.color}" data-act="setkeep" data-k="${r.key}" ${lock ? 'disabled' : ''}><i class="${r.rainbow ? 'rbg' : ''}"></i><span class="${r.rainbow && !sell ? 'rbw' : ''}">${r.label}</span><em>${sell ? 'vendi' : i >= pi ? 'sempre tenuto' : 'tieni'}</em>${lock ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : ''}</button>`; }).join('')}</div>
-  <div class="note">Le rune, gli oggetti bloccati col lucchetto e le rarità protette dal Mercante non si vendono mai.${F.hasPass(S) ? '' : '<br><span style="color:var(--gold)">Gratis puoi vendere in automatico solo i comuni. Le scelte con la scritta PASS si sbloccano col Pass Astrale (Shop).</span>'}</div>
+  <div class="rarbar big">${F.ITEM_RARITY.map((r, i) => { const sell = i < k, lock = i > mx, passOnly = lock && i <= F.PASS_MAX_FILTER; return `<button class="rb1 ${sell ? 'sell' : 'keep'}${i === k ? ' cur' : ''}" style="--c:${r.color}" data-act="setkeep" data-k="${r.key}" ${lock ? 'disabled' : ''}><i class="${r.rainbow ? 'rbg' : ''}"></i><span class="${r.rainbow && !sell ? 'rbw' : ''}">${r.label}</span><em>${sell ? 'vendi' : i >= pi ? 'sempre tenuto' : 'tieni'}</em>${passOnly ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : ''}</button>`; }).join('')}</div>
+  <div class="note">Le rune, gli oggetti bloccati col lucchetto e le rarità protette dal Mercante non si vendono mai.${F.hasPass(S) ? '' : '<br><span style="color:var(--gold)">Gratis si vendono in automatico solo i comuni; col Pass Astrale anche i non comuni. Le rarità più alte non si vendono mai in automatico.</span>'}</div>
   <div class="row2"><button class="sb" data-act="sellbelow">Vendi ora quelli nello zaino</button><button class="pb" data-act="close">Fatto</button></div></div>`;
   $('#modal').hidden = false;
 }
@@ -1340,8 +1351,12 @@ function pShop() {
   <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min (a mezzanotte).`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>si pagano in Astri</span></div>
   <div class="sgrid runes4">${Object.keys(F.RUNE_BUY).map(k => { const r = F.RUNE[k]; return `<div class="card sitem" style="border-color:${r.color}">${icon('rune', r.color, 24)}<b style="color:${r.color}">${r.label.replace('Runa ', '')}</b><span>→ ${F.ITEM_RARITY.find(x => x.key === k).label}</span><span>hai ${fmt(S.runes[k])}</span><button class="pb" data-act="buyrune" data-k="${k}" ${S.astri < F.RUNE_BUY[k] ? 'disabled' : ''}>${F.RUNE_BUY[k]} ${icon('gem', '#1B1F3B', 11)}</button></div>`; }).join('')}</div>
+  <div class="ph"><h2 style="font-size:13px">Spazio</h2><span>+${F.SPACE_PACK.n} posti per sempre · max ${F.SPACE_PACK.perMonth} al mese</span></div>
+  <div class="sgrid">${[['bag', 'Zaino', 'Posti zaino', F.bagCap(S)], ['chest', 'Forziere', 'Posti forziere', F.chestCap(S)]].map(([k, n, l, cap]) => { const left = F.spaceLeft(S, k); return `<div class="card sitem"><b>+${F.SPACE_PACK.n} ${l.toLowerCase()}</b><span>${n} ora: ${cap} posti</span><span>Questo mese: ancora ${left}</span><button class="pb" data-act="buyspace" data-k="${k}" ${left < 1 || S.astri < F.SPACE_PACK.cost ? 'disabled' : ''}>${left < 1 ? 'Finiti per questo mese' : F.SPACE_PACK.cost + ' Astri'}</button></div>`; }).join('')}</div>
   <div class="ph"><h2 style="font-size:13px">Abbonamento</h2></div>
-  <div class="card passc"><div><b style="color:var(--gold)">Pass Astrale · ${F.PASS_PRICE}</b><div class="msub">Vendita automatica di tutte le rarità · zaino e forziere ×2 · guadagno offline fino a 8 ore (invece di 4).</div>${F.hasPass(S) ? `<div class="msub" style="color:#7ED36F">Attivo fino al ${new Date(S.pass).toLocaleDateString('it-IT')}</div>` : ''}</div><button class="pb" data-act="pass">${F.hasPass(S) ? 'Rinnova' : 'Attiva'}<br><small>prova gratis</small></button></div>
+  <div class="card passbig${F.hasPass(S) ? ' on' : ''}"><div class="pbhead"><div class="pbic">${ipx('collana', 44)}</div><div style="flex:1"><b class="pbt">Pass Astrale</b><div class="pbp">${F.PASS_PRICE}</div>${F.hasPass(S) ? `<div class="msub" style="color:#7ED36F">Attivo fino al ${new Date(S.pass).toLocaleDateString('it-IT')}</div>` : ''}</div></div>
+   <ul class="pbl"><li><b>×2 oro</b> da ogni nemico</li><li><b>×2 esperienza</b> per tutta la squadra</li><li>Zaino e forziere <b>doppi</b> (${F.bagCap(S) + (F.hasPass(S) ? 0 : 20)} posti)</li><li>Guadagno offline fino a <b>8 ore</b> (invece di 4)</li><li>Vendita automatica anche dei <b>non comuni</b></li></ul>
+   <button class="pb wide" data-act="pass">${F.hasPass(S) ? 'Rinnova' : 'Attiva'} · prova gratis</button></div>
   <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
   ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr">${sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}<br><small>prova gratis</small></button>`}</div>`; }).join('')}
   <div class="note">Versione di prova: gli acquisti si sbloccano gratis, nessun pagamento reale.</div>`;
@@ -1452,7 +1467,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 19:51</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 20:35</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -1644,6 +1659,7 @@ document.addEventListener('click', e => {
   else if (a === 'givegold') { S.gold += +t.dataset.v; toast(`+${cfmt(+t.dataset.v)} oro`, '#F2C14E'); }
   else if (a === 'giveastri') { S.astri += +t.dataset.v; toast(`+${fmt(+t.dataset.v)} Astri`, '#F49AC1'); }
   else if (a === 'selstar') selStar = t.dataset.k;
+  else if (a === 'buyspace') { if (F.buySpace(S, t.dataset.k)) toast(`+${F.SPACE_PACK.n} posti ${t.dataset.k === 'bag' ? 'nello zaino' : 'nel forziere'}`, '#F2C14E'); }
   else if (a === 'buyrune') { if (F.buyRune(S, t.dataset.k)) toast(`+1 ${F.RUNE[t.dataset.k].label.toLowerCase()}`, F.RUNE[t.dataset.k].color); }
   else if (a === 'daily') { const g = F.claimDaily(S); if (g) toast(`+${g} ${icon('gem', '#F49AC1', 14)} Astri: regalo del giorno`, '#F49AC1'); }
   else if (a === 'pass') { F.activatePass(S); toast('Pass Astrale attivo per 30 giorni (versione di prova)', '#F2C14E'); }

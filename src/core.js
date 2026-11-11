@@ -175,8 +175,8 @@ function dailyReady(s, now) { return s.daily !== dayKey(now || Date.now()); }
 function claimDaily(s, now) { if (!dailyReady(s, now)) return 0; s.daily = dayKey(now || Date.now()); s.astri += DAILY_ASTRI; return DAILY_ASTRI; }
 function nextMidnight(now) { const d = new Date(now); d.setHours(24, 0, 0, 0); return d.getTime(); }
 function buyHero(s, id) { if (!isHero(id) || s.roster[id]) return false; s.roster[id] = newMember(id, 1); s.team.push(id); return true; }
-const LEVEL_CAP = 30;
-function xpNeed(l) { return Math.round(100 * Math.pow(1.5, l - 1)); }
+let LEVEL_CAP = 30; if (typeof process !== 'undefined' && process.env && process.env.LCAP) LEVEL_CAP = +process.env.LCAP;
+function xpNeed(l) { return Math.round(100 * Math.pow(1.5, Math.min(l, 30) - 1) * (l > 30 ? Math.pow(l - 29, +(typeof process !== 'undefined' && process.env && process.env.XPP) || 2) : 1)); } // oltre il 30 cresce più piano: si sale sempre un po' anche quando si è bloccati
 // ---------- Statistiche degli oggetti ----------
 // Statistiche principali dal tipo; statistiche bonus casuali: 0 comune, 1 non comune, 2 rara, 3 epica, 4 leggendaria
 const STAT_LABEL = { atk: 'Danni', hp: 'PV massimi', def: 'Difesa', crit: 'Prob. critico', critDmg: 'Danni critici', aspd: "Vel. d'attacco", block: 'Blocco', dodge: 'Schivata' };
@@ -245,7 +245,8 @@ function withinZone(n) {
   return Math.pow(1.03, a) * Math.pow(1.07, b) * Math.pow(1.12, c);
 }
 // Passo tra le zone: sul primo pianeta più dolce, sul secondo più ripido (la squadra è già grande)
-const ZONE_K = [0, 0, 0.55, 0.55, 0.55, 0.55, 0.45, 0.45, 0.45, 0.45, 0.45];
+let ZONE_K = [0, 0, 0.55, 0.55, 0.55, 0.55, 0.45, 0.45, 0.45, 0.45, 0.45];
+if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JSON.parse(process.env.ZK);
 const ZONE_BASE = [0, 1]; for (let z = 2; z <= 10; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n); }
 
@@ -283,7 +284,7 @@ function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
   let dmg = src.atk * mult;
   let crit = false;
   if (rnd(s) < src.crit) { dmg *= src.critDmg; crit = true; }
-  if (!ignoreDef) dmg -= dst.def;
+  if (!ignoreDef) dmg *= src.atk / (src.atk + 1.5 * dst.def); // difesa a rendimento decrescente: niente muri impossibili
   if (dst.mark > 0) dmg *= 1.3;
   if (dst.cls === 'Tank' && dst.side === 'p') dmg *= 0.7;
   if (dst.block && rnd(s) < dst.block) dmg *= 0.5;
@@ -369,9 +370,10 @@ function onKill(s, b, e, ev) {
   const f = enemyScale(s.zone, s.battle);
   s.stats.kills++;
   s.kills = s.kills || {}; s.kills[e.species] = (s.kills[e.species] || 0) + 1;
-  const gold = Math.round(1 * f * (e.boss ? 10 : 1) * (1 + 0.05 * s.tree.tesoro));
+  const pass = hasPass(s) ? 2 : 1; // Pass: oro ed esperienza doppi
+  const gold = Math.round(1 * f * (e.boss ? 10 : 1) * (1 + 0.05 * s.tree.tesoro) * pass);
   s.gold += gold; s.stats.gold += gold; trackMinute(s, 1, gold);
-  const xp = Math.round(3 * f * (e.boss ? 8 : 1));
+  const xp = Math.round(3 * f * (e.boss ? 8 : 1) * pass);
   for (const u of b.party) if (u.hp > 0) gainXp(s, u.id, xp, ev); // solo chi è vivo in campo prende PE
   if (ev) ev.push({ type: 'kill', idx: e.idx, gold });
   // drop
@@ -454,12 +456,18 @@ function rarityIndex(k) { return ITEM_RARITY.findIndex(r => r.key === k); }
 const FREE_MAX_FILTER = 1; // gratis: si vendono solo i comuni
 // Zaino e forziere: 20 posti ciascuno, il doppio col Pass. Le rune non occupano posto.
 const BAG_BASE = 20;
-function bagCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1); }
-function chestCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1); }
+function bagCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraBag || 0); }
+function chestCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraChest || 0); }
+// Spazi extra nello Shop: per sempre, ma se ne possono comprare pochi ogni mese
+const SPACE_PACK = { n: 5, cost: 200, perMonth: 4 };
+function monthKey(now) { const d = new Date(now || Date.now()); return d.getFullYear() * 100 + d.getMonth() + 1; }
+function spaceLeft(s, kind) { const m = monthKey(); if (!s.spaceBuys || s.spaceBuys.m !== m) return SPACE_PACK.perMonth; return SPACE_PACK.perMonth - (s.spaceBuys[kind] || 0); }
+function buySpace(s, kind) { if (spaceLeft(s, kind) < 1 || s.astri < SPACE_PACK.cost) return false; const m = monthKey(); if (!s.spaceBuys || s.spaceBuys.m !== m) s.spaceBuys = { m, bag: 0, chest: 0 }; s.spaceBuys[kind]++; s.astri -= SPACE_PACK.cost; if (kind === 'bag') s.extraBag = (s.extraBag || 0) + SPACE_PACK.n; else s.extraChest = (s.extraChest || 0) + SPACE_PACK.n; return true; }
 function toChest(s, id) { const i = s.inventory.findIndex(x => x.id === id); if (i < 0 || s.chest.length >= chestCap(s)) return false; s.chest.push(s.inventory.splice(i, 1)[0]); return true; }
 function fromChest(s, id) { const i = s.chest.findIndex(x => x.id === id); if (i < 0 || s.inventory.length >= bagCap(s)) return false; s.inventory.push(s.chest.splice(i, 1)[0]); return true; }
 function offlineCap(s) { return OFFLINE_CAP * (hasPass(s) ? 2 : 1); }
-function maxFilter(s) { return hasPass(s) ? ITEM_RARITY.length - 1 : FREE_MAX_FILTER; }
+const PASS_MAX_FILTER = 2; // col Pass si vendono in automatico anche i non comuni, mai oltre
+function maxFilter(s) { return hasPass(s) ? PASS_MAX_FILTER : FREE_MAX_FILTER; }
 function minKeep(s) { return Math.min(rarityIndex(s.settings.minRarity || 'comune'), maxFilter(s), protectIdx(s)); }
 // "Tieni sempre da ... in su": queste rarità non si vendono mai (né a mano né in automatico)
 function protectIdx(s) { const k = s.settings.protect || 'segreto'; return k === 'none' ? ITEM_RARITY.length : rarityIndex(k); }
@@ -616,7 +624,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
