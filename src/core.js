@@ -292,7 +292,7 @@ function rollBonus(s, it) { const have = (it.bonus || []).map(b => b.k), pool = 
 // Rimescola i bonus di un oggetto (Astri); i bonus bloccati restano, ma ognuno raddoppia il costo
 // costo in Pietre del rimescolo (si trovano dai nemici, rarità media): 1 + 1 per ogni bonus bloccato, raddoppiando
 function rerollCost(it, locks) { return Math.pow(2, locks.length); }
-const STONE_DROP = 0.0002;
+const STONE_DROP = 0.000011; // circa una ogni 3 giorni
 function rerollBonus(s, id, locks) {
   const it = s.inventory.find(x => x.id === id) || s.chest.find(x => x.id === id); if (!it || !(it.bonus || []).length) return false;
   locks = locks.filter(i => i < it.bonus.length); if (locks.length >= it.bonus.length) return false;
@@ -301,7 +301,7 @@ function rerollBonus(s, id, locks) {
   const out = []; let ki = 0, ni = keep.length; for (let i = 0; i < n; i++) out.push(locks.includes(i) ? it.bonus[ki++] : it.bonus[ni++]); it.bonus = out; return true;
 }
 // Fusione: 20 oggetti della stessa rarità (fino all'Epico) diventano 1 oggetto della rarità successiva
-const FUSE_N = 5, FUSE_MAX = 3; // indice dell'Epico: si arriva al massimo al Leggendario
+const FUSE_N = 5, FUSE_MAX = 6; // fino ad Astrale → Arcano (come la runa cremisi)
 function fusable(s, rk) { return s.inventory.filter(it => it.rarity === rk && !isProtected(s, it) && !it.locked); }
 function fuse(s, rk) {
   const ri = rarityIndex(rk); if (ri < 0 || ri > FUSE_MAX) return null; const list = fusable(s, rk).sort((a, b) => itemPower(a) - itemPower(b)); if (list.length < FUSE_N) return null;

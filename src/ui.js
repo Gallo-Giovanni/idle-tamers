@@ -459,7 +459,7 @@ function runeTiles() {
   return `<div class="igrid"><button class="it${selRune === 'stone' ? ' sel' : ''}" style="border-color:#5BD8E6;--c:#5BD8E6" data-act="selrune" data-k="stone">${ipx('pietra', 22)}<b>${fmt(S.stones || 0)}</b><em>rimescolo</em></button>${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<button class="it${selRune === k ? ' sel' : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selrune" data-k="${k}" aria-label="${r.label}: ${S.runes[k]}">${icon('rune', r.color, 22)}<b>${fmt(S.runes[k])}</b><em>${r.label.replace('Runa ', '')}</em></button>`; }).join('')}</div>`;
 }
 function runeDetail(k) {
-  if (k === 'stone') return `<div class="card idet" style="border-color:#5BD8E6"><div class="iname" style="color:#5BD8E6;display:flex;align-items:center;gap:6px">${ipx('pietra', 26)}Pietra del rimescolo × ${fmt(S.stones || 0)}</div><div class="msub">Cambia a caso i bonus di un oggetto: tocca l'oggetto e usa "Rimescola i bonus". Costa 1 pietra, il doppio per ogni bonus che blocchi. Cade dai nemici con una rarità media, come una runa.</div></div>`;
+  if (k === 'stone') return `<div class="card idet" style="border-color:#5BD8E6"><div class="iname" style="color:#5BD8E6;display:flex;align-items:center;gap:6px">${ipx('pietra', 26)}Pietra del rimescolo × ${fmt(S.stones || 0)}</div><div class="msub">Cambia a caso i bonus di un oggetto: tocca l'oggetto e usa "Rimescola i bonus". Costa 1 pietra, il doppio per ogni bonus che blocchi. È rara: cade dai nemici circa una volta ogni 3 giorni.</div></div>`;
   const r = F.RUNE[k], n = S.runes[k], nr = F.ITEM_RARITY.find(x => x.key === k);
   return `<div class="card idet" style="border-color:${r.color}"><div class="iname" style="color:${r.color};display:flex;align-items:center;gap:6px">${icon('rune', r.color, 26)}${r.label} × ${fmt(n)}</div>
     <div class="msub">Porta un oggetto a <b style="color:${nr.color}">${nr.label}</b> e potenzia di 1 livello uno slot.</div>
@@ -477,7 +477,7 @@ function showAutoSell() {
 }
 function showFuse() {
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true"><div class="eqhead"><h2 style="margin:0;font-size:18px">Fusione</h2><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
-  <div class="msub" style="margin:4px 0 8px">Unisci ${F.FUSE_N} oggetti della stessa rarità per ottenerne uno della rarità successiva, con il livello più alto tra quelli usati. Si usano i più deboli; quelli bloccati o protetti non vengono toccati. Si arriva al massimo al Leggendario.</div>
+  <div class="msub" style="margin:4px 0 8px">Unisci ${F.FUSE_N} oggetti della stessa rarità per ottenerne uno della rarità successiva, con il livello più alto tra quelli usati. Si usano i più deboli; quelli bloccati o protetti non vengono toccati. Si arriva al massimo all'Arcano.</div>
   ${F.ITEM_RARITY.slice(0, F.FUSE_MAX + 1).map(r => { const n = F.fusable(S, r.key).length, nx = F.ITEM_RARITY[F.rarityIndex(r.key) + 1]; return `<div class="card srow"><div><b style="color:${r.color}">${r.label}</b> → <b style="color:${nx.color}">${nx.label}</b><div class="msub">Ne hai ${n}/${F.FUSE_N}</div><div class="bar" style="height:4px;margin-top:3px"><b style="width:${Math.min(100, 100 * n / F.FUSE_N)}%;background:${r.color}"></b></div></div><button class="pb" data-act="fuse" data-k="${r.key}" ${n < F.FUSE_N ? 'disabled' : ''}>Fondi</button></div>`; }).join('')}</div>`;
   $('#modal').hidden = false;
 }

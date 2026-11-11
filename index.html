@@ -651,7 +651,7 @@ function rollBonus(s, it) { const have = (it.bonus || []).map(b => b.k), pool = 
 // Rimescola i bonus di un oggetto (Astri); i bonus bloccati restano, ma ognuno raddoppia il costo
 // costo in Pietre del rimescolo (si trovano dai nemici, rarità media): 1 + 1 per ogni bonus bloccato, raddoppiando
 function rerollCost(it, locks) { return Math.pow(2, locks.length); }
-const STONE_DROP = 0.0002;
+const STONE_DROP = 0.000011; // circa una ogni 3 giorni
 function rerollBonus(s, id, locks) {
   const it = s.inventory.find(x => x.id === id) || s.chest.find(x => x.id === id); if (!it || !(it.bonus || []).length) return false;
   locks = locks.filter(i => i < it.bonus.length); if (locks.length >= it.bonus.length) return false;
@@ -660,7 +660,7 @@ function rerollBonus(s, id, locks) {
   const out = []; let ki = 0, ni = keep.length; for (let i = 0; i < n; i++) out.push(locks.includes(i) ? it.bonus[ki++] : it.bonus[ni++]); it.bonus = out; return true;
 }
 // Fusione: 20 oggetti della stessa rarità (fino all'Epico) diventano 1 oggetto della rarità successiva
-const FUSE_N = 5, FUSE_MAX = 3; // indice dell'Epico: si arriva al massimo al Leggendario
+const FUSE_N = 5, FUSE_MAX = 6; // fino ad Astrale → Arcano (come la runa cremisi)
 function fusable(s, rk) { return s.inventory.filter(it => it.rarity === rk && !isProtected(s, it) && !it.locked); }
 function fuse(s, rk) {
   const ri = rarityIndex(rk); if (ri < 0 || ri > FUSE_MAX) return null; const list = fusable(s, rk).sort((a, b) => itemPower(a) - itemPower(b)); if (list.length < FUSE_N) return null;
@@ -1598,7 +1598,7 @@ function runeTiles() {
   return `<div class="igrid"><button class="it${selRune === 'stone' ? ' sel' : ''}" style="border-color:#5BD8E6;--c:#5BD8E6" data-act="selrune" data-k="stone">${ipx('pietra', 22)}<b>${fmt(S.stones || 0)}</b><em>rimescolo</em></button>${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<button class="it${selRune === k ? ' sel' : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selrune" data-k="${k}" aria-label="${r.label}: ${S.runes[k]}">${icon('rune', r.color, 22)}<b>${fmt(S.runes[k])}</b><em>${r.label.replace('Runa ', '')}</em></button>`; }).join('')}</div>`;
 }
 function runeDetail(k) {
-  if (k === 'stone') return `<div class="card idet" style="border-color:#5BD8E6"><div class="iname" style="color:#5BD8E6;display:flex;align-items:center;gap:6px">${ipx('pietra', 26)}Pietra del rimescolo × ${fmt(S.stones || 0)}</div><div class="msub">Cambia a caso i bonus di un oggetto: tocca l'oggetto e usa "Rimescola i bonus". Costa 1 pietra, il doppio per ogni bonus che blocchi. Cade dai nemici con una rarità media, come una runa.</div></div>`;
+  if (k === 'stone') return `<div class="card idet" style="border-color:#5BD8E6"><div class="iname" style="color:#5BD8E6;display:flex;align-items:center;gap:6px">${ipx('pietra', 26)}Pietra del rimescolo × ${fmt(S.stones || 0)}</div><div class="msub">Cambia a caso i bonus di un oggetto: tocca l'oggetto e usa "Rimescola i bonus". Costa 1 pietra, il doppio per ogni bonus che blocchi. È rara: cade dai nemici circa una volta ogni 3 giorni.</div></div>`;
   const r = F.RUNE[k], n = S.runes[k], nr = F.ITEM_RARITY.find(x => x.key === k);
   return `<div class="card idet" style="border-color:${r.color}"><div class="iname" style="color:${r.color};display:flex;align-items:center;gap:6px">${icon('rune', r.color, 26)}${r.label} × ${fmt(n)}</div>
     <div class="msub">Porta un oggetto a <b style="color:${nr.color}">${nr.label}</b> e potenzia di 1 livello uno slot.</div>
@@ -1616,7 +1616,7 @@ function showAutoSell() {
 }
 function showFuse() {
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true"><div class="eqhead"><h2 style="margin:0;font-size:18px">Fusione</h2><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
-  <div class="msub" style="margin:4px 0 8px">Unisci ${F.FUSE_N} oggetti della stessa rarità per ottenerne uno della rarità successiva, con il livello più alto tra quelli usati. Si usano i più deboli; quelli bloccati o protetti non vengono toccati. Si arriva al massimo al Leggendario.</div>
+  <div class="msub" style="margin:4px 0 8px">Unisci ${F.FUSE_N} oggetti della stessa rarità per ottenerne uno della rarità successiva, con il livello più alto tra quelli usati. Si usano i più deboli; quelli bloccati o protetti non vengono toccati. Si arriva al massimo all'Arcano.</div>
   ${F.ITEM_RARITY.slice(0, F.FUSE_MAX + 1).map(r => { const n = F.fusable(S, r.key).length, nx = F.ITEM_RARITY[F.rarityIndex(r.key) + 1]; return `<div class="card srow"><div><b style="color:${r.color}">${r.label}</b> → <b style="color:${nx.color}">${nx.label}</b><div class="msub">Ne hai ${n}/${F.FUSE_N}</div><div class="bar" style="height:4px;margin-top:3px"><b style="width:${Math.min(100, 100 * n / F.FUSE_N)}%;background:${r.color}"></b></div></div><button class="pb" data-act="fuse" data-k="${r.key}" ${n < F.FUSE_N ? 'disabled' : ''}>Fondi</button></div>`; }).join('')}</div>`;
   $('#modal').hidden = false;
 }
@@ -1790,7 +1790,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 23:00</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 23:07</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
