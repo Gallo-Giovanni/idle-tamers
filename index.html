@@ -418,7 +418,7 @@ const SPECIES = {
   riflessa: { name: 'Riflessa', cls: 'Mago', rarity: 'rara', quote: "Guardami bene: dentro di me ci sei tu." },
   braciolo: { name: "Braciolo", cls: 'Guerriero', rarity: 'comune', quote: "Scotto un po', ma ti voglio bene." },
   lavarospo: { name: "Lavarospo", cls: 'Tank', rarity: 'comune', quote: "Salto poco, resisto tanto." },
-  fiammella: { name: "Fiammella", cls: 'Mago', rarity: 'comune', quote: "Sono piccola, ma brucio di entusiasmo." },
+  fiammella: { name: "Fiammella", cls: 'Mago', rarity: 'noncomune', quote: "Sono piccola, ma brucio di entusiasmo." },
   cenerino: { name: "Cenerino", cls: 'Arciere', rarity: 'comune', quote: "Sono fatto di cenere, ma ho la mira di fuoco." },
   magmolo: { name: "Magmolo", cls: 'Curatore', rarity: 'comune', quote: "Il mio calore guarisce. Ma non toccarmi." },
   salamandro: { name: "Salamandro", cls: 'Guerriero', rarity: 'noncomune', quote: "Coda di fuoco, cuore d'oro." },
@@ -448,19 +448,19 @@ const SPECIES = {
 };
 // Pianeti e zone: 10 zone da 30 battaglie, 5 per pianeta
 const PLANETS = [
-  { name: 'Prati Stellari', zones: [1, 5], species: ['glimmo', 'cometuga', 'fiorastro', 'sporello', 'polvino', 'meteorino', 'bzzt', 'radichino', 'lucciolo', 'astrillo', 'pipistrella', 'nebulina', 'orbo', 'revuoto'] },
-  { name: 'Luna di Cristallo', zones: [6, 10], species: ['scheggia', 'geodino', 'brinello', 'lumispettro', 'stalagmo', 'cristallux', 'gemmerla', 'gufolunare', 'lunella', 'quarzillo', 'ghiacciolo', 'prismella', 'riflessa', 'reginaquarzo'] },
-  { name: 'Nebulosa di Fuoco', zones: [11, 15], species: ['braciolo', 'lavarospo', 'fiammella', 'cenerino', 'magmolo', 'salamandro', 'vulcanello', 'fenicino', 'scoriatto', 'draghetto', 'ossidiana', 'lapillo', 'solforo', 'imperatore'] },
-  { name: 'Abisso Stellare', zones: [16, 20], species: ['ombretto', 'abissale', 'lanternino', 'nullo', 'sussurro', 'tentacula', 'corvonero', 'guscionero', 'eclissa', 'milleocchi', 'colosso', 'spettrina', 'stellanera', 'divoratore'] },
+  { name: 'Prati Stellari', zones: [1, 5], species: ['glimmo', 'cometuga', 'sporello', 'bzzt', 'astrillo', 'nebulina', 'revuoto'] },
+  { name: 'Luna di Cristallo', zones: [6, 10], species: ['scheggia', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo', 'prismella', 'reginaquarzo'] },
+  { name: 'Nebulosa di Fuoco', zones: [11, 15], species: ['braciolo', 'lavarospo', 'magmolo', 'lapillo', 'fiammella', 'draghetto', 'imperatore'] },
+  { name: 'Abisso Stellare', zones: [16, 20], species: ['ombretto', 'nullo', 'abissale', 'corvonero', 'tentacula', 'stellanera', 'divoratore'] },
 ];
-// Ogni zona porta 3 creature nuove; nei combattimenti compaiono anche quelle delle zone precedenti dello stesso pianeta
+// 7 creature per pianeta (28 in tutto): 2 nella prima zona, 2 nella seconda, poi 1 per zona e il boss alla quinta
 const ZONE_NEW = [null,
-  ['glimmo', 'cometuga', 'fiorastro'], ['sporello', 'polvino', 'meteorino'], ['bzzt', 'radichino', 'lucciolo'], ['astrillo', 'pipistrella', 'nebulina'], ['orbo'],
-  ['scheggia', 'geodino', 'brinello'], ['lumispettro', 'stalagmo', 'cristallux'], ['gemmerla', 'gufolunare', 'lunella'], ['quarzillo', 'ghiacciolo', 'prismella'], ['riflessa'],
-  ['braciolo', 'lavarospo', 'fiammella'], ['cenerino', 'magmolo', 'salamandro'], ['vulcanello', 'fenicino', 'scoriatto'], ['ossidiana', 'lapillo', 'draghetto'], ['solforo'],
-  ['ombretto', 'abissale', 'lanternino'], ['nullo', 'sussurro', 'tentacula'], ['corvonero', 'guscionero', 'eclissa'], ['colosso', 'spettrina', 'milleocchi'], ['stellanera'],
+  ['glimmo', 'cometuga'], ['sporello', 'bzzt'], ['astrillo'], ['nebulina'], [],
+  ['scheggia', 'geodino'], ['lumispettro', 'gemmerla'], ['quarzillo'], ['prismella'], [],
+  ['braciolo', 'lavarospo'], ['magmolo', 'lapillo'], ['fiammella'], ['draghetto'], [],
+  ['ombretto', 'nullo'], ['abissale', 'corvonero'], ['tentacula'], ['stellanera'], [],
 ];
-const ZONE_BOSS = [null, 'cometuga', 'sporello', 'bzzt', 'astrillo', 'revuoto', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo', 'reginaquarzo', 'lavarospo', 'salamandro', 'vulcanello', 'ossidiana', 'imperatore', 'lanternino', 'tentacula', 'guscionero', 'colosso', 'divoratore'];
+const ZONE_BOSS = [null, 'cometuga', 'sporello', 'astrillo', 'nebulina', 'revuoto', 'geodino', 'lumispettro', 'quarzillo', 'prismella', 'reginaquarzo', 'lavarospo', 'magmolo', 'fiammella', 'draghetto', 'imperatore', 'nullo', 'corvonero', 'tentacula', 'stellanera', 'divoratore'];
 const ZONES = [null]; for (let z = 1; z <= 20; z++) { const first = Math.floor((z - 1) / 5) * 5 + 1, pool = []; for (let k = first; k <= z; k++) pool.push(...ZONE_NEW[k]); ZONES.push({ pool, boss: ZONE_BOSS[z] }); }
 const MAX_ZONE = 20;
 const ALL_SPECIES = PLANETS.flatMap(p => p.species);
@@ -655,8 +655,8 @@ function dailyReady(s, now) { return s.daily !== dayKey(now || Date.now()); }
 function claimDaily(s, now) { if (!dailyReady(s, now)) return 0; s.daily = dayKey(now || Date.now()); s.astri += DAILY_ASTRI; return DAILY_ASTRI; }
 function nextMidnight(now) { const d = new Date(now); d.setHours(24, 0, 0, 0); return d.getTime(); }
 function buyHero(s, id) { if (!isHero(id) || s.roster[id]) return false; s.roster[id] = newMember(id, 1); s.team.push(id); return true; }
-let LEVEL_CAP = 20; if (typeof process !== 'undefined' && process.env && process.env.LCAP) LEVEL_CAP = +process.env.LCAP;
-let XP_R = 3.6, XP_0 = 50000; if (typeof process !== 'undefined' && process.env && process.env.XPR) { XP_R = +process.env.XPR; XP_0 = +(process.env.XP0 || XP_0); }
+let LEVEL_CAP = 25; if (typeof process !== 'undefined' && process.env && process.env.LCAP) LEVEL_CAP = +process.env.LCAP; // alla fine della zona 20 si è intorno al 20-21: il resto si farma
+let XP_R = 4.4, XP_0 = 30000; if (typeof process !== 'undefined' && process.env && process.env.XPR) { XP_R = +process.env.XPR; XP_0 = +(process.env.XP0 || XP_0); }
 function xpNeed(l) { return Math.round(XP_0 * Math.pow(XP_R, l - 1)); } // circa un livello per zona
 // ---------- Statistiche degli oggetti ----------
 // Statistiche principali dal tipo; statistiche bonus casuali: 0 comune, 1 non comune, 2 rara, 3 epica, 4 leggendaria
@@ -1863,7 +1863,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 23:22</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 23:27</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
