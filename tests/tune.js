@@ -4,7 +4,7 @@ const target = [0, 0.25, 0.9, 1.9, 3.2, 4.8, 6.6, 8.6, 10.6, 12.8, 15]; // giorn
 let K = [0, 0, 0.55, 0.55, 0.55, 0.55, 0.45, 0.45, 0.45, 0.45, 0.45];
 function run(K, z) {
   const code = `process.env.ZK=${JSON.stringify(JSON.stringify(K))};const F=require('../src/core.js');const s=F.newState();s.seed=5;s.settings.autoEquip=true;let t=0;const b=F.startBattle(s);const lim=${target[z]}*86400*2.5;
-  while(t<lim&&s.cleared<${z}){F.step(s,b,0.25,[]);t+=0.25;if(t%14400===0){F.autoStars(s);F.sellRest(s);F.autoEquip(s);}}console.log(s.cleared>=${z}?t/86400:99)`;
+  while(t<lim&&s.cleared<${z}){F.step(s,b,0.25,[]);t+=0.25;if(t%14400===0){F.autoStars(s);while(F.buySlot(s));F.sellRest(s);F.autoEquip(s);}}console.log(s.cleared>=${z}?t/86400:99)`;
   return +execFileSync('node', ['-e', code], { cwd: __dirname }).toString().trim();
 }
 for (let z = 2; z <= 10; z++) {

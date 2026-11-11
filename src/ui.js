@@ -366,23 +366,23 @@ function pSquadra() {
   <div class="note">L'ordine conta: chi sta più in alto riceve per primo l'equipaggiamento.</div>
   ${S.team.map((id, i) => memberRow(id, true, i)).join('')}
   ${n < slots ? `<div class="card free">Posto libero: aggiungi una creatura dalla riserva o catturane una nuova.</div>` : ''}
-  ${(() => { const can = F.slotsBuyable(S), price = F.nextSlotPrice(S); if (F.slotCount(S) >= F.CREATURE_SLOTS) return '';
-    return `<div class="card slotbuy"><div style="flex:1"><b>Nuovo posto in squadra</b><div class="msub">${can > 0 ? `Sbloccato dalla zona completata: compralo con l'oro.` : price ? `Il prossimo si sblocca completando la zona ${(S.boughtSlots || 0) + 1}.` : 'Altri posti gratis con le zone 10 e 20.'}${F.nextSlotZone(S) ? ` Posto gratis alla zona ${F.nextSlotZone(S)}.` : ''}</div></div>${price ? `<button class="pb" data-act="buyslot" ${can < 1 || S.gold < price ? 'disabled' : ''}>${can < 1 ? icon('lock', '#1B1F3B', 12) + ' ' : ''}${cfmt(price)}<br><small>oro</small></button>` : ''}</div>`; })()}
+  ${(() => { const can = F.slotsBuyable(S), price = F.nextSlotPrice(S), nb = F.SLOT_BUY_ZONES[S.boughtSlots || 0]; if (F.slotCount(S) >= F.CREATURE_SLOTS) return '';
+    return `<div class="card slotbuy"><div style="flex:1"><b>Posti in squadra</b><div class="msub">4 di base, +1 ogni 5 zone completate (alle zone 5 e 15 si compra con l'oro, alle 10 e 20 è gratis), poi la stella Corona fino a 12.</div>${nb ? `<div class="msub" style="color:#F2C14E">${can > 0 ? 'Posto della zona ' + nb + ' sbloccato: compralo!' : 'Prossimo posto da comprare: completa la zona ' + nb}</div>` : ''}</div>${price ? `<button class="pb" data-act="buyslot" ${can < 1 || S.gold < price ? 'disabled' : ''}>${can < 1 ? icon('lock', '#1B1F3B', 12) + ' ' : ''}${cfmt(price)}<br><small>oro</small></button>` : ''}</div>`; })()}
   ${reserve.length ? `<div class="ph"><h2>Riserva</h2><span>${reserve.length}</span></div>${reserve.map(id => memberRow(id, false)).join('')}` : ''}`;
 }
 function rcls(r) { return r.rainbow ? ' rbw' : ''; }
 function itemGrid(list, empty, sellMode) {
-  return `<div class="igrid">${list.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it); return `<button class="it${selItem === it.id ? ' sel' : ''}${F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selit" data-item="${it.id}" aria-label="${esc(F.itemName(it))}, ${r.label}, potere ${F.itemPower(it)}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b><em>${sellMode ? (prot ? 'protetto' : cfmt(F.sellValue(it, S)) + ' oro') : it.cls ? it.cls : F.SLOT_LABEL[it.slot]}</em>${it.isNew ? '<i>nuovo</i>' : ''}${(it.locked || (prot && sellMode)) ? `<i class="plk">${icon('lock', '#F2C14E', 10)}</i>` : ''}</button>`; }).join('') || `<div class="note" style="grid-column:1/-1">${empty}</div>`}</div>`;
+  return `<div class="igrid">${list.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it); return `<button class="it${selItem === it.id ? ' sel' : ''}${F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selit" data-item="${it.id}" aria-label="${esc(F.itemName(it))}, ${r.label}, potere ${F.itemPower(it)}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b><em>${sellMode ? (prot ? 'protetto' : cfmt(F.sellValue(it, S)) + ' oro') : it.cls ? it.cls : F.SLOT_LABEL[it.slot]}</em><i class="ilv">${F.itemLevel(it)}</i>${it.isNew ? '<i>nuovo</i>' : ''}${(it.locked || (prot && sellMode)) ? `<i class="plk">${icon('lock', '#F2C14E', 10)}</i>` : ''}</button>`; }).join('') || `<div class="note" style="grid-column:1/-1">${empty}</div>`}</div>`;
 }
 const byPower = l => l.slice().sort((a, b) => F.itemPower(b) - F.itemPower(a));
 function wareDetail() { const it = selShop !== null && S.shop.items[selShop]; if (!it) return ''; const r = F.ITEM_RARITY.find(x => x.key === it.rarity);
     return `<div class="card idet" style="border-color:${r.color}"><div class="iname${rcls(r)}" style="color:${r.color};display:flex;align-items:center;gap:6px">${itemIcon(it.slot, it.cls, r.color, 26)}${esc(F.itemName(it))}</div>
-    <div class="msub">${r.label} · ${F.SLOT_LABEL[it.slot]}${it.cls ? ' · solo ' + it.cls : ' · tutte le classi'} · Lv oggetto ${it.ilvl} · punteggio ${fmt(F.itemPower(it))}</div>${statsHTML(it, 0)}
+    <div class="msub">${r.label} · ${F.SLOT_LABEL[it.slot]}${it.cls ? ' · solo ' + it.cls : ' · tutte le classi'} · Lv ${F.itemLevel(it)} · punteggio ${fmt(F.itemPower(it))}</div>${statsHTML(it, 0)}
     <div class="row2"><button class="pb" data-act="buy" data-i="${selShop}" ${it.sold || S.astri < it.price || S.inventory.length >= F.bagCap(S) ? 'disabled' : ''}>${it.sold ? 'Venduto' : S.inventory.length >= F.bagCap(S) ? 'Zaino pieno' : `Compra · ${it.price} Astri`}</button></div></div>`; }
 function itemDetail(it, where) {
   const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it);
   const head = `<div class="iname${rcls(r)}" style="color:${r.color};display:flex;align-items:center;gap:6px">${itemIcon(it.slot, it.cls, r.color, 26)}${esc(F.itemName(it))}${it.up ? ' +' + it.up : ''}</div>
-      <div class="msub">${r.label} · ${F.SLOT_LABEL[it.slot]}${it.cls ? ' · solo ' + it.cls : ' · tutte le classi'} · Lv oggetto ${it.ilvl} · punteggio ${fmt(F.itemPower(it))}</div>${statsHTML(it, 0)}`;
+      <div class="msub">${r.label} · ${F.SLOT_LABEL[it.slot]}${it.cls ? ' · solo ' + it.cls : ' · tutte le classi'} · Lv ${F.itemLevel(it)} · punteggio ${fmt(F.itemPower(it))}</div>${statsHTML(it, 0)}`;
   const lockBtn = `<button class="sb${it.locked ? ' on' : ''}" data-act="lockit" data-item="${it.id}">${icon('lock', it.locked ? '#1B1F3B' : '#F2C14E', 13)} ${it.locked ? 'Bloccato' : 'Blocca'}</button>`;
   const sellBtn = lockBtn + (prot ? `<span class="msub">${it.locked ? 'Bloccato: non si vende' : 'Rarità protetta: non si vende'}</span>` : `<button class="sb" data-act="sell" data-item="${it.id}">Vendi · ${cfmt(F.sellValue(it, S))} oro</button>`);
   if (where === 'chest') return `<div class="card idet" style="border-color:${r.color}">${head}<div class="row2"><button class="pb" data-act="fromchest" data-item="${it.id}" ${S.inventory.length >= F.bagCap(S) ? 'disabled' : ''}>↑ Sposta nello zaino</button>${lockBtn}</div></div>`;
@@ -529,7 +529,7 @@ function pAltro() {
   const rare = `<div class="ph"><h2>Drop rari</h2><span>Astrale · Arcano · Eterno · Segreto</span></div>
   <div class="note">Le rarità più alte (Astrale, Arcano, Eterno, Segreto) possono cadere da qualsiasi nemico, in ogni zona, con la stessa probabilità. Qui trovi i tuoi; quando ci sarà la chat globale vedrai anche quelli degli altri giocatori.</div>
   <div class="chips">${F.RARE_FEED.map(k => { const r = F.ITEM_RARITY.find(x => x.key === k); return `<span class="chip"><i style="background:${r.color}"></i><span class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</span> <em>${(st.rare && st.rare[k]) || 0}</em></span>`; }).join('')}</div>
-  ${RL.slice(0, 10).map(e => { const r = F.ITEM_RARITY.find(x => x.key === e.rarity); return `<div class="card feed">${itemIcon(e.slot, null, r.color, 20)}<div style="flex:1"><b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</b> · ${F.SLOT_LABEL[e.slot]} · Lv ${e.ilvl}<div class="msub">Zona ${e.zone} · ${when(e.t)}</div></div></div>`; }).join('') || '<div class="note">Nessuno ancora. Buona fortuna!</div>'}`;
+  ${RL.slice(0, 10).map(e => { const r = F.ITEM_RARITY.find(x => x.key === e.rarity); return `<div class="card feed">${itemIcon(e.slot, null, r.color, 20)}<div style="flex:1"><b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</b> · ${F.SLOT_LABEL[e.slot]} · Lv ${Math.max(1, Math.round(e.ilvl / 6))}<div class="msub">Zona ${e.zone} · ${when(e.t)}</div></div></div>`; }).join('') || '<div class="note">Nessuno ancora. Buona fortuna!</div>'}`;
   return `<div class="ph"><h2>Statistiche</h2></div>
   <div class="sgrid">
    <div><span>Nemici sconfitti</span><b>${fmt(st.kills)}</b></div><div><span>Oro totale</span><b>${cfmt(st.gold)}</b></div>
@@ -664,11 +664,12 @@ async function api(path, body) {
   if (!r.ok) { let m = 'errore'; try { m = (await r.json()).message || m; } catch (e) {} throw new Error(m); }
   const txt = await r.text(); return txt ? JSON.parse(txt) : null;
 }
-let chatOpen = false, chatTab = 'chat', chatMsgs = [], chatDrops = [], chatTimer = null, chatErr = '', lastSeenChat = 0;
+let chatOpen = false, chatTab = 'chat', chatMsgs = [], chatDrops = [], chatTop = [], chatTimer = null, chatErr = '', lastSeenChat = 0;
 const ago = t => { const d = (Date.now() - new Date(t).getTime()) / 1000; return d < 60 ? 'ora' : d < 3600 ? Math.floor(d / 60) + ' min' : d < 86400 ? Math.floor(d / 3600) + ' h' : Math.floor(d / 86400) + ' g'; };
 async function chatLoad() {
   try {
     if (chatTab === 'chat') chatMsgs = (await api('it_chat?select=id,player_id,nickname,body,created_at&order=id.desc&limit=60')).reverse();
+    else if (chatTab === 'top') { await shareScore(); chatTop = await api('it_scores?select=player_id,nickname,power,zone,creatures&order=power.desc&limit=50'); }
     else chatDrops = await api('it_drops?select=id,nickname,rarity,slot,zone,ilvl,created_at&order=id.desc&limit=40');
     chatErr = '';
     if (chatMsgs.length) { lastSeenChat = chatMsgs[chatMsgs.length - 1].id; try { localStorage.setItem('it_seen', lastSeenChat); } catch (e) {} }
@@ -682,11 +683,14 @@ function chatRender() {
     body = `<div class="chatlist" id="chatlist">${chatMsgs.map(m => `<div class="cmsg${m.player_id === me ? ' me' : ''}"><time>${ago(m.created_at)}</time>${m.player_id !== me && me ? `<button class="rep" data-chat="report" data-id="${m.id}" aria-label="Segnala">segnala</button>` : ''}<span class="cn">${esc(m.nickname)}</span>${esc(clean(m.body))}</div>`).join('') || '<div class="note">Ancora nessun messaggio. Rompi il ghiaccio!</div>'}</div>
     ${S.net ? `<form class="chatform" id="chatform"><input id="chatin" maxlength="200" placeholder="Scrivi come ${esc(S.net.nick)}…" autocomplete="off" aria-label="Messaggio"><button class="pb" type="submit">Invia</button></form>`
       : `<form class="chatform" id="nickform"><input id="nickin" maxlength="16" minlength="3" placeholder="Scegli un nickname (3-16)" autocomplete="off" aria-label="Nickname"><button class="pb" type="submit">Entra</button></form><div class="note">Il nickname sarà visibile a tutti e non si può cambiare. Niente insulti: i messaggi segnalati da 3 giocatori spariscono.</div>`}`;
+  } else if (chatTab === 'top') {
+    const me = S.net && S.net.id;
+    body = `<div class="note">Potenza totale: la somma del potere di tutti i tuoi personaggi (squadra e riserva).${S.net ? '' : ' Entra in chat con un nickname per comparire.'}</div><div class="chatlist">${chatTop.map((r, i) => `<div class="cmsg toprow${r.player_id === me ? ' me' : ''}"><b class="tpos">${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</b><span class="cn" style="flex:1">${esc(r.nickname)}</span><span class="msub">zona ${r.zone} · ${r.creatures} creature</span><b class="tpow">${cfmt(r.power)}</b></div>`).join('') || '<div class="note">Classifica vuota: sii il primo!</div>'}</div>`;
   } else {
-    body = `<div class="note">Gli ultimi oggetti Astrale, Arcano, Eterno e Segreto trovati da tutti i giocatori.</div><div class="chatlist">${chatDrops.map(d => { const r = F.ITEM_RARITY.find(x => x.key === d.rarity); return `<div class="cmsg dropg">${itemIcon(d.slot, null, r.color, 20)}<div style="flex:1"><span class="cn">${esc(d.nickname)}</span>ha trovato <b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</b> · ${F.SLOT_LABEL[d.slot] || esc(d.slot)} Lv ${d.ilvl}<div class="msub">Zona ${d.zone} · ${ago(d.created_at)}</div></div></div>`; }).join('') || '<div class="note">Nessun drop raro ancora: il primo potresti essere tu.</div>'}</div>`;
+    body = `<div class="note">Gli ultimi oggetti Astrale, Arcano, Eterno e Segreto trovati da tutti i giocatori.</div><div class="chatlist">${chatDrops.map(d => { const r = F.ITEM_RARITY.find(x => x.key === d.rarity); return `<div class="cmsg dropg">${itemIcon(d.slot, null, r.color, 20)}<div style="flex:1"><span class="cn">${esc(d.nickname)}</span>ha trovato <b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</b> · ${F.SLOT_LABEL[d.slot] || esc(d.slot)} Lv ${Math.max(1, Math.round(d.ilvl / 6))}<div class="msub">Zona ${d.zone} · ${ago(d.created_at)}</div></div></div>`; }).join('') || '<div class="note">Nessun drop raro ancora: il primo potresti essere tu.</div>'}</div>`;
   }
   $('#modal').innerHTML = `<div class="mod chatmod" role="dialog" aria-modal="true" aria-label="Chat globale"><div class="eqhead"><h2 style="margin:0;font-size:18px">Community</h2><button class="ib" data-chat="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
-  <div class="tabs2"><button class="sb${chatTab === 'chat' ? ' on' : ''}" data-chat="tab" data-v="chat">Chat</button><button class="sb${chatTab === 'drops' ? ' on' : ''}" data-chat="tab" data-v="drops">Drop rari</button></div>
+  <div class="tabs2"><button class="sb${chatTab === 'chat' ? ' on' : ''}" data-chat="tab" data-v="chat">Chat</button><button class="sb${chatTab === 'drops' ? ' on' : ''}" data-chat="tab" data-v="drops">Drop rari</button><button class="sb${chatTab === 'top' ? ' on' : ''}" data-chat="tab" data-v="top">Classifica</button></div>
   ${chatErr ? `<div class="note" style="color:#FF8A96">${chatErr}</div>` : ''}${body}</div>`;
   $('#modal').hidden = false;
   const l = $('#chatlist'); if (l && atBottom) l.scrollTop = l.scrollHeight;
@@ -700,6 +704,10 @@ async function shareDrops() {
     try { await api('rpc/it_post_drop', { p_token: S.net.token, p_rarity: e.rarity, p_slot: e.slot, p_zone: e.zone, p_ilvl: e.ilvl }); e.sent = true; } catch (err) { e.sent = true; }
   }
 }
+// classifica: potenza totale di tutti i personaggi
+function totalPower() { let p = 0; for (const id in S.roster) p += F.memberPower(S, id); return Math.round(p); }
+let lastScore = 0;
+async function shareScore() { if (!S.net || Date.now() - lastScore < 60000) return; lastScore = Date.now(); try { await api('rpc/it_post_score', { p_token: S.net.token, p_power: totalPower(), p_zone: S.cleared, p_creatures: F.capturedCount(S) }); } catch (e) {} }
 // pallino sul pulsante se ci sono messaggi nuovi
 async function chatPeek() { if (chatOpen) return; try { const r = await api('it_chat?select=id&order=id.desc&limit=1'); const seen = +(localStorage.getItem('it_seen') || 0); if (r && r[0] && r[0].id > seen) $('#chatbtn').classList.add('dot'); } catch (e) {} }
 document.addEventListener('click', async e => {
@@ -723,7 +731,7 @@ document.addEventListener('submit', async e => {
     catch (err) { toast(/too_fast/.test(err.message) ? 'Piano! Aspetta qualche secondo' : 'Messaggio non inviato'); }
   }
 });
-setInterval(() => { shareDrops(); chatPeek(); }, 60000); setTimeout(() => { shareDrops(); chatPeek(); }, 3000);
+setInterval(() => { shareDrops(); chatPeek(); }, 60000); setInterval(shareScore, 600000); setTimeout(() => { shareDrops(); chatPeek(); }, 3000);
 
 // ---------- input ----------
 document.addEventListener('click', e => {

@@ -97,6 +97,7 @@ const TREE = {
   saggezza: { name: 'Saggezza', desc: 'Esperienza +5% per livello', max: 20, cost: starCost(800, 2.4) },
   commercio:{ name: 'Commercio', desc: 'Oro dalla vendita degli oggetti +10% per livello', max: 10, cost: starCost(600, 3) },
   cometa:   { name: 'Cometa',   desc: 'Velocità di movimento della squadra +5% per livello', max: 10, cost: starCost(1000, 3) },
+  corona:   { name: 'Corona',   desc: '+1 posto in squadra per livello', max: 4, cost: l => [500000, 50000000, 5000000000, 500000000000][l] },
   richiamo: { name: 'Richiamo', desc: 'Probabilità di cattura +5% per livello (max +50%)', max: 10, cost: starCost(2000, 3) },
 };
 
@@ -119,7 +120,7 @@ const TIERS = [
   { zone: 0, name: 'Primo cielo', stars: ['forza', 'vita', 'scudo'] },
   { zone: 2, name: 'Secondo cielo', stars: ['branco', 'tesoro', 'lama'] },
   { zone: 4, name: 'Terzo cielo', stars: ['saggezza', 'furia', 'commercio'] },
-  { zone: 6, name: 'Quarto cielo', stars: ['cometa', 'richiamo'] },
+  { zone: 6, name: 'Quarto cielo', stars: ['cometa', 'corona', 'richiamo'] },
 ];
 function openTiers(s) { return TIERS.filter(t => s.cleared >= t.zone).length; }
 function tierOf(k) { return TIERS.findIndex(t => t.stars.includes(k)); }
@@ -170,17 +171,18 @@ function newMember(species, lvl) {
 function capturedCount(s) { return ALL_SPECIES.filter(k => s.roster[k]).length; }
 // Squadra: 4 posti per le creature; gli eroi (Guerriero gratis, gli altri dal negozio) non occupano posti
 // Si parte con 4 posti (eroi esclusi); ogni boss indicato sblocca un posto in più
-let SLOT_UNLOCKS = [10, 20]; // posti gratis (il 20 arriverà con i nuovi pianeti)
+let SLOT_UNLOCKS = [10, 20]; // posti gratis alle zone 10 e 20 (il 20 arriverà con i nuovi pianeti)
 if (typeof process !== 'undefined' && process.env && process.env.SLOTS) SLOT_UNLOCKS = JSON.parse(process.env.SLOTS);
 const BASE_SLOTS = 4;
-const CREATURE_SLOTS = 12; // massimo: 4 di base + 2 gratis (zone 10 e 20) + 6 da comprare
+const CREATURE_SLOTS = 12; // massimo: 4 di base + 4 dalle zone (5 e 15 da comprare, 10 e 20 gratis) + 4 dalla stella Corona
 // Ogni zona completata permette di comprare un posto in più con l'oro
-const SLOT_PRICES = [5000, 40000, 300000, 2000000, 15000000, 100000000];
-function slotsBuyable(s) { return Math.min(SLOT_PRICES.length, s.cleared) - (s.boughtSlots || 0); }
+const SLOT_BUY_ZONES = [5, 15]; // ogni 5 zone un posto: alle zone 5 e 15 si compra con l'oro
+const SLOT_PRICES = [2000000, 2000000000];
+function slotsBuyable(s) { return SLOT_BUY_ZONES.filter(z => s.cleared >= z).length - (s.boughtSlots || 0); }
 function nextSlotPrice(s) { return SLOT_PRICES[s.boughtSlots || 0]; }
 function buySlot(s) { const c = nextSlotPrice(s); if (slotsBuyable(s) < 1 || !c || s.gold < c || slotCount(s) >= CREATURE_SLOTS) return false; s.gold -= c; s.boughtSlots = (s.boughtSlots || 0) + 1; fillTeam(s); return true; }
 function isHero(id) { return !!(SPECIES[id] && SPECIES[id].hero); }
-function slotCount(s) { return Math.min(CREATURE_SLOTS, BASE_SLOTS + SLOT_UNLOCKS.filter(z => s.cleared >= z).length + (s.boughtSlots || 0)); }
+function slotCount(s) { return Math.min(CREATURE_SLOTS, BASE_SLOTS + SLOT_UNLOCKS.filter(z => s.cleared >= z).length + (s.boughtSlots || 0) + (s.tree.corona || 0)); }
 function nextSlotZone(s) { return SLOT_UNLOCKS.find(z => s.cleared < z && z <= MAX_ZONE) || null; }
 function creaturesInTeam(s) { return s.team.filter(id => !isHero(id)).length; }
 function teamFull(s) { return creaturesInTeam(s) >= slotCount(s); }
@@ -205,6 +207,7 @@ const BONUS_DEF = { atk: 0.12, hp: 0.8, def: 0.04, crit: 0.02, critDmg: 0.08, as
 const SUFFIX = { atk: 'della Furia', hp: 'del Gigante', def: 'della Roccia', crit: 'del Falco', critDmg: 'della Tempesta', aspd: 'del Vento', block: 'del Bastione', dodge: "dell'Ombra" };
 const BONUS_COUNT = { comune: 0, noncomune: 1, rara: 2, epica: 3, leggendaria: 4, mitico: 4, astrale: 4, arcano: 5, eterno: 5, segreto: 5 };
 const rarMult = k => ITEM_RARITY.find(r => r.key === k).mult;
+function itemLevel(it) { return Math.max(1, Math.round((it.ilvl || 1) / 6)); } // zona 1 ≈ Lv 1-5, zona 10 ≈ Lv 50
 function itemBase(it) { return 4 * Math.pow(1.04, it.ilvl) * rarMult(it.rarity) * (1 + 0.1 * (it.up || 0)); }
 function pctScale(it) { return Math.sqrt(rarMult(it.rarity)) * (1 + it.ilvl / 300); }
 function mainStats(it) {
@@ -585,12 +588,12 @@ function migrate(s) {
   if (s.zone === undefined) { s.zone = 1; s.maxZone = 1; s.cleared = 0; s.battle = 1; s.maxBattle = 1; s.maxGlobal = 1; delete s.bossCleared; }
   if (typeof s.runes !== 'object' || s.runes === null) s.runes = { noncomune: s.runes || 0, rara: 0, epica: 0, leggendaria: 0 };
   if (s.runes.mitico === undefined) s.runes.mitico = 0; if (s.runes.astrale === undefined) s.runes.astrale = 0; if (s.runes.arcano === undefined) s.runes.arcano = 0;
-  if (s.tree.corona) { const c = [50000, 2000000, 80000000, 3000000000]; for (let l = 0; l < s.tree.corona; l++) s.gold += c[l]; }
-  delete s.tree.corona;
+  if (s.boughtSlots > SLOT_BUY_ZONES.length) { s.gold += 300000 * (s.boughtSlots - SLOT_BUY_ZONES.length); s.boughtSlots = SLOT_BUY_ZONES.length; }
   for (const k in TREE) if (s.tree[k] === undefined) s.tree[k] = 0;
   if (!s.chest) s.chest = []; if (!s.rareLog) s.rareLog = [];
   delete s.settings.autoStars; delete s.settings.autoMode; delete s._nextStar;
-  { const keep = []; let n = 0; for (const id of s.team) { if (isHero(id)) keep.push(id); else if (n < slotCount(s)) { keep.push(id); n++; } } s.team = keep; }
+  trimTeam(s);
+  if (false) { const keep = []; let n = 0; for (const id of s.team) { if (isHero(id)) keep.push(id); else if (n < slotCount(s)) { keep.push(id); n++; } } s.team = keep; }
   delete s.dust; delete s.train; delete s.move;
   if (s.shop && s.shop.items.some(i => i.price !== SHOP_PRICE[i.rarity])) s.shop = null;
   if (s.runes === undefined) s.runes = 0; if (s.astri === undefined) s.astri = 0; if (s.shop === undefined) s.shop = null;
@@ -608,7 +611,7 @@ function migrate(s) {
   return s;
 }
 
-function buyTree(s, key) { const t = TREE[key], l = s.tree[key]; if (l >= t.max || !starOpen(s, key)) return false; const c = t.cost(l); if (s.gold < c) return false; s.gold -= c; s.tree[key]++; s._nextStar = 0; return true; }
+function buyTree(s, key) { const t = TREE[key], l = s.tree[key]; if (l >= t.max || !starOpen(s, key)) return false; const c = t.cost(l); if (s.gold < c) return false; s.gold -= c; s.tree[key]++; s._nextStar = 0; if (key === 'corona') fillTeam(s); return true; }
 function resetTree(s) { let back = 0; for (const k in TREE) { for (let l = 0; l < s.tree[k]; l++) back += TREE[k].cost(l); s.tree[k] = 0; } s.gold += back; s._nextStar = 0; trimTeam(s); return back; }
 function trimTeam(s) { const keep = []; let n = 0; for (const id of s.team) { if (isHero(id)) keep.push(id); else if (n < slotCount(s)) { keep.push(id); n++; } } s.team = keep; }
 function fillTeam(s) { const res = Object.keys(s.roster).filter(id => !s.team.includes(id) && !isHero(id)).sort((a, c) => s.roster[c].lvl - s.roster[a].lvl); while (res.length && !teamFull(s)) s.team.push(res.shift()); }
@@ -650,7 +653,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
