@@ -97,7 +97,6 @@ const TREE = {
   saggezza: { name: 'Saggezza', desc: 'Esperienza +5% per livello', max: 20, cost: starCost(800, 2.4) },
   commercio:{ name: 'Commercio', desc: 'Oro dalla vendita degli oggetti +10% per livello', max: 10, cost: starCost(600, 3) },
   cometa:   { name: 'Cometa',   desc: 'Velocità di movimento della squadra +5% per livello', max: 10, cost: starCost(1000, 3) },
-  corona:   { name: 'Corona',   desc: '+1 posto in squadra per livello', max: 4, cost: l => [500000, 50000000, 5000000000, 500000000000][l] },
   richiamo: { name: 'Richiamo', desc: 'Probabilità di cattura +5% per livello (max +50%)', max: 10, cost: starCost(2000, 3) },
 };
 
@@ -120,7 +119,7 @@ const TIERS = [
   { zone: 0, name: 'Primo cielo', stars: ['forza', 'vita', 'scudo'] },
   { zone: 2, name: 'Secondo cielo', stars: ['branco', 'tesoro', 'lama'] },
   { zone: 4, name: 'Terzo cielo', stars: ['saggezza', 'furia', 'commercio'] },
-  { zone: 6, name: 'Quarto cielo', stars: ['cometa', 'corona', 'richiamo'] },
+  { zone: 6, name: 'Quarto cielo', stars: ['cometa', 'richiamo'] },
 ];
 function openTiers(s) { return TIERS.filter(t => s.cleared >= t.zone).length; }
 function tierOf(k) { return TIERS.findIndex(t => t.stars.includes(k)); }
@@ -170,11 +169,11 @@ function newMember(species, lvl) {
 }
 function capturedCount(s) { return ALL_SPECIES.filter(k => s.roster[k]).length; }
 // Squadra: 4 posti per le creature; gli eroi (Guerriero gratis, gli altri dal negozio) non occupano posti
-// Si parte con 4 posti (eroi esclusi); ogni boss indicato sblocca un posto in più
+// Si parte con 8 posti (eroi esclusi); ogni boss indicato sblocca un posto in più
 let SLOT_UNLOCKS = [10, 20]; // posti gratis alle zone 10 e 20 (il 20 arriverà con i nuovi pianeti)
 if (typeof process !== 'undefined' && process.env && process.env.SLOTS) SLOT_UNLOCKS = JSON.parse(process.env.SLOTS);
-const BASE_SLOTS = 4;
-const CREATURE_SLOTS = 12; // massimo: 4 di base + 4 dalle zone (5 e 15 da comprare, 10 e 20 gratis) + 4 dalla stella Corona
+const BASE_SLOTS = 8;
+const CREATURE_SLOTS = 12; // massimo: 8 di base + 4 dalle zone (5 e 15 da comprare, 10 e 20 gratis); niente di più, per lasciare spazio alle scelte di squadra
 // Ogni zona completata permette di comprare un posto in più con l'oro
 const SLOT_BUY_ZONES = [5, 15]; // ogni 5 zone un posto: alle zone 5 e 15 si compra con l'oro
 const SLOT_PRICES = [2000000, 2000000000];
@@ -182,7 +181,7 @@ function slotsBuyable(s) { return SLOT_BUY_ZONES.filter(z => s.cleared >= z).len
 function nextSlotPrice(s) { return SLOT_PRICES[s.boughtSlots || 0]; }
 function buySlot(s) { const c = nextSlotPrice(s); if (slotsBuyable(s) < 1 || !c || s.gold < c || slotCount(s) >= CREATURE_SLOTS) return false; s.gold -= c; s.boughtSlots = (s.boughtSlots || 0) + 1; fillTeam(s); return true; }
 function isHero(id) { return !!(SPECIES[id] && SPECIES[id].hero); }
-function slotCount(s) { return Math.min(CREATURE_SLOTS, BASE_SLOTS + SLOT_UNLOCKS.filter(z => s.cleared >= z).length + (s.boughtSlots || 0) + (s.tree.corona || 0)); }
+function slotCount(s) { return Math.min(CREATURE_SLOTS, BASE_SLOTS + SLOT_UNLOCKS.filter(z => s.cleared >= z).length + (s.boughtSlots || 0)); }
 function nextSlotZone(s) { return SLOT_UNLOCKS.find(z => s.cleared < z && z <= MAX_ZONE) || null; }
 function creaturesInTeam(s) { return s.team.filter(id => !isHero(id)).length; }
 function teamFull(s) { return creaturesInTeam(s) >= slotCount(s); }
@@ -600,6 +599,7 @@ function migrate(s) {
   if (s.zone === undefined) { s.zone = 1; s.maxZone = 1; s.cleared = 0; s.battle = 1; s.maxBattle = 1; s.maxGlobal = 1; delete s.bossCleared; }
   if (typeof s.runes !== 'object' || s.runes === null) s.runes = { noncomune: s.runes || 0, rara: 0, epica: 0, leggendaria: 0 };
   if (s.runes.mitico === undefined) s.runes.mitico = 0; if (s.runes.astrale === undefined) s.runes.astrale = 0; if (s.runes.arcano === undefined) s.runes.arcano = 0;
+  if (s.tree.corona) { const c = [500000, 50000000, 5000000000, 500000000000]; for (let l = 0; l < s.tree.corona; l++) s.gold += c[l]; delete s.tree.corona; }
   if (s.boughtSlots > SLOT_BUY_ZONES.length) { s.gold += 300000 * (s.boughtSlots - SLOT_BUY_ZONES.length); s.boughtSlots = SLOT_BUY_ZONES.length; }
   for (const k in TREE) if (s.tree[k] === undefined) s.tree[k] = 0;
   if (!s.chest) s.chest = []; if (!s.rareLog) s.rareLog = [];
@@ -625,7 +625,7 @@ function migrate(s) {
   return s;
 }
 
-function buyTree(s, key) { const t = TREE[key], l = s.tree[key]; if (l >= t.max || !starOpen(s, key)) return false; const c = t.cost(l); if (s.gold < c) return false; s.gold -= c; s.tree[key]++; s._nextStar = 0; if (key === 'corona') fillTeam(s); return true; }
+function buyTree(s, key) { const t = TREE[key], l = s.tree[key]; if (l >= t.max || !starOpen(s, key)) return false; const c = t.cost(l); if (s.gold < c) return false; s.gold -= c; s.tree[key]++; s._nextStar = 0; return true; }
 function resetTree(s) { let back = 0; for (const k in TREE) { for (let l = 0; l < s.tree[k]; l++) back += TREE[k].cost(l); s.tree[k] = 0; } s.gold += back; s._nextStar = 0; trimTeam(s); return back; }
 function trimTeam(s) { const keep = []; let n = 0; for (const id of s.team) { if (isHero(id)) keep.push(id); else if (n < slotCount(s)) { keep.push(id); n++; } } s.team = keep; }
 function fillTeam(s) { const res = Object.keys(s.roster).filter(id => !s.team.includes(id) && !isHero(id)).sort((a, c) => s.roster[c].lvl - s.roster[a].lvl); while (res.length && !teamFull(s)) s.team.push(res.shift()); }
