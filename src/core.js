@@ -289,6 +289,24 @@ function mainStats(it) {
 function bonusValue(it, b) { return PCT_STATS.includes(b.k) ? BONUS_DEF[b.k] * b.r * pctScale(it) : BONUS_DEF[b.k] * b.r * itemBase(it); }
 function itemStats(it) { const o = mainStats(it); for (const b of it.bonus || []) o[b.k] = (o[b.k] || 0) + bonusValue(it, b); return o; }
 function rollBonus(s, it) { const have = (it.bonus || []).map(b => b.k), pool = BONUS_KEYS.filter(k => !have.includes(k)); const k = pool[Math.floor(rnd(s) * pool.length)]; it.bonus = (it.bonus || []).concat([{ k, r: 0.5 + rnd(s) * 0.5 }]); }
+// Rimescola i bonus di un oggetto (Astri); i bonus bloccati restano, ma ognuno raddoppia il costo
+function rerollCost(it, locks) { return 5 * (rarityIndex(it.rarity) + 1) * Math.pow(2, locks.length); }
+function rerollBonus(s, id, locks) {
+  const it = s.inventory.find(x => x.id === id) || s.chest.find(x => x.id === id); if (!it || !(it.bonus || []).length) return false;
+  locks = locks.filter(i => i < it.bonus.length); if (locks.length >= it.bonus.length) return false;
+  const c = rerollCost(it, locks); if (s.astri < c) return false; s.astri -= c;
+  const keep = locks.map(i => it.bonus[i]), n = it.bonus.length; it.bonus = keep.slice(); while (it.bonus.length < n) rollBonus(s, it);
+  const out = []; let ki = 0, ni = keep.length; for (let i = 0; i < n; i++) out.push(locks.includes(i) ? it.bonus[ki++] : it.bonus[ni++]); it.bonus = out; return true;
+}
+// Fusione: 20 oggetti della stessa rarità (fino all'Epico) diventano 1 oggetto della rarità successiva
+const FUSE_N = 20, FUSE_MAX = 3; // indice dell'Epico: si arriva al massimo al Leggendario
+function fusable(s, rk) { return s.inventory.filter(it => it.rarity === rk && !isProtected(s, it) && !it.locked); }
+function fuse(s, rk) {
+  const ri = rarityIndex(rk); if (ri < 0 || ri > FUSE_MAX) return null; const list = fusable(s, rk).sort((a, b) => itemPower(a) - itemPower(b)); if (list.length < FUSE_N) return null;
+  const used = list.slice(0, FUSE_N), lvl = Math.max(...used.map(itemLevel)), ids = new Set(used.map(x => x.id)); s.inventory = s.inventory.filter(x => !ids.has(x.id));
+  const slot = KINDS[Math.floor(rnd(s) * KINDS.length)], cls = slot === 'arma' || slot === 'secondaria' ? Object.keys(CLASSES)[Math.floor(rnd(s) * 5)] : null;
+  const it = finishItem(s, { id: s.nextId++, slot, cls, rarity: ITEM_RARITY[ri + 1].key, lvl, up: 0, isNew: true }); s.inventory.push(it); return it;
+}
 function finishItem(s, it) { it.bonus = []; for (let i = 0; i < BONUS_COUNT[it.rarity]; i++) rollBonus(s, it); return it; }
 // Punteggio dell'oggetto: serve per confrontare e vendere
 function itemPower(it) { return Math.round(itemBase(it) * (1 + 0.12 * ((it.bonus || []).length))); }
@@ -392,6 +410,7 @@ function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
   if (dst.block && rnd(s) < dst.block) dmg *= 0.5;
   dmg = Math.max(1, Math.round(dmg));
   const real = Math.min(dmg, dst.hp); src.dealt += real; dst.taken += real;
+  if (src.side === 'p') { const d = s.dmgLog || (s.dmgLog = { since: s.clock || 0, by: {} }); d.by[src.id] = (d.by[src.id] || 0) + real; }
   dst.hp -= dmg;
   if (ev) ev.push({ type: 'dmg', side: dst.side, idx: dst.idx, dmg, crit });
   if (dst.hp <= 0) { dst.hp = 0; if (dst.side === 'e') onKill(s, b, dst, ev); }
@@ -748,7 +767,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;

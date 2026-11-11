@@ -427,17 +427,27 @@ function wareDetail() { const it = selShop !== null && S.shop.items[selShop]; if
     return `<div class="card idet" style="border-color:${r.color}"><div class="iname${rcls(r)}" style="color:${r.color};display:flex;align-items:center;gap:6px">${itemIcon(it.slot, it.cls, r.color, 26)}${esc(F.itemName(it))}</div>
     <div class="msub">${r.label} · ${F.SLOT_LABEL[it.slot]}${it.cls ? ' · solo ' + it.cls : ' · tutte le classi'} · Lv ${F.itemLevel(it)} · punteggio ${fmt(F.itemPower(it))}</div>${statsHTML(it, 0)}
     <div class="row2"><button class="pb" data-act="buy" data-i="${selShop}" ${it.sold || S.astri < it.price || S.inventory.length >= F.bagCap(S) ? 'disabled' : ''}>${it.sold ? 'Venduto' : S.inventory.length >= F.bagCap(S) ? 'Zaino pieno' : `Compra · ${it.price} Astri`}</button></div></div>`; }
+let rrLocks = [], rrItem = null;
+function rerollHTML(it) {
+  if (!(it.bonus || []).length) return '';
+  if (rrItem !== it.id) { rrItem = it.id; rrLocks = []; }
+  const c = F.rerollCost(it, rrLocks), all = rrLocks.length >= it.bonus.length;
+  return `<div class="rrbox"><div class="msub"><b>Rimescola i bonus</b> · tocca un bonus per bloccarlo (ogni blocco raddoppia il costo)</div>
+  <div class="rrchips">${it.bonus.map((b, i) => `<button class="rrc${rrLocks.includes(i) ? ' on' : ''}" data-act="rrlock" data-i="${i}">${rrLocks.includes(i) ? icon('lock', '#1B1F3B', 10) + ' ' : ''}${F.STAT_LABEL[b.k]}</button>`).join('')}</div>
+  <button class="sb" data-act="reroll2" data-item="${it.id}" ${all || S.astri < c ? 'disabled' : ''}>Rimescola · ${c} ${icon('gem', '#F49AC1', 11)}</button></div>`;
+}
 function itemDetail(it, where) {
   const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it);
   const head = `<div class="iname${rcls(r)}" style="color:${r.color};display:flex;align-items:center;gap:6px">${itemIcon(it.slot, it.cls, r.color, 26)}${esc(F.itemName(it))}${it.up ? ' +' + it.up : ''}</div>
       <div class="msub">${r.label} · ${F.SLOT_LABEL[it.slot]}${it.cls ? ' · solo ' + it.cls : ' · tutte le classi'} · Lv ${F.itemLevel(it)} · punteggio ${fmt(F.itemPower(it))}</div>${statsHTML(it, 0)}`;
   const lockBtn = `<button class="sb${it.locked ? ' on' : ''}" data-act="lockit" data-item="${it.id}">${icon('lock', it.locked ? '#1B1F3B' : '#F2C14E', 13)} ${it.locked ? 'Bloccato' : 'Blocca'}</button>`;
   const sellBtn = lockBtn + (prot ? `<span class="msub">${it.locked ? 'Bloccato: non si vende' : 'Rarità protetta: non si vende'}</span>` : `<button class="sb" data-act="sell" data-item="${it.id}">Vendi · ${cfmt(F.sellValue(it, S))} oro</button>`);
-  if (where === 'chest') return `<div class="card idet" style="border-color:${r.color}">${head}<div class="row2"><button class="pb" data-act="fromchest" data-item="${it.id}" ${S.inventory.length >= F.bagCap(S) ? 'disabled' : ''}>↑ Sposta nello zaino</button>${lockBtn}</div></div>`;
+  if (where === 'chest') return `<div class="card idet" style="border-color:${r.color}">${head}${rerollHTML(it)}<div class="row2"><button class="pb" data-act="fromchest" data-item="${it.id}" ${S.inventory.length >= F.bagCap(S) ? 'disabled' : ''}>↑ Sposta nello zaino</button>${lockBtn}</div></div>`;
   if (where === 'shop') return `<div class="card idet" style="border-color:${r.color}">${head}<div class="row2">${sellBtn}</div></div>`;
   const users = Object.keys(S.roster).filter(id => F.canUse(S.roster[id], it));
   return `<div class="card idet" style="border-color:${r.color}">${head}
       ${users.length ? `<div class="row2"><label for="eqsel">Equipaggia a</label><select id="eqsel">${users.map(id => { const c = S.roster[id].eq[F.targetSlot(S.roster[id], it)]; return `<option value="${id}">${esc(S.roster[id].name)} (ora ${c ? fmt(F.itemPower(c)) : '—'})</option>`; }).join('')}</select><button class="sb" data-act="eqto" data-item="${it.id}">Equipaggia</button></div>` : `<div class="note">Nessuno nella tua collezione può usarlo.</div>`}
+      ${rerollHTML(it)}
       <div class="row2">${(() => { const n = F.nextRarity(it); if (!n) return ''; const rr = F.RUNE[n], nr = F.ITEM_RARITY.find(x => x.key === n); return `<button class="sb" data-act="raise" data-item="${it.id}" ${S.runes[n] < 1 ? 'disabled' : ''}>Porta a <b style="color:${nr.color}">${nr.label}</b> · 1 ${rr.label.toLowerCase()} (${S.runes[n]})</button>`; })()}<button class="sb" data-act="tochest" data-item="${it.id}" ${S.chest.length >= F.chestCap(S) ? 'disabled' : ''}>↓ Nel forziere</button>${sellBtn}</div>
     </div>`;
 }
@@ -461,10 +471,16 @@ function showAutoSell() {
   <div class="row2"><button class="sb" data-act="sellbelow">Vendi ora quelli nello zaino</button><button class="pb" data-act="close">Fatto</button></div></div>`;
   $('#modal').hidden = false;
 }
+function showFuse() {
+  $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true"><div class="eqhead"><h2 style="margin:0;font-size:18px">Fusione</h2><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
+  <div class="msub" style="margin:4px 0 8px">Unisci ${F.FUSE_N} oggetti della stessa rarità per ottenerne uno della rarità successiva, con il livello più alto tra quelli usati. Si usano i più deboli; quelli bloccati o protetti non vengono toccati. Si arriva al massimo al Leggendario.</div>
+  ${F.ITEM_RARITY.slice(0, F.FUSE_MAX + 1).map(r => { const n = F.fusable(S, r.key).length, nx = F.ITEM_RARITY[F.rarityIndex(r.key) + 1]; return `<div class="card srow"><div><b style="color:${r.color}">${r.label}</b> → <b style="color:${nx.color}">${nx.label}</b><div class="msub">Ne hai ${n}/${F.FUSE_N}</div><div class="bar" style="height:4px;margin-top:3px"><b style="width:${Math.min(100, 100 * n / F.FUSE_N)}%;background:${r.color}"></b></div></div><button class="pb" data-act="fuse" data-k="${r.key}" ${n < F.FUSE_N ? 'disabled' : ''}>Fondi</button></div>`; }).join('')}</div>`;
+  $('#modal').hidden = false;
+}
 function pZaino() {
   const inBag = selItem && S.inventory.find(x => x.id === selItem), inChest = selItem && S.chest.find(x => x.id === selItem);
   const det = inBag ? itemDetail(inBag, 'bag') : inChest ? itemDetail(inChest, 'chest') : '';
-  return `<div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><button class="sb" data-act="sellrest">Vendi il resto</button></div>
+  return `<div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><button class="sb" data-act="sellrest">Vendi il resto</button><button class="sb" data-act="fuseopen">Fusione</button></div>
   <div class="card autos3"><span class="autol">Scarta in automatico</span>${(() => { const k = F.minKeep(S); return [['comune', 1], ['noncomune', 2]].map(([key, lvl]) => { const r = F.ITEM_RARITY.find(x => x.key === key), on = k >= lvl, needPass = lvl > 1 && !F.hasPass(S); return `<button class="atog${on ? ' on' : ''}" style="--c:${r.color}" data-act="atog" data-k="${key}"><span>${r.label}</span>${needPass ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : ''}</button>`; }).join(''); })()}</div>
   <div class="note" style="margin-top:-2px">Tocca per scartare: gli oggetti barrati si vendono in oro appena cadono. Rune, oggetti bloccati e rarità protette non si vendono mai.</div>
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio</span></div>
@@ -613,6 +629,9 @@ function pAltro() {
    <div><span>Catture</span><b>${F.capturedCount(S)}/${F.ALL_SPECIES.length}</b></div><div><span>Tempo con il gioco aperto</span><b>${h} h ${mi} min</b></div>
    <div><span>Tempo offline</span><b>${dur(st.offline || 0)}</b></div><div><span>Tempo totale di gioco</span><b>${dur(st.played + (st.offline || 0))}</b></div>
   </div>
+  ${(() => { const d = S.dmgLog || { by: {}, since: S.clock || 0 }, ids = Object.keys(d.by).filter(id => S.roster[id]).sort((a, b) => d.by[b] - d.by[a]), tot = ids.reduce((x, id) => x + d.by[id], 0), secs = Math.max(1, (S.clock || 0) - d.since);
+    return `<div class="ph"><h2>Danni per membro</h2><button class="sb" data-act="dmgreset" style="min-height:28px;font-size:11px">Azzera</button></div>
+    <div class="card">${ids.length ? ids.map(id => { const m = S.roster[id], c = CC(F.SPECIES[m.species].cls); return `<div class="dmrow"><span class="dmn">${esc(m.name)}</span><div class="dmbar"><b style="width:${100 * d.by[id] / d.by[ids[0]]}%;background:${c}"></b></div><span class="dmv">${cfmt(d.by[id] / secs)}/s · ${Math.round(100 * d.by[id] / tot)}%</span></div>`; }).join('') : '<div class="note">Nessun dato ancora.</div>'}<div class="msub" style="margin-top:4px">Danni medi al secondo e quota sul totale, da ${dur(secs)} di battaglie.</div></div>`; })()}
   ${rare}
   <div class="card"><div class="msub">Nemici sconfitti al minuto, ultimi 30 minuti</div><canvas id="chart" width="680" height="220" role="img" aria-label="Grafico dei nemici sconfitti al minuto"></canvas></div>
   <div class="ph"><h2>Achievement</h2><span>${Object.keys(S.ach).length}/${F.ACH.length}</span></div>
@@ -839,6 +858,11 @@ document.addEventListener('click', e => {
   else if (a === 'pts') { F.addPts(S, id, t.dataset.k, +t.dataset.n); rebuild(); }
   else if (a === 'ptsauto') { F.autoPts(S, id); rebuild(); }
   else if (a === 'ptsreset') { F.resetPts(S, id); rebuild(); }
+  else if (a === 'rrlock') { const i = +t.dataset.i; rrLocks = rrLocks.includes(i) ? rrLocks.filter(x => x !== i) : rrLocks.concat(i); }
+  else if (a === 'reroll2') { if (F.rerollBonus(S, item, rrLocks)) { snd('coin'); toast('Bonus rimescolati', '#F49AC1'); } }
+  else if (a === 'fuseopen') { showFuse(); return; }
+  else if (a === 'fuse') { const it = F.fuse(S, t.dataset.k); if (it) { const r = F.ITEM_RARITY.find(x => x.key === it.rarity); snd('rare'); toast(`Fusione riuscita: <b style="color:${r.color}">${esc(F.itemName(it))}</b>`, r.color); } showFuse(); dirty = true; return; }
+  else if (a === 'dmgreset') { S.dmgLog = { since: S.clock || 0, by: {} }; }
   else if (a === 'selrune') { selRune = selRune === t.dataset.k ? null : t.dataset.k; selItem = null; }
   else if (a === 'selshop') selShop = selShop === +t.dataset.i ? null : +t.dataset.i;
   else if (a === 'equipall') { const n = F.autoEquip(S); toast(n ? `Equipaggiati ${n} oggetti` : 'Nessun miglioramento disponibile'); }
