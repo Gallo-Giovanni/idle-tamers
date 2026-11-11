@@ -94,6 +94,8 @@ const TREE = {
   lama:     { name: 'Lama',     desc: 'Probabilità di critico +1% per livello', max: 20, cost: starCost(300, 2) },
   furia:    { name: 'Furia',    desc: 'Danni critici +5% per livello', max: 20, cost: starCost(400, 2) },
   tesoro:   { name: 'Tesoro',   desc: 'Oro +5% per livello', max: 10, cost: starCost(500, 3) },
+  saggezza: { name: 'Saggezza', desc: 'Esperienza +5% per livello', max: 20, cost: starCost(800, 2.4) },
+  commercio:{ name: 'Commercio', desc: 'Oro dalla vendita degli oggetti +10% per livello', max: 10, cost: starCost(600, 3) },
   cometa:   { name: 'Cometa',   desc: 'Velocità di movimento della squadra +5% per livello', max: 10, cost: starCost(1000, 3) },
   richiamo: { name: 'Richiamo', desc: 'Probabilità di cattura +5% per livello (max +50%)', max: 10, cost: starCost(2000, 3) },
 };
@@ -106,6 +108,8 @@ const STARMAP = {
   branco:   { x: 16, y: 58, req: ['vita', 5], ic: '❀' },
   lama:     { x: 84, y: 58, req: ['scudo', 5], ic: '✦' },
   tesoro:   { x: 50, y: 16, req: ['forza', 8], ic: '◈' },
+  saggezza: { x: 17, y: 12, req: ['tesoro', 3], ic: '✎' },
+  commercio:{ x: 83, y: 12, req: ['tesoro', 3], ic: '⚖' },
   cometa:   { x: 15, y: 85, req: ['branco', 5], ic: '☄' },
   richiamo: { x: 50, y: 85, req: ['lama', 5], ic: '✧' },
   furia:    { x: 85, y: 85, req: ['lama', 5], ic: '✸' },
@@ -144,7 +148,7 @@ function newState() {
     v: 1, seed: (Date.now() % 2147483647) >>> 0,
     gold: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0, mitico: 0, astrale: 0, arcano: 0 }, astri: 0, shop: null, zone: 1, maxZone: 1, cleared: 0, battle: 1, maxBattle: 1, maxGlobal: 1,
     team: ['hero'], roster: { hero: newMember('hero', 1) }, inventory: [], chest: [], rareLog: [], nextId: 1,
-    tree: { forza: 0, vita: 0, branco: 0, scudo: 0, lama: 0, furia: 0, tesoro: 0, cometa: 0, richiamo: 0 },
+    tree: { forza: 0, vita: 0, branco: 0, scudo: 0, lama: 0, furia: 0, tesoro: 0, saggezza: 0, commercio: 0, cometa: 0, richiamo: 0 },
     hunt: {}, // uccisioni per specie non ancora catturata
     stats: { kills: 0, gold: 0, items: 0, legendary: 0, wins: 0, losses: 0, played: 0, perMin: [] },
     ach: {}, settings: { autoEquip: false, test: false }, lastSeen: Date.now(),
@@ -175,7 +179,7 @@ function dailyReady(s, now) { return s.daily !== dayKey(now || Date.now()); }
 function claimDaily(s, now) { if (!dailyReady(s, now)) return 0; s.daily = dayKey(now || Date.now()); s.astri += DAILY_ASTRI; return DAILY_ASTRI; }
 function nextMidnight(now) { const d = new Date(now); d.setHours(24, 0, 0, 0); return d.getTime(); }
 function buyHero(s, id) { if (!isHero(id) || s.roster[id]) return false; s.roster[id] = newMember(id, 1); s.team.push(id); return true; }
-let LEVEL_CAP = 30; if (typeof process !== 'undefined' && process.env && process.env.LCAP) LEVEL_CAP = +process.env.LCAP;
+let LEVEL_CAP = 60; if (typeof process !== 'undefined' && process.env && process.env.LCAP) LEVEL_CAP = +process.env.LCAP;
 function xpNeed(l) { return Math.round(100 * Math.pow(1.5, Math.min(l, 30) - 1) * (l > 30 ? Math.pow(l - 29, +(typeof process !== 'undefined' && process.env && process.env.XPP) || 2) : 1)); } // oltre il 30 cresce più piano: si sale sempre un po' anche quando si è bloccati
 // ---------- Statistiche degli oggetti ----------
 // Statistiche principali dal tipo; statistiche bonus casuali: 0 comune, 1 non comune, 2 rara, 3 epica, 4 leggendaria
@@ -212,7 +216,8 @@ function finishItem(s, it) { it.bonus = []; for (let i = 0; i < BONUS_COUNT[it.r
 function itemPower(it) { return Math.round(itemBase(it) * (1 + 0.12 * ((it.bonus || []).length))); }
 function itemName(it) { const base = it.slot === 'arma' ? WEAPON[it.cls] : it.slot === 'secondaria' ? SECONDARY[it.cls] : ITEM_NAME[it.slot]; const b = it.bonus && it.bonus[0]; return b ? base + ' ' + SUFFIX[b.k] : base; }
 function upgradeCost(it) { return Math.round(itemPower(it) * 6 * (1 + it.up)); }
-function sellValue(it) { return Math.round(itemPower(it) * 1.5); }
+let _sellBonus = 0; // impostato dallo stato attivo (stella Commercio)
+function sellValue(it, s) { const c = s ? (s.tree.commercio || 0) : _sellBonus; return Math.round(itemPower(it) * 1.5 * (1 + 0.1 * c)); }
 function canUse(m, it) { return (it.slot !== 'arma' && it.slot !== 'secondaria') || it.cls === SPECIES[m.species].cls; }
 // posto in cui va l'oggetto: quello libero o il più debole tra quelli del suo tipo
 function targetSlot(m, it) { let best = null, bp = Infinity; for (const sl of SLOTS) { if (kindOf(sl) !== it.slot) continue; const c = m.eq[sl], p = c ? itemPower(c) : -1; if (p < bp) { bp = p; best = sl; } } return best; }
@@ -373,7 +378,7 @@ function onKill(s, b, e, ev) {
   const pass = hasPass(s) ? 2 : 1; // Pass: oro ed esperienza doppi
   const gold = Math.round(1 * f * (e.boss ? 10 : 1) * (1 + 0.05 * s.tree.tesoro) * pass);
   s.gold += gold; s.stats.gold += gold; trackMinute(s, 1, gold);
-  const xp = Math.round(3 * f * (e.boss ? 8 : 1) * pass);
+  const xp = Math.round(3 * f * (e.boss ? 8 : 1) * pass * (1 + 0.05 * (s.tree.saggezza || 0)));
   for (const u of b.party) if (u.hp > 0) gainXp(s, u.id, xp, ev); // solo chi è vivo in campo prende PE
   if (ev) ev.push({ type: 'kill', idx: e.idx, gold });
   // drop
@@ -417,7 +422,7 @@ function dropItem(s, boss, ev) {
   if (rarityIndex(r.key) >= 4) s.stats.legendary++;
   if (RARE_FEED.includes(r.key)) { s.stats.rare = s.stats.rare || {}; s.stats.rare[r.key] = (s.stats.rare[r.key] || 0) + 1; (s.rareLog = s.rareLog || []).unshift({ t: Date.now(), rarity: r.key, slot, zone: s.zone, ilvl: it.ilvl }); s.rareLog.length = Math.min(s.rareLog.length, 50); if (ev) ev.push({ type: 'rare', item: it }); }
   // filtro del bottino: sotto la rarità minima scelta l'oggetto si vende subito (le rune non passano di qui)
-  if (rarityIndex(r.key) < minKeep(s)) { s.gold += sellValue(it); s.stats.autoSold = (s.stats.autoSold || 0) + 1; return; }
+  if (rarityIndex(r.key) < minKeep(s)) { s.gold += sellValue(it, s); s.stats.autoSold = (s.stats.autoSold || 0) + 1; return; }
   if (s.inventory.length >= bagCap(s)) { // zaino pieno: l'oggetto va perso (niente vendita automatica nascosta)
     s.stats.lost = (s.stats.lost || 0) + 1; if (ev) ev.push({ type: 'lost', item: it }); return;
   }
@@ -473,14 +478,14 @@ function minKeep(s) { return Math.min(rarityIndex(s.settings.minRarity || 'comun
 function protectIdx(s) { const k = s.settings.protect || 'segreto'; return k === 'none' ? ITEM_RARITY.length : rarityIndex(k); }
 function isProtected(s, it) { return !!it.locked || rarityIndex(it.rarity) >= protectIdx(s); }
 function toggleLock(s, id) { const it = s.inventory.find(x => x.id === id) || s.chest.find(x => x.id === id); if (!it) return false; it.locked = !it.locked; return it.locked; }
-function sellBelow(s) { const min = minKeep(s); let gold = 0, n = 0; s.inventory = s.inventory.filter(it => { if (rarityIndex(it.rarity) < min && !isProtected(s, it)) { gold += sellValue(it); n++; return false; } return true; }); s.gold += gold; return { gold, n }; }
+function sellBelow(s) { const min = minKeep(s); let gold = 0, n = 0; s.inventory = s.inventory.filter(it => { if (rarityIndex(it.rarity) < min && !isProtected(s, it)) { gold += sellValue(it, s); n++; return false; } return true; }); s.gold += gold; return { gold, n }; }
 function sellRest(s) {
   // vende ciò che non migliora nessuno nella squadra né nella riserva
   let gold = 0, n = 0;
   const keep = [];
   for (const it of s.inventory) {
     const useful = Object.keys(s.roster).some(id => { const m = s.roster[id]; if (m.locked || !canUse(m, it)) return false; const c = m.eq[targetSlot(m, it)]; return !c || itemPower(it) > itemPower(c); });
-    if (useful || isProtected(s, it)) keep.push(it); else { gold += sellValue(it); n++; }
+    if (useful || isProtected(s, it)) keep.push(it); else { gold += sellValue(it, s); n++; }
   }
   s.inventory = keep; s.gold += gold; return { gold, n };
 }
@@ -489,7 +494,7 @@ function equipTo(s, itemId, memberId) {
   const sl = targetSlot(m, it), cur = m.eq[sl]; s.inventory = s.inventory.filter(x => x.id !== itemId); if (cur) s.inventory.push(cur); m.eq[sl] = it; it.isNew = false; return true;
 }
 function unequip(s, memberId, slot) { const m = s.roster[memberId]; if (m && m.eq[slot]) { s.inventory.push(m.eq[slot]); m.eq[slot] = null; } }
-function sellItem(s, itemId) { const i = s.inventory.findIndex(x => x.id === itemId); if (i < 0 || isProtected(s, s.inventory[i])) return 0; const [it] = s.inventory.splice(i, 1); const g = sellValue(it); s.gold += g; return g; }
+function sellItem(s, itemId) { const i = s.inventory.findIndex(x => x.id === itemId); if (i < 0 || isProtected(s, s.inventory[i])) return 0; const [it] = s.inventory.splice(i, 1); const g = sellValue(it, s); s.gold += g; return g; }
 // Rune: ognuna porta un oggetto alla sua rarità (dalla rarità precedente), si vendono per Astri e potenziano gli slot
 const RUNE_KEYS = ['arcano', 'astrale', 'mitico', 'leggendaria', 'epica', 'rara', 'noncomune']; // dal più raro, per il tiro del drop
 const RUNE = {
