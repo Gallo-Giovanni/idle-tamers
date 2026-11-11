@@ -590,6 +590,7 @@ function checkAch(s) {
 // Simulazione offline: stesso motore, senza grafica, a passi più ampi
 function simulateOffline(s, seconds, noCap) {
   if (!noCap) seconds = Math.min(seconds, offlineCap(s));
+  s.stats.offline = (s.stats.offline || 0) + seconds; // tempo passato fuori dal gioco (conta anche l'avanti veloce)
   const before = { byRar: Object.assign({}, s.stats.byRar || {}), lost: s.stats.lost || 0, gold: s.gold, kills: s.stats.kills, items: s.stats.items, runes: Object.assign({}, s.runes), lv: {} };
   for (const id in s.roster) before.lv[id] = s.roster[id].lvl;
   const ev = [];
