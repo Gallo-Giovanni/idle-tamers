@@ -290,13 +290,14 @@ function bagForMember(id) {
   <div class="igrid">${inv.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), cur = m.eq[F.targetSlot(m, it)], up = !cur || F.itemPower(it) > F.itemPower(cur); return `<button class="it${eqSel === it.id ? ' sel' : ''}" style="border-color:${r.color}" data-act="eqpick" data-item="${it.id}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b>${up ? '<i class="upar">▲</i>' : ''}</button>`; }).join('') || '<div class="note" style="grid-column:1/-1">Nessun oggetto adatto nello zaino.</div>'}</div>`;
 }
 function pSquadra() {
-  const slots = F.CREATURE_SLOTS, n = F.creaturesInTeam(S);
+  const slots = F.slotCount(S), n = F.creaturesInTeam(S);
   const reserve = Object.keys(S.roster).filter(id => !S.team.includes(id));
-  return `<div class="ph"><h2>Squadra</h2><span>creature ${n}/${slots} · gli eroi non occupano posti</span></div>
+  return `<div class="ph"><h2>Squadra</h2><span>creature ${n}/${slots} (max ${F.CREATURE_SLOTS}) · eroi esclusi</span></div>
   ${synergyHTML()}
   <div class="note">L'ordine conta: chi sta più in alto riceve per primo l'equipaggiamento.</div>
   ${S.team.map((id, i) => memberRow(id, true, i)).join('')}
   ${n < slots ? `<div class="card free">Posto libero: aggiungi una creatura dalla riserva o catturane una nuova.</div>` : ''}
+  ${F.nextSlotZone(S) ? `<div class="lockgrid"><div class="lk">${icon('lock', '#7C84BC', 16)}<span>Nuovo posto: sconfiggi il boss della zona ${F.nextSlotZone(S)}</span></div></div>` : ''}
   ${reserve.length ? `<div class="ph"><h2>Riserva</h2><span>${reserve.length}</span></div>${reserve.map(id => memberRow(id, false)).join('')}` : ''}`;
 }
 function rcls(r) { return r.rainbow ? ' rbw' : ''; }
@@ -327,8 +328,8 @@ function pZaino() {
   return `${tabs}
   ${runeBar()}${capNote}
   <div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><button class="sb" data-act="sellrest">Vendi il resto</button></div>
-  <div class="row2"><label for="minr">Raccolta automatica da</label><select id="minr" data-act="minr">${F.ITEM_RARITY.map((r, i) => i > F.maxFilter(S) ? `<option disabled>${r.label} in su · Pass</option>` : `<option value="${r.key}" ${F.minKeep(S) === i ? 'selected' : ''}>${r.label} in su</option>`).join('')}</select><button class="sb" data-act="sellbelow">Vendi quelli sotto</button></div>
-  <div class="note">Si raccoglie tutto; gli oggetti sotto la rarità scelta si vendono appena cadono, in oro. Le rune si tengono sempre.${S.stats.autoSold ? ` Venduti finora: ${fmt(S.stats.autoSold)}.` : ''}${F.hasPass(S) ? '' : `<br><span style="color:var(--gold)">${icon('lock', '#F2C14E', 12)} Gratis si vendono da soli solo i comuni; per le altre rarità serve il Pass Astrale (Shop).</span>`}</div>
+  <div class="row2"><label for="minr">Vendita automatica</label><select id="minr" data-act="minr">${F.ITEM_RARITY.map((r, i) => { const lab = i === 0 ? 'Disattivata' : i === 1 ? 'Solo comuni' : 'Fino a ' + F.ITEM_RARITY[i - 1].label.toLowerCase(); return i > F.maxFilter(S) ? `<option disabled>${lab} · Pass</option>` : `<option value="${r.key}" ${F.minKeep(S) === i ? 'selected' : ''}>${lab}</option>`; }).join('')}</select><button class="sb" data-act="sellbelow">Vendi ora</button></div>
+  <div class="note">Tutto viene raccolto in automatico. Con la vendita automatica gli oggetti scelti si vendono appena cadono, in oro; le rune si tengono sempre.${S.stats.autoSold ? ` Venduti finora: ${fmt(S.stats.autoSold)}.` : ''}${F.hasPass(S) ? '' : `<br><span style="color:var(--gold)">${icon('lock', '#F2C14E', 12)} Gratis puoi vendere in automatico solo i comuni; per le altre rarità serve il Pass Astrale (Shop).</span>`}</div>
   ${det}
   ${grid}`;
 }
@@ -379,12 +380,26 @@ function missionHTML(k) {
     ${ready ? `<button class="pb mclaim" data-act="claim" data-id="${k}">Riscuoti</button>` : ''}</div>`;
 }
 function pMappa() {
+  const isl = (z, i, pl) => {
+    const Z = F.ZONES[z], locked = z > S.maxZone, here = z === S.zone, done = z <= S.cleared, left = i % 2 === 0;
+    const mobs = Z.pool.filter((k, j, a) => a.indexOf(k) === j).slice(-3);
+    const missing = Z.pool.concat(Z.boss).filter((k, j, a) => a.indexOf(k) === j && !S.roster[k] && F.zoneOf(k) === z).length;
+    const slot = F.SLOT_UNLOCKS.includes(z) && !done;
+    return `<div class="isl ${left ? 'l' : 'r'}${locked ? ' zlk' : ''}${here ? ' here' : ''}" style="--d:${i * 0.4}s">
+      <div class="itop"><b>Zona ${z}</b>${done ? `<span class="ok">${icon('check', '#7ED36F', 12)}</span>` : ''}${missing && !locked ? `<span class="miss">${missing} da catturare</span>` : ''}${slot ? '<span class="miss slotm">+1 posto</span>' : ''}</div>
+      <div class="rock pl${pl}">
+        <div class="mobs">${mobs.map((k, j) => `<span class="mob" style="animation-delay:${j * 0.3 + i * 0.2}s">${sprite(k, 2, locked ? { sil: true } : undefined)}</span>`).join('')}</div>
+        <div class="boss"><span class="crown">♛</span>${sprite(Z.boss, 3, locked ? { sil: true } : undefined)}</div>
+        ${here ? `<div class="me">${sprite('hero', 2)}</div>` : ''}
+      </div>
+      ${locked ? `<div class="lockc">${icon('lock', '#7C84BC', 11)} Sconfiggi il boss precedente</div>` : here ? `<div class="herel">Sei qui · battaglia ${S.battle}/${F.BOSS_BATTLE}</div>` : `<button class="sb go" data-act="zone" data-z="${z}">Combatti qui</button>`}
+    </div>`;
+  };
   return `<div class="ph"><h2>Mappa</h2><span>zone completate ${S.cleared}/${F.MAX_ZONE}</span></div>
-  <div class="note">Scegli dove combattere. La campagna avanza solo nella zona più lontana raggiunta; quelle precedenti servono per farmare e catturare le creature mancanti.</div>
-  ${F.PLANETS.map(pl => `<div class="ph"><h2 style="font-size:13px">${pl.name}</h2><span>zone ${pl.zones[0]}-${pl.zones[1]}</span></div>
-  ${Array.from({ length: pl.zones[1] - pl.zones[0] + 1 }, (_, i) => pl.zones[0] + i).map(z => { const Z = F.ZONES[z], locked = z > S.maxZone, here = z === S.zone, done = z <= S.cleared;
-    const missing = Z.pool.concat(Z.boss).filter((k, i, a) => a.indexOf(k) === i && !S.roster[k] && F.zoneOf(k) === z);
-    return `<div class="card zrow${here ? ' here' : ''}${locked ? ' locked' : ''}"><div><b>Zona ${z}</b> ${done ? `<span class="zdone">${icon('check', '#7ED36F', 13)} completata</span>` : locked ? `<span class="lvl">${icon('lock', '#7C84BC', 12)} bloccata</span>` : '<span class="lvl">in corso</span>'}<div class="msub">Boss: ${locked ? '???' : esc(F.SPECIES[Z.boss].name)}${missing.length && !locked ? ` · da catturare qui: ${missing.length}` : ''}</div></div>${here ? '<span class="zhere">Sei qui</span>' : `<button class="sb" data-act="zone" data-z="${z}" ${locked ? 'disabled' : ''}>Combatti qui</button>`}</div>`; }).join('')}`).join('')}`;
+  <div class="note">La campagna avanza solo nella zona più lontana raggiunta; quelle precedenti servono per farmare e catturare le creature mancanti.</div>
+  ${F.PLANETS.map((pl, pi) => `<div class="planetmap p${pi}"><div class="pmhead"><span class="pmglobe g${pi}"></span><b>${pl.name}</b></div>
+   <svg class="path" viewBox="0 0 100 500" preserveAspectRatio="none" aria-hidden="true"><path d="M28 40 C 90 90, 90 110, 72 140 S 10 200, 28 240 S 90 300, 72 340 S 10 400, 28 440" fill="none" stroke="#6B7BD1" stroke-width="1.2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/></svg>
+   ${Array.from({ length: pl.zones[1] - pl.zones[0] + 1 }, (_, i) => isl(pl.zones[0] + i, i, pi)).join('')}</div>`).join('')}`;
 }
 function pStelle() {
   return `<div class="ph"><h2>Costellazioni</h2><span>${icon('coin', '#F2C14E', 14)} ${cfmt(S.gold)} oro</span></div>

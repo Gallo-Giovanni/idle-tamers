@@ -109,7 +109,7 @@ const ACH = [
   { id: 'c7',    name: 'Bestiario dei Prati', desc: 'Cattura tutte le creature di Prati Stellari', test: s => PLANETS[0].species.every(k => s.roster[k]), astri: 40 },
   { id: 'c14',   name: 'Bestiario della Luna', desc: 'Cattura tutte le creature della Luna di Cristallo', test: s => PLANETS[1].species.every(k => s.roster[k]), astri: 60 },
   { id: 'leg',   name: 'Bagliore leggendario', desc: 'Trova un oggetto leggendario o superiore', test: s => s.stats.legendary >= 1, astri: 10 },
-  { id: 'full',  name: 'Squadra al completo', desc: 'Metti 4 creature in squadra', test: s => creaturesInTeam(s) >= CREATURE_SLOTS, astri: 10 },
+  { id: 'full',  name: 'Squadra al completo', desc: 'Sblocca e riempi tutti i posti della squadra', test: s => creaturesInTeam(s) >= CREATURE_SLOTS, astri: 20 },
 ];
 
 const OFFLINE_CAP = 8 * 3600; // 16 ore col Pass
@@ -139,16 +139,21 @@ function newMember(species, lvl) {
 }
 function capturedCount(s) { return ALL_SPECIES.filter(k => s.roster[k]).length; }
 // Squadra: 4 posti per le creature; gli eroi (Guerriero gratis, gli altri dal negozio) non occupano posti
-const CREATURE_SLOTS = 4;
+// Si parte con 2 posti; ogni boss indicato sblocca un posto in più
+let SLOT_UNLOCKS = [1, 3, 5, 7, 9];
+if (typeof process !== 'undefined' && process.env && process.env.SLOTS) SLOT_UNLOCKS = JSON.parse(process.env.SLOTS);
+const BASE_SLOTS = 2;
+const CREATURE_SLOTS = BASE_SLOTS + SLOT_UNLOCKS.length; // massimo
 function isHero(id) { return !!(SPECIES[id] && SPECIES[id].hero); }
-function slotCount(s) { return CREATURE_SLOTS; }
+function slotCount(s) { return BASE_SLOTS + SLOT_UNLOCKS.filter(z => s.cleared >= z).length; }
+function nextSlotZone(s) { return SLOT_UNLOCKS.find(z => s.cleared < z) || null; }
 function creaturesInTeam(s) { return s.team.filter(id => !isHero(id)).length; }
-function teamFull(s) { return creaturesInTeam(s) >= CREATURE_SLOTS; }
+function teamFull(s) { return creaturesInTeam(s) >= slotCount(s); }
 // Eroi extra in vendita (prezzi in euro; nella versione di prova si sbloccano gratis)
 const HERO_SHOP = [{ id: 'hero_arc', price: '1,99 €' }, { id: 'hero_mag', price: '4,99 €' }];
 const PASS_PRICE = '9,99 € / mese';
 // Astri gratuiti ogni giorno: si riscuotono una volta, si rinnovano a mezzanotte (ora locale)
-const DAILY_ASTRI = 10;
+const DAILY_ASTRI = 20;
 function dayKey(now) { const d = new Date(now); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
 function dailyReady(s, now) { return s.daily !== dayKey(now || Date.now()); }
 function claimDaily(s, now) { if (!dailyReady(s, now)) return 0; s.daily = dayKey(now || Date.now()); s.astri += DAILY_ASTRI; return DAILY_ASTRI; }
@@ -328,7 +333,11 @@ function finishBattle(s, b, ev) {
       const first = s.zone > s.cleared;
       if (first) {
         s.cleared = s.zone;
-        if (s.zone === 5 || s.zone === 10) { if (ev) ev.push({ type: 'unlock', text: 'Nuovo posto in squadra sbloccato!' }); }
+        if (SLOT_UNLOCKS.includes(s.zone)) { // nuovo posto: entra la creatura più forte della riserva
+          const res = Object.keys(s.roster).filter(id => !s.team.includes(id) && !isHero(id)).sort((a, c) => s.roster[c].lvl - s.roster[a].lvl);
+          if (res.length && !teamFull(s)) s.team.push(res[0]);
+          if (ev) ev.push({ type: 'unlock', text: 'Nuovo posto in squadra sbloccato!' });
+        }
         if (s.zone < MAX_ZONE) { s.maxZone = Math.max(s.maxZone, s.zone + 1); s.zone++; s.maxBattle = 1; if (ev) ev.push({ type: 'unlock', text: `Zona ${s.zone} sbloccata!` }); }
       }
       s.battle = 1; s.runHp = {}; // la campagna avanza; le zone già finite ricominciano dalla battaglia 1
@@ -528,7 +537,7 @@ function migrate(s) {
   for (const k in TREE) if (s.tree[k] === undefined) s.tree[k] = 0;
   if (!s.chest) s.chest = []; if (!s.rareLog) s.rareLog = [];
   delete s.settings.autoStars; delete s._nextStar;
-  { const keep = []; let n = 0; for (const id of s.team) { if (isHero(id)) keep.push(id); else if (n < CREATURE_SLOTS) { keep.push(id); n++; } } s.team = keep; }
+  { const keep = []; let n = 0; for (const id of s.team) { if (isHero(id)) keep.push(id); else if (n < slotCount(s)) { keep.push(id); n++; } } s.team = keep; }
   delete s.dust; delete s.train; delete s.move;
   if (s.shop && s.shop.items.some(i => i.price !== SHOP_PRICE[i.rarity])) s.shop = null;
   if (s.runes === undefined) s.runes = 0; if (s.astri === undefined) s.astri = 0; if (s.shop === undefined) s.shop = null;
@@ -585,7 +594,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;

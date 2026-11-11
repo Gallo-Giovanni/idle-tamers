@@ -174,6 +174,30 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .feed{display:flex;align-items:center;gap:8px;font-size:12px}
 .daily{display:flex;align-items:center;gap:10px;border-color:#F49AC1}.daily .big{font-size:22px;font-weight:800;color:#F49AC1}
 .shopsec{font-size:11px;color:var(--muted);margin:2px 0 6px}
+
+.planetmap{position:relative;border-radius:14px;padding:6px 8px 10px;margin:6px 0 12px;overflow:hidden}
+.planetmap.p0{background:radial-gradient(120% 60% at 50% 0%,#24306e,#121845)}
+.planetmap.p1{background:radial-gradient(120% 60% at 50% 0%,#2a2a6a,#141236)}
+.pmhead{display:flex;align-items:center;gap:8px;font-size:14px;margin:2px 2px 4px}.pmglobe{width:18px;height:18px;border-radius:50%}
+.g0{background:#6CCB5F;box-shadow:inset -5px -4px 0 #3F8F4A}.g1{background:#B9E6FF;box-shadow:inset -5px -4px 0 #7FA8E0}
+.path{position:absolute;left:0;top:30px;width:100%;height:calc(100% - 40px);pointer-events:none;opacity:.7}
+.isl{position:relative;width:62%;margin:6px 0;animation:float 4s ease-in-out infinite;animation-delay:var(--d)}
+.isl.r{margin-left:38%}
+@keyframes float{50%{transform:translateY(-4px)}}
+.itop{display:flex;gap:6px;align-items:center;font-size:12px;margin-bottom:2px}.ok{color:#7ED36F;font-weight:700}.miss{font-size:10px;color:#F2C14E;background:#3a3215;border-radius:6px;padding:1px 5px}
+.rock{position:relative;height:62px;border-radius:40% 40% 50% 50%/30% 30% 70% 70%;display:flex;align-items:flex-end;justify-content:space-between;padding:0 10px 14px}
+.rock.pl0{background:linear-gradient(#5BAF55 0 9px,#4A3A6E 9px);box-shadow:0 6px 0 #2E2550}
+.rock.pl1{background:linear-gradient(#BFE9FF 0 9px,#4B5AA8 9px);box-shadow:0 6px 0 #2B3570}
+.mobs{display:flex;gap:4px;align-items:flex-end}.mob{display:inline-block;animation:hop 1.6s ease-in-out infinite}
+@keyframes hop{0%,70%,100%{transform:translateY(0)}80%{transform:translateY(-5px)}}
+.boss{position:relative;display:flex;align-items:flex-end}.crown{position:absolute;top:-12px;left:50%;transform:translateX(-50%);color:#F2C14E;font-size:12px;animation:glow 1.5s ease-in-out infinite}
+@keyframes glow{50%{opacity:.4}}
+.me{position:absolute;left:46%;bottom:14px}
+.here .rock{outline:2px solid #F2C14E;outline-offset:3px;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{outline-color:transparent}}
+.zlk{opacity:.55;filter:saturate(.3)}.lockc{font-size:10.5px;color:var(--muted);margin-top:4px}
+.herel{font-size:11px;color:#F2C14E;font-weight:700;margin-top:4px}.go{min-height:28px;margin-top:4px;font-size:11px}
+.slotm{background:#16323a;color:#7FE3FF}
 </style>
 </head>
 <body>
