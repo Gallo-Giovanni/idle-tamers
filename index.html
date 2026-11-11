@@ -304,6 +304,10 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .ptsbox{margin:6px 0;border-top:1px solid var(--line);padding-top:6px}.ptshead{display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:4px}.ptshead span{flex:1;color:var(--muted)}.ptshead span.pfree{color:var(--gold);font-weight:700}.ptshead .sb{min-height:28px;font-size:11px}
 .ptsrow{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:0 6px;padding:4px 0;border-bottom:1px solid #1E2350}.pn2{font-size:12.5px;font-weight:700}.pn2 b{color:var(--txt);margin-left:4px}.pd{grid-column:1;font-size:10.5px;color:var(--muted)}.pb2{grid-column:2;grid-row:1/3;display:flex;gap:3px;align-items:center}.pb2 .ib{width:auto;min-width:30px;padding:0 4px;font-size:11px;height:28px}
 .ptsdot{background:var(--gold);color:#1B1F3B;border-radius:8px;font-size:10px;font-weight:800;padding:1px 5px;vertical-align:2px}
+.autos3{display:flex;align-items:center;gap:8px;padding:6px 8px}.autos3 .autol{margin:0;flex:1}
+.atog{position:relative;overflow:hidden;min-height:36px;min-width:96px;border-radius:8px;border:2px solid var(--c);background:#10143A;color:var(--c);font-weight:700;font-size:12.5px;cursor:pointer;padding:0 10px}
+.atog .passov{font-size:8px;padding:1px 5px;letter-spacing:.5px}.atog{padding:13px 10px 4px}
+.atog.on{background:#2a1220;border-style:dashed;opacity:.8}.atog.on span{text-decoration:line-through}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -1565,7 +1569,8 @@ function pZaino() {
   const inBag = selItem && S.inventory.find(x => x.id === selItem), inChest = selItem && S.chest.find(x => x.id === selItem);
   const det = inBag ? itemDetail(inBag, 'bag') : inChest ? itemDetail(inChest, 'chest') : '';
   return `<div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><button class="sb" data-act="sellrest">Vendi il resto</button></div>
-  ${(() => { const k = F.minKeep(S), r = F.ITEM_RARITY[k]; return `<button class="card autos2" data-act="autoopen"><span>Vendita automatica</span><b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${k === 0 ? 'disattivata' : 'conserva da ' + r.label + ' in su'}</b><i>›</i></button>`; })()}
+  <div class="card autos3"><span class="autol">Scarta in automatico</span>${(() => { const k = F.minKeep(S); return [['comune', 1], ['noncomune', 2]].map(([key, lvl]) => { const r = F.ITEM_RARITY.find(x => x.key === key), on = k >= lvl, needPass = lvl > 1 && !F.hasPass(S); return `<button class="atog${on ? ' on' : ''}" style="--c:${r.color}" data-act="atog" data-k="${key}"><span>${r.label}</span>${needPass ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : ''}</button>`; }).join(''); })()}</div>
+  <div class="note" style="margin-top:-2px">Tocca per scartare: gli oggetti barrati si vendono in oro appena cadono. Rune, oggetti bloccati e rarità protette non si vendono mai.</div>
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio</span></div>
   ${runeTiles()}
   <div class="ph"><h2 style="font-size:13px">Zaino</h2><span${S.inventory.length >= F.bagCap(S) ? ' style="color:#FF8A96"' : ''}>${S.inventory.length}/${F.bagCap(S)}</span></div>
@@ -1727,7 +1732,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 22:41</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 22:44</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -1926,6 +1931,14 @@ document.addEventListener('click', e => {
   else if (a === 'selit') { selItem = selItem === item ? null : item; selRune = null; }
   else if (a === 'lockit') { const on = F.toggleLock(S, item); toast(on ? 'Oggetto bloccato: non verrà mai venduto' : 'Oggetto sbloccato'); }
   else if (a === 'autoopen') { showAutoSell(); return; }
+  else if (a === 'atog') {
+    const k = F.minKeep(S), key = t.dataset.k;
+    if (key === 'noncomune' && !F.hasPass(S)) { $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true"><h2>Serve il Pass Astrale</h2><p class="msub">Scartare in automatico anche i non comuni è incluso nel Pass Astrale. Vuoi aprire lo Shop?</p><div class="row2"><button class="sb" data-act="close">No, grazie</button><button class="pb" data-act="goshop">Vai allo Shop</button></div></div>`; $('#modal').hidden = false; return; }
+    if (key === 'comune') S.settings.minRarity = k >= 1 ? 'comune' : 'noncomune';
+    else S.settings.minRarity = k >= 2 ? 'noncomune' : 'rara';
+    if (F.minKeep(S) > k) { const r = F.sellBelow(S); if (r.n) toast(`Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro`); }
+  }
+  else if (a === 'goshop') { closeModal(); tab = 'shop'; selItem = null; render(); $('#panel').scrollTop = 0; return; }
   else if (a === 'setkeep') { S.settings.minRarity = t.dataset.k; dirty = true; showAutoSell(); return; }
   else if (a === 'pts') { F.addPts(S, id, t.dataset.k, +t.dataset.n); rebuild(); }
   else if (a === 'ptsauto') { F.autoPts(S, id); rebuild(); }

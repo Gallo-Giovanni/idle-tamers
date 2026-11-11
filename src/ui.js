@@ -458,7 +458,8 @@ function pZaino() {
   const inBag = selItem && S.inventory.find(x => x.id === selItem), inChest = selItem && S.chest.find(x => x.id === selItem);
   const det = inBag ? itemDetail(inBag, 'bag') : inChest ? itemDetail(inChest, 'chest') : '';
   return `<div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><button class="sb" data-act="sellrest">Vendi il resto</button></div>
-  ${(() => { const k = F.minKeep(S), r = F.ITEM_RARITY[k]; return `<button class="card autos2" data-act="autoopen"><span>Vendita automatica</span><b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${k === 0 ? 'disattivata' : 'conserva da ' + r.label + ' in su'}</b><i>›</i></button>`; })()}
+  <div class="card autos3"><span class="autol">Scarta in automatico</span>${(() => { const k = F.minKeep(S); return [['comune', 1], ['noncomune', 2]].map(([key, lvl]) => { const r = F.ITEM_RARITY.find(x => x.key === key), on = k >= lvl, needPass = lvl > 1 && !F.hasPass(S); return `<button class="atog${on ? ' on' : ''}" style="--c:${r.color}" data-act="atog" data-k="${key}"><span>${r.label}</span>${needPass ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : ''}</button>`; }).join(''); })()}</div>
+  <div class="note" style="margin-top:-2px">Tocca per scartare: gli oggetti barrati si vendono in oro appena cadono. Rune, oggetti bloccati e rarità protette non si vendono mai.</div>
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio</span></div>
   ${runeTiles()}
   <div class="ph"><h2 style="font-size:13px">Zaino</h2><span${S.inventory.length >= F.bagCap(S) ? ' style="color:#FF8A96"' : ''}>${S.inventory.length}/${F.bagCap(S)}</span></div>
@@ -819,6 +820,14 @@ document.addEventListener('click', e => {
   else if (a === 'selit') { selItem = selItem === item ? null : item; selRune = null; }
   else if (a === 'lockit') { const on = F.toggleLock(S, item); toast(on ? 'Oggetto bloccato: non verrà mai venduto' : 'Oggetto sbloccato'); }
   else if (a === 'autoopen') { showAutoSell(); return; }
+  else if (a === 'atog') {
+    const k = F.minKeep(S), key = t.dataset.k;
+    if (key === 'noncomune' && !F.hasPass(S)) { $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true"><h2>Serve il Pass Astrale</h2><p class="msub">Scartare in automatico anche i non comuni è incluso nel Pass Astrale. Vuoi aprire lo Shop?</p><div class="row2"><button class="sb" data-act="close">No, grazie</button><button class="pb" data-act="goshop">Vai allo Shop</button></div></div>`; $('#modal').hidden = false; return; }
+    if (key === 'comune') S.settings.minRarity = k >= 1 ? 'comune' : 'noncomune';
+    else S.settings.minRarity = k >= 2 ? 'noncomune' : 'rara';
+    if (F.minKeep(S) > k) { const r = F.sellBelow(S); if (r.n) toast(`Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro`); }
+  }
+  else if (a === 'goshop') { closeModal(); tab = 'shop'; selItem = null; render(); $('#panel').scrollTop = 0; return; }
   else if (a === 'setkeep') { S.settings.minRarity = t.dataset.k; dirty = true; showAutoSell(); return; }
   else if (a === 'pts') { F.addPts(S, id, t.dataset.k, +t.dataset.n); rebuild(); }
   else if (a === 'ptsauto') { F.autoPts(S, id); rebuild(); }
