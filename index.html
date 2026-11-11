@@ -649,16 +649,18 @@ function bonusValue(it, b) { return PCT_STATS.includes(b.k) ? BONUS_DEF[b.k] * b
 function itemStats(it) { const o = mainStats(it); for (const b of it.bonus || []) o[b.k] = (o[b.k] || 0) + bonusValue(it, b); return o; }
 function rollBonus(s, it) { const have = (it.bonus || []).map(b => b.k), pool = BONUS_KEYS.filter(k => !have.includes(k)); const k = pool[Math.floor(rnd(s) * pool.length)]; it.bonus = (it.bonus || []).concat([{ k, r: 0.5 + rnd(s) * 0.5 }]); }
 // Rimescola i bonus di un oggetto (Astri); i bonus bloccati restano, ma ognuno raddoppia il costo
-function rerollCost(it, locks) { return 5 * (rarityIndex(it.rarity) + 1) * Math.pow(2, locks.length); }
+// costo in Pietre del rimescolo (si trovano dai nemici, rarità media): 1 + 1 per ogni bonus bloccato, raddoppiando
+function rerollCost(it, locks) { return Math.pow(2, locks.length); }
+const STONE_DROP = 0.0002;
 function rerollBonus(s, id, locks) {
   const it = s.inventory.find(x => x.id === id) || s.chest.find(x => x.id === id); if (!it || !(it.bonus || []).length) return false;
   locks = locks.filter(i => i < it.bonus.length); if (locks.length >= it.bonus.length) return false;
-  const c = rerollCost(it, locks); if (s.astri < c) return false; s.astri -= c;
+  const c = rerollCost(it, locks); if ((s.stones || 0) < c) return false; s.stones -= c;
   const keep = locks.map(i => it.bonus[i]), n = it.bonus.length; it.bonus = keep.slice(); while (it.bonus.length < n) rollBonus(s, it);
   const out = []; let ki = 0, ni = keep.length; for (let i = 0; i < n; i++) out.push(locks.includes(i) ? it.bonus[ki++] : it.bonus[ni++]); it.bonus = out; return true;
 }
 // Fusione: 20 oggetti della stessa rarità (fino all'Epico) diventano 1 oggetto della rarità successiva
-const FUSE_N = 20, FUSE_MAX = 3; // indice dell'Epico: si arriva al massimo al Leggendario
+const FUSE_N = 5, FUSE_MAX = 3; // indice dell'Epico: si arriva al massimo al Leggendario
 function fusable(s, rk) { return s.inventory.filter(it => it.rarity === rk && !isProtected(s, it) && !it.locked); }
 function fuse(s, rk) {
   const ri = rarityIndex(rk); if (ri < 0 || ri > FUSE_MAX) return null; const list = fusable(s, rk).sort((a, b) => itemPower(a) - itemPower(b)); if (list.length < FUSE_N) return null;
@@ -872,6 +874,7 @@ function onKill(s, b, e, ev) {
   if (rnd(s) < dropP) dropItem(s, e.boss, ev);
   // rune
   if (firstBoss) { addRune(s, 'noncomune', 2, ev); addRune(s, 'rara', 1, ev); }
+  if (rnd(s) < STONE_DROP * (e.boss ? 20 : 1)) { s.stones = (s.stones || 0) + 1; if (ev) ev.push({ type: 'stone' }); }
   else for (const k of RUNE_KEYS) { if (rnd(s) < RUNE_DROP[k] * (e.boss ? 20 : 1)) { addRune(s, k, 1, ev); break; } }
   // cattura
   tryCapture(s, e, ev);
@@ -1282,6 +1285,8 @@ const IPX = {
   anello: [{ g: '#F2C14E', h: '#B88A20', d: '#8A6410', b: '#B07CF0', w: '#F0E0FF', p: '#7A4AC0' }, [
     '................', '......bbbb......', '.....bwbbbp.....', '.....bbbbpp.....', '......pppp......', '.....gghhgg.....', '....gg....hg....', '...gg......hg...',
     '...g........h...', '...g........d...', '...gg......dh...', '....gg....dh....', '.....ghhhdd.....', '................', '................', '................']],
+  pietra: [{ a: '#5BD8E6', b: '#3FA0C8', c: '#1F5E7A', w: '#E8FBFF', k: '#1B1F3B', y: '#F2C14E' }, [
+    '................', '......kkkk......', '....kkaaaakk....', '...kaawwaaabk...', '..kaawaaaaabbk..', '..kaaaayyaabbk..', '.kaaaayaayabbbk.', '.kaaaayaaaybbbk.', '.kbaaaayyyabbck.', '.kbbaaaaaaabcck.', '..kbbbaaabbcck..', '..kcbbbbbbccck..', '...kcccccccck...', '....kkkkkkkk....', '................', '................']],
   runa: [{ x: 'RUNE', l: 'RUNEL', d: 'RUNED', w: '#FFFFFF', k: '#1B1F3B' }, [
     '................', '.......kk.......', '......kxxk......', '.....kxwlxk.....', '....kxwllxxk....', '...kxwllxxxdk...', '...kxllxxxxdk...', '..kxlxxxxxxddk..',
     '..kxxxxxxxxddk..', '...kxxxxxxddk...', '...kxxxxxddk....', '....kxxxxddk....', '.....kxxddk.....', '......kxdk......', '.......kk.......', '................']],
@@ -1422,6 +1427,7 @@ function handle(ev) {
     else if (e.type === 'capture') { snd('capture'); capQueue.push(e.species); dirty = true; }
     else if (e.type === 'rare') { snd('rare'); setTimeout(shareDrops, 500); const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); banner('DROP ' + r.label.toUpperCase() + '!'); toast(`<b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}!</b> ${esc(F.itemName(e.item))}`, r.color); dirty = true; }
     else if (e.type === 'lost') { if (!window._lostAt || Date.now() - window._lostAt > 20000) { window._lostAt = Date.now(); toast('<b style="color:#FF8A96">Zaino pieno:</b> gli oggetti nuovi vanno persi', '#FF8A96'); } }
+    else if (e.type === 'stone') { toast(`${ipx('pietra', 14)} +1 <b style="color:#5BD8E6">Pietra del rimescolo</b>`, '#5BD8E6'); dirty = true; }
     else if (e.type === 'rune') { const r = F.RUNE[e.rune]; toast(`${icon('rune', r.color, 14)} +${e.n} <b style="color:${r.color}">${r.label}</b>`, r.color); dirty = true; }
     else if (e.type === 'unlock') { toast(e.text, '#F2C14E'); dirty = true; }
     else if (e.type === 'zonetime') { const m = Math.floor(e.t / 60), sec = Math.round(e.t % 60); toast(`Zona ${e.zone} completata in <b>${m}:${String(sec).padStart(2, '0')}</b>${e.best ? ' · nuovo record!' : ''}`, '#F2C14E'); }
@@ -1570,7 +1576,7 @@ function rerollHTML(it) {
   const c = F.rerollCost(it, rrLocks), all = rrLocks.length >= it.bonus.length;
   return `<div class="rrbox"><div class="msub"><b>Rimescola i bonus</b> · tocca un bonus per bloccarlo (ogni blocco raddoppia il costo)</div>
   <div class="rrchips">${it.bonus.map((b, i) => `<button class="rrc${rrLocks.includes(i) ? ' on' : ''}" data-act="rrlock" data-i="${i}">${rrLocks.includes(i) ? icon('lock', '#1B1F3B', 10) + ' ' : ''}${F.STAT_LABEL[b.k]}</button>`).join('')}</div>
-  <button class="sb" data-act="reroll2" data-item="${it.id}" ${all || S.astri < c ? 'disabled' : ''}>Rimescola · ${c} ${icon('gem', '#F49AC1', 11)}</button></div>`;
+  <button class="sb" data-act="reroll2" data-item="${it.id}" ${all || (S.stones || 0) < c ? 'disabled' : ''}>Rimescola · ${c} ${ipx('pietra', 14)} (hai ${S.stones || 0})</button></div>`;
 }
 function itemDetail(it, where) {
   const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it);
@@ -1589,9 +1595,10 @@ function itemDetail(it, where) {
 }
 let selRune = null, selShop = null;
 function runeTiles() {
-  return `<div class="igrid">${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<button class="it${selRune === k ? ' sel' : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selrune" data-k="${k}" aria-label="${r.label}: ${S.runes[k]}">${icon('rune', r.color, 22)}<b>${fmt(S.runes[k])}</b><em>${r.label.replace('Runa ', '')}</em></button>`; }).join('')}</div>`;
+  return `<div class="igrid"><button class="it${selRune === 'stone' ? ' sel' : ''}" style="border-color:#5BD8E6;--c:#5BD8E6" data-act="selrune" data-k="stone">${ipx('pietra', 22)}<b>${fmt(S.stones || 0)}</b><em>rimescolo</em></button>${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<button class="it${selRune === k ? ' sel' : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selrune" data-k="${k}" aria-label="${r.label}: ${S.runes[k]}">${icon('rune', r.color, 22)}<b>${fmt(S.runes[k])}</b><em>${r.label.replace('Runa ', '')}</em></button>`; }).join('')}</div>`;
 }
 function runeDetail(k) {
+  if (k === 'stone') return `<div class="card idet" style="border-color:#5BD8E6"><div class="iname" style="color:#5BD8E6;display:flex;align-items:center;gap:6px">${ipx('pietra', 26)}Pietra del rimescolo × ${fmt(S.stones || 0)}</div><div class="msub">Cambia a caso i bonus di un oggetto: tocca l'oggetto e usa "Rimescola i bonus". Costa 1 pietra, il doppio per ogni bonus che blocchi. Cade dai nemici con una rarità media, come una runa.</div></div>`;
   const r = F.RUNE[k], n = S.runes[k], nr = F.ITEM_RARITY.find(x => x.key === k);
   return `<div class="card idet" style="border-color:${r.color}"><div class="iname" style="color:${r.color};display:flex;align-items:center;gap:6px">${icon('rune', r.color, 26)}${r.label} × ${fmt(n)}</div>
     <div class="msub">Porta un oggetto a <b style="color:${nr.color}">${nr.label}</b> e potenzia di 1 livello uno slot.</div>
@@ -1783,7 +1790,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 22:51</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 23:00</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {

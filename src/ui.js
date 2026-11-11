@@ -146,6 +146,8 @@ const IPX = {
   anello: [{ g: '#F2C14E', h: '#B88A20', d: '#8A6410', b: '#B07CF0', w: '#F0E0FF', p: '#7A4AC0' }, [
     '................', '......bbbb......', '.....bwbbbp.....', '.....bbbbpp.....', '......pppp......', '.....gghhgg.....', '....gg....hg....', '...gg......hg...',
     '...g........h...', '...g........d...', '...gg......dh...', '....gg....dh....', '.....ghhhdd.....', '................', '................', '................']],
+  pietra: [{ a: '#5BD8E6', b: '#3FA0C8', c: '#1F5E7A', w: '#E8FBFF', k: '#1B1F3B', y: '#F2C14E' }, [
+    '................', '......kkkk......', '....kkaaaakk....', '...kaawwaaabk...', '..kaawaaaaabbk..', '..kaaaayyaabbk..', '.kaaaayaayabbbk.', '.kaaaayaaaybbbk.', '.kbaaaayyyabbck.', '.kbbaaaaaaabcck.', '..kbbbaaabbcck..', '..kcbbbbbbccck..', '...kcccccccck...', '....kkkkkkkk....', '................', '................']],
   runa: [{ x: 'RUNE', l: 'RUNEL', d: 'RUNED', w: '#FFFFFF', k: '#1B1F3B' }, [
     '................', '.......kk.......', '......kxxk......', '.....kxwlxk.....', '....kxwllxxk....', '...kxwllxxxdk...', '...kxllxxxxdk...', '..kxlxxxxxxddk..',
     '..kxxxxxxxxddk..', '...kxxxxxxddk...', '...kxxxxxddk....', '....kxxxxddk....', '.....kxxddk.....', '......kxdk......', '.......kk.......', '................']],
@@ -286,6 +288,7 @@ function handle(ev) {
     else if (e.type === 'capture') { snd('capture'); capQueue.push(e.species); dirty = true; }
     else if (e.type === 'rare') { snd('rare'); setTimeout(shareDrops, 500); const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); banner('DROP ' + r.label.toUpperCase() + '!'); toast(`<b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}!</b> ${esc(F.itemName(e.item))}`, r.color); dirty = true; }
     else if (e.type === 'lost') { if (!window._lostAt || Date.now() - window._lostAt > 20000) { window._lostAt = Date.now(); toast('<b style="color:#FF8A96">Zaino pieno:</b> gli oggetti nuovi vanno persi', '#FF8A96'); } }
+    else if (e.type === 'stone') { toast(`${ipx('pietra', 14)} +1 <b style="color:#5BD8E6">Pietra del rimescolo</b>`, '#5BD8E6'); dirty = true; }
     else if (e.type === 'rune') { const r = F.RUNE[e.rune]; toast(`${icon('rune', r.color, 14)} +${e.n} <b style="color:${r.color}">${r.label}</b>`, r.color); dirty = true; }
     else if (e.type === 'unlock') { toast(e.text, '#F2C14E'); dirty = true; }
     else if (e.type === 'zonetime') { const m = Math.floor(e.t / 60), sec = Math.round(e.t % 60); toast(`Zona ${e.zone} completata in <b>${m}:${String(sec).padStart(2, '0')}</b>${e.best ? ' · nuovo record!' : ''}`, '#F2C14E'); }
@@ -434,7 +437,7 @@ function rerollHTML(it) {
   const c = F.rerollCost(it, rrLocks), all = rrLocks.length >= it.bonus.length;
   return `<div class="rrbox"><div class="msub"><b>Rimescola i bonus</b> · tocca un bonus per bloccarlo (ogni blocco raddoppia il costo)</div>
   <div class="rrchips">${it.bonus.map((b, i) => `<button class="rrc${rrLocks.includes(i) ? ' on' : ''}" data-act="rrlock" data-i="${i}">${rrLocks.includes(i) ? icon('lock', '#1B1F3B', 10) + ' ' : ''}${F.STAT_LABEL[b.k]}</button>`).join('')}</div>
-  <button class="sb" data-act="reroll2" data-item="${it.id}" ${all || S.astri < c ? 'disabled' : ''}>Rimescola · ${c} ${icon('gem', '#F49AC1', 11)}</button></div>`;
+  <button class="sb" data-act="reroll2" data-item="${it.id}" ${all || (S.stones || 0) < c ? 'disabled' : ''}>Rimescola · ${c} ${ipx('pietra', 14)} (hai ${S.stones || 0})</button></div>`;
 }
 function itemDetail(it, where) {
   const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it);
@@ -453,9 +456,10 @@ function itemDetail(it, where) {
 }
 let selRune = null, selShop = null;
 function runeTiles() {
-  return `<div class="igrid">${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<button class="it${selRune === k ? ' sel' : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selrune" data-k="${k}" aria-label="${r.label}: ${S.runes[k]}">${icon('rune', r.color, 22)}<b>${fmt(S.runes[k])}</b><em>${r.label.replace('Runa ', '')}</em></button>`; }).join('')}</div>`;
+  return `<div class="igrid"><button class="it${selRune === 'stone' ? ' sel' : ''}" style="border-color:#5BD8E6;--c:#5BD8E6" data-act="selrune" data-k="stone">${ipx('pietra', 22)}<b>${fmt(S.stones || 0)}</b><em>rimescolo</em></button>${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<button class="it${selRune === k ? ' sel' : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selrune" data-k="${k}" aria-label="${r.label}: ${S.runes[k]}">${icon('rune', r.color, 22)}<b>${fmt(S.runes[k])}</b><em>${r.label.replace('Runa ', '')}</em></button>`; }).join('')}</div>`;
 }
 function runeDetail(k) {
+  if (k === 'stone') return `<div class="card idet" style="border-color:#5BD8E6"><div class="iname" style="color:#5BD8E6;display:flex;align-items:center;gap:6px">${ipx('pietra', 26)}Pietra del rimescolo × ${fmt(S.stones || 0)}</div><div class="msub">Cambia a caso i bonus di un oggetto: tocca l'oggetto e usa "Rimescola i bonus". Costa 1 pietra, il doppio per ogni bonus che blocchi. Cade dai nemici con una rarità media, come una runa.</div></div>`;
   const r = F.RUNE[k], n = S.runes[k], nr = F.ITEM_RARITY.find(x => x.key === k);
   return `<div class="card idet" style="border-color:${r.color}"><div class="iname" style="color:${r.color};display:flex;align-items:center;gap:6px">${icon('rune', r.color, 26)}${r.label} × ${fmt(n)}</div>
     <div class="msub">Porta un oggetto a <b style="color:${nr.color}">${nr.label}</b> e potenzia di 1 livello uno slot.</div>

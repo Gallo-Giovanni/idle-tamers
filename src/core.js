@@ -290,16 +290,18 @@ function bonusValue(it, b) { return PCT_STATS.includes(b.k) ? BONUS_DEF[b.k] * b
 function itemStats(it) { const o = mainStats(it); for (const b of it.bonus || []) o[b.k] = (o[b.k] || 0) + bonusValue(it, b); return o; }
 function rollBonus(s, it) { const have = (it.bonus || []).map(b => b.k), pool = BONUS_KEYS.filter(k => !have.includes(k)); const k = pool[Math.floor(rnd(s) * pool.length)]; it.bonus = (it.bonus || []).concat([{ k, r: 0.5 + rnd(s) * 0.5 }]); }
 // Rimescola i bonus di un oggetto (Astri); i bonus bloccati restano, ma ognuno raddoppia il costo
-function rerollCost(it, locks) { return 5 * (rarityIndex(it.rarity) + 1) * Math.pow(2, locks.length); }
+// costo in Pietre del rimescolo (si trovano dai nemici, rarità media): 1 + 1 per ogni bonus bloccato, raddoppiando
+function rerollCost(it, locks) { return Math.pow(2, locks.length); }
+const STONE_DROP = 0.0002;
 function rerollBonus(s, id, locks) {
   const it = s.inventory.find(x => x.id === id) || s.chest.find(x => x.id === id); if (!it || !(it.bonus || []).length) return false;
   locks = locks.filter(i => i < it.bonus.length); if (locks.length >= it.bonus.length) return false;
-  const c = rerollCost(it, locks); if (s.astri < c) return false; s.astri -= c;
+  const c = rerollCost(it, locks); if ((s.stones || 0) < c) return false; s.stones -= c;
   const keep = locks.map(i => it.bonus[i]), n = it.bonus.length; it.bonus = keep.slice(); while (it.bonus.length < n) rollBonus(s, it);
   const out = []; let ki = 0, ni = keep.length; for (let i = 0; i < n; i++) out.push(locks.includes(i) ? it.bonus[ki++] : it.bonus[ni++]); it.bonus = out; return true;
 }
 // Fusione: 20 oggetti della stessa rarità (fino all'Epico) diventano 1 oggetto della rarità successiva
-const FUSE_N = 20, FUSE_MAX = 3; // indice dell'Epico: si arriva al massimo al Leggendario
+const FUSE_N = 5, FUSE_MAX = 3; // indice dell'Epico: si arriva al massimo al Leggendario
 function fusable(s, rk) { return s.inventory.filter(it => it.rarity === rk && !isProtected(s, it) && !it.locked); }
 function fuse(s, rk) {
   const ri = rarityIndex(rk); if (ri < 0 || ri > FUSE_MAX) return null; const list = fusable(s, rk).sort((a, b) => itemPower(a) - itemPower(b)); if (list.length < FUSE_N) return null;
@@ -513,6 +515,7 @@ function onKill(s, b, e, ev) {
   if (rnd(s) < dropP) dropItem(s, e.boss, ev);
   // rune
   if (firstBoss) { addRune(s, 'noncomune', 2, ev); addRune(s, 'rara', 1, ev); }
+  if (rnd(s) < STONE_DROP * (e.boss ? 20 : 1)) { s.stones = (s.stones || 0) + 1; if (ev) ev.push({ type: 'stone' }); }
   else for (const k of RUNE_KEYS) { if (rnd(s) < RUNE_DROP[k] * (e.boss ? 20 : 1)) { addRune(s, k, 1, ev); break; } }
   // cattura
   tryCapture(s, e, ev);
