@@ -504,24 +504,49 @@ function pMappa() {
    <svg class="path" viewBox="0 0 100 500" preserveAspectRatio="none" aria-hidden="true"><path d="M28 40 C 90 90, 90 110, 72 140 S 10 200, 28 240 S 90 300, 72 340 S 10 400, 28 440" fill="none" stroke="#6B7BD1" stroke-width="1.2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/></svg>
    ${Array.from({ length: pl.zones[1] - pl.zones[0] + 1 }, (_, i) => isl(pl.zones[0] + i, i, pi)).join('')}</div>`).join('')}`;
 }
-let selStar = 'forza';
-const RIC = { forza: '⚔', vita: '♥', scudo: '⛨', branco: '❀', tesoro: '◈', lama: '✦', saggezza: '✎', furia: '✸', commercio: '⚖', cometa: '☄', corona: '♛', richiamo: '✧' };
-function pStelle() {
-  const o = F.openTiers(S);
-  const bands = F.TIERS.map((T, ti) => { const open = ti < o;
-    return `<div class="band${open ? '' : ' blk'}"><div class="bhead"><b>${T.name}</b><span>${open ? (ti === 0 ? 'sempre aperto' : 'aperto') : `${icon('lock', '#F2C14E', 12)} sconfiggi il boss della zona ${T.zone}`}</span></div>
-      <div class="brow">${T.stars.map(k => { const t = F.TREE[k], l = S.tree[k], cap = F.starCap(S, k), frac = l / t.max, capf = cap / t.max;
-        return `<button class="snode2${selStar === k ? ' ssel' : ''}${open ? '' : ' slk'}" style="--f:${frac * 360}deg;--cf:${capf * 360}deg" data-act="selstar" data-k="${k}"><span class="sic">${open ? RIC[k] : icon('lock', '#A9B0D6', 16)}</span><span class="slv">${l}/${open ? cap : t.max}</span><span class="snm">${t.name}</span></button>`; }).join('')}</div></div>`; }).join('<div class="blink"></div>');
-  const k = selStar, t = F.TREE[k], l = S.tree[k], cap = F.starCap(S, k), ti = F.tierOf(k), full = l >= cap, c = l >= t.max ? 0 : t.cost(l);
-  const nextT = F.TIERS[o];
-  return `<div class="ph"><h2>Costellazioni</h2><span>${icon('coin', '#F2C14E', 14)} ${cfmt(S.gold)} oro</span></div>
-  <div class="card sdet" style="margin-bottom:8px"><div style="flex:1"><b>${t.name}</b> <span class="lvl">${l}/${cap || t.max}</span><div class="msub">${t.desc}</div>
-  ${cap === 0 ? `<div class="msub" style="color:#F2C14E">Si apre con il ${F.TIERS[ti].name.toLowerCase()} (boss zona ${F.TIERS[ti].zone})</div>` : full && l < t.max ? `<div class="msub" style="color:#F2C14E">Limite di questo cielo: sale ancora quando apri il prossimo${nextT ? ` (boss zona ${nextT.zone})` : ''}</div>` : `<div class="msub">Massimo assoluto ${t.max}</div>`}</div>
-  <button class="pb" data-act="tree" data-k="${k}" ${cap === 0 || full || S.gold < c ? 'disabled' : ''}>${l >= t.max ? 'Max' : cap === 0 ? 'Bloccata' : full ? 'Limite' : 'Accendi<br><small>' + cfmt(c) + ' oro</small>'}</button></div>
-  <div class="rings">${bands}</div>
-  <div class="note">Ogni boss apre un nuovo cielo e alza il limite delle stelle già accese: c'è sempre qualcosa da potenziare.</div>
-  <button class="sb wide" data-act="treereset">${confirmTree > Date.now() ? 'Tocca di nuovo per confermare' : 'Ridistribuisci tutti i punti'}</button>`;
+let selStar = 0, skyView = { x: 0, y: 0, k: 34 }, skyDrag = false;
+const fmtPct = (k, v) => k === 'bag' || k === 'chest' ? '+' + v : k === 'offline' ? '+' + Math.round(v / 60) + ' min' : '+' + (v * 100).toFixed(1).replace('.', ',') + '%';
+function skySVG() {
+  const own = new Set(F.skyOwned(S)), W = 360, H = 360, k = skyView.k, P = o => [W / 2 + (o.x - skyView.x) * k, H / 2 + (o.y - skyView.y) * k];
+  let g = '';
+  for (let r = 1; r < F.SKY_GATES.length; r++) if (F.SKY_GATES[r] !== F.SKY_GATES[r - 1]) { const c = P({ x: 0, y: 0 }), lock = !F.skyRingOpen(S, r); g += `<circle cx="${c[0]}" cy="${c[1]}" r="${(r - 0.5) * k}" fill="none" stroke="${lock ? '#F2C14E88' : '#ffffff22'}" stroke-dasharray="${lock ? '5 5' : '0'}"/>${lock ? `<text x="${c[0]}" y="${c[1] - (r - 0.5) * k - 4}" text-anchor="middle" font-size="11" fill="#F2C14E">🔒 boss zona ${F.SKY_GATES[r]}</text>` : ''}`; }
+  for (const o of F.SKY) for (const a of o.adj) if (a > o.id) { const q = F.SKY[a], [x1, y1] = P(o), [x2, y2] = P(q), on = own.has(o.id) && own.has(a); g += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${on ? '#F2C14E' : '#3a4382'}" stroke-width="${on ? 2 : 1}" opacity="${F.skyRingOpen(S, Math.max(o.r, q.r)) ? 1 : .35}"/>`; }
+  const d = Math.max(4, Math.min(14, k * 0.3));
+  for (const o of F.SKY) { const [x, y] = P(o); if (x < -20 || y < -20 || x > W + 20 || y > H + 20) continue;
+    if (!o.r) { g += `<circle cx="${x}" cy="${y}" r="${d * 1.5}" fill="#F2C14E"/><text x="${x}" y="${y + d * 0.55}" text-anchor="middle" font-size="${d * 1.5}" fill="#1B1F3B">★</text>`; continue; }
+    const col = o.special ? '#FFFFFF' : F.SKY_SECTORS[o.sec].color, on = own.has(o.id), can = F.skyCanBuy(S, o.id), open = F.skyRingOpen(S, o.r), rr = o.special ? d * 1.35 : d;
+    g += `<g data-node="${o.id}"><circle cx="${x}" cy="${y}" r="${rr + 6}" fill="transparent"/><circle cx="${x}" cy="${y}" r="${rr}" fill="${on ? col : '#141a46'}" stroke="${selStar === o.id ? '#fff' : col}" stroke-width="${selStar === o.id ? 3 : on ? 0 : 1.5}" opacity="${open ? (on || can ? 1 : .55) : .25}" ${on ? `style="filter:drop-shadow(0 0 ${d * .6}px ${col})"` : ''}/>${k > 26 && open ? `<text x="${x}" y="${y + rr * 0.4}" text-anchor="middle" font-size="${rr * 1.1}" fill="${on ? '#1B1F3B' : col}" pointer-events="none">${o.ic}</text>` : ''}${can && !on ? `<circle cx="${x}" cy="${y}" r="${rr + 3}" fill="none" stroke="${col}" stroke-width="1" opacity=".7" class="skypulse"/>` : ''}</g>`; }
+  return `<svg id="skysvg" viewBox="0 0 ${W} ${H}" width="100%" style="display:block;touch-action:none">${g}</svg>`;
 }
+function pStelle() {
+  const o = F.SKY[selStar] || F.SKY[0], own = F.skyOwned(S).includes(o.id), can = F.skyCanBuy(S, o.id), open = F.skyRingOpen(S, o.r);
+  const tot = F.tb(S), sec = o.sec >= 0 ? F.SKY_SECTORS[o.sec] : null, col = o.special ? '#FFFFFF' : sec ? sec.color : '#F2C14E';
+  const det = !o.r ? `<b style="color:#F2C14E">★ Stella madre</b><div class="msub">Da qui partono tutti i percorsi: tocca una stella vicina accesa a metà per accenderla.</div>`
+    : `<b style="color:${col}">${o.ic} ${o.label}</b> <span class="lvl">${fmtPct(o.kind, o.v)}</span><div class="msub">Anello ${o.r}${sec && !o.special ? ' · ' + sec.name : ' · speciale'}</div><div class="msub" style="color:${own ? '#7ED36F' : !open ? '#F2C14E' : can ? '#7ED36F' : '#FF8A96'}">${own ? 'Accesa' : !open ? 'Anello chiuso: completa la zona ' + F.SKY_GATES[o.r] : can ? 'Collegata a una stella accesa' : 'Non ancora collegata: accendi prima una stella vicina'}</div>`;
+  const sums = Object.keys(tot).filter(k => tot[k]).map(k => { const lab = { atk: 'Danni', hp: 'Vita', def: 'Difesa', crit: 'Critico', critDmg: 'Danni critici', aspd: "Vel. d'attacco", block: 'Blocco', dodge: 'Schivata', gold: 'Oro', sell: 'Vendita', xp: 'Esperienza', drop: 'Drop', capture: 'Cattura', heal: 'Cure', bag: 'Zaino', chest: 'Forziere', offline: 'Offline', move: 'Marcia' }[k] || k; return `<span>${lab} <b>${fmtPct(k, tot[k])}</b></span>`; }).join('');
+  return `<div class="ph"><h2>Costellazioni</h2><span>${icon('coin', '#F2C14E', 14)} ${cfmt(S.gold)} oro · ${F.skyOwned(S).length - 1}/${F.SKY.length - 1}</span></div>
+  <div class="card sdet">${o.r ? `<div style="flex:1">${det}</div><button class="pb" data-act="skybuy" data-id="${o.id}" ${own || !can || S.gold < o.cost ? 'disabled' : ''}>${own ? 'Accesa' : `Accendi<br><small>${cfmt(o.cost)} oro</small>`}</button>` : `<div style="flex:1">${det}</div>`}</div>
+  <div class="skywrap" id="skywrap">${skySVG()}<div class="skyzoom"><button class="ib" data-act="skyzoom" data-z="1.4" aria-label="Ingrandisci">＋</button><button class="ib" data-act="skyzoom" data-z="0.7" aria-label="Rimpicciolisci">－</button><button class="ib" data-act="skycenter" aria-label="Centra">◎</button></div></div>
+  <div class="legend">${F.SKY_SECTORS.map(x => `<span><i style="background:${x.color}"></i>${x.name}</span>`).join('')}<span><i style="background:#fff"></i>Speciali</span></div>
+  ${sums ? `<div class="card skysum">${sums}</div>` : ''}
+  <div class="note">Trascina per muoverti, pizzica o usa ＋/－ per ingrandire. Ogni stella accende la successiva: scegli tu il percorso. Gli anelli esterni si aprono battendo i boss.</div>
+  <button class="sb wide" data-act="treereset">${confirmTree > Date.now() ? 'Tocca di nuovo per confermare' : 'Ridistribuisci tutte le stelle (rimborso completo)'}</button>`;
+}
+// trascinamento e pizzico sulla mappa
+(() => {
+  const pts = new Map(); let start = null, moved = 0;
+  const svgUpdate = () => { const w = $('#skywrap'); if (!w) return; const old = $('#skysvg'); if (old) old.outerHTML = skySVG(); };
+  document.addEventListener('pointerdown', e => { if (!e.target.closest('#skysvg')) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); skyDrag = true; moved = 0; start = { v: Object.assign({}, skyView), pts: new Map(pts), node: e.target.closest('[data-node]') }; });
+  document.addEventListener('pointermove', e => { if (!pts.has(e.pointerId) || !start) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const svg = $('#skysvg'); if (!svg) return; const sc = 360 / svg.getBoundingClientRect().width;
+    if (pts.size === 1) { const p0 = start.pts.get(e.pointerId); if (!p0) return; const dx = (e.clientX - p0.x) * sc, dy = (e.clientY - p0.y) * sc; moved = Math.max(moved, Math.abs(dx) + Math.abs(dy)); skyView.x = start.v.x - dx / skyView.k; skyView.y = start.v.y - dy / skyView.k; }
+    else if (pts.size === 2) { const [a, b] = [...pts.values()], [a0, b0] = [...start.pts.values()]; if (!a0 || !b0) { start.pts = new Map(pts); start.v = Object.assign({}, skyView); return; } const d = Math.hypot(a.x - b.x, a.y - b.y), d0 = Math.hypot(a0.x - b0.x, a0.y - b0.y) || 1; skyView.k = Math.max(10, Math.min(90, start.v.k * d / d0)); moved = 99; }
+    svgUpdate(); });
+  const end = e => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId);
+    if (!pts.size) { skyDrag = false; if (moved < 8 && start && start.node) { selStar = +start.node.dataset.node; render(); } start = null; } else { start = { v: Object.assign({}, skyView), pts: new Map(pts) }; } };
+  document.addEventListener('pointerup', end); document.addEventListener('pointercancel', end);
+  document.addEventListener('wheel', e => { if (!e.target.closest('#skysvg')) return; e.preventDefault(); skyView.k = Math.max(10, Math.min(90, skyView.k * (e.deltaY < 0 ? 1.15 : 0.87))); svgUpdate(); }, { passive: false });
+})();
 function dur(sec) { const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60); return d ? `${d} g ${h} h` : `${h} h ${m} min`; }
 function pAltro() {
   const st = S.stats, h = Math.floor(st.played / 3600), mi = Math.floor(st.played % 3600 / 60);
@@ -774,7 +799,9 @@ document.addEventListener('click', e => {
   else if (a === 'fromchest') { F.fromChest(S, +t.dataset.item); selItem = null; }
   else if (a === 'givegold') { S.gold += +t.dataset.v; toast(`+${cfmt(+t.dataset.v)} oro`, '#F2C14E'); }
   else if (a === 'giveastri') { S.astri += +t.dataset.v; toast(`+${fmt(+t.dataset.v)} Astri`, '#F49AC1'); }
-  else if (a === 'selstar') selStar = t.dataset.k;
+  else if (a === 'skybuy') { if (F.skyBuy(S, +t.dataset.id)) { const o = F.SKY[+t.dataset.id]; toast(`${o.ic} ${o.label} ${fmtPct(o.kind, o.v)}`, o.special ? '#FFFFFF' : F.SKY_SECTORS[o.sec].color); rebuild(); } }
+  else if (a === 'skyzoom') { skyView.k = Math.max(10, Math.min(90, skyView.k * +t.dataset.z)); }
+  else if (a === 'skycenter') { skyView = { x: 0, y: 0, k: 34 }; }
   else if (a === 'buyslot') { if (F.buySlot(S)) { toast('Nuovo posto in squadra!', '#F2C14E'); rebuild(); } }
   else if (a === 'buygold') { const g = F.buyGold(S, +t.dataset.i); if (g) toast(`+${cfmt(g)} oro`, '#F2C14E'); }
   else if (a === 'buyspace') { if (F.buySpace(S, t.dataset.k)) toast(`+${F.SPACE_PACK.n} posti ${t.dataset.k === 'bag' ? 'nello zaino' : 'nel forziere'}`, '#F2C14E'); }
@@ -783,7 +810,7 @@ document.addEventListener('click', e => {
   else if (a === 'pass') { F.activatePass(S); toast('Pass Astrale attivo per 30 giorni (versione di prova)', '#F2C14E'); }
   else if (a === 'zone') { if (F.setZone(S, +t.dataset.z)) { rebuild(); banner('ZONA ' + S.zone); } }
   else if (a === 'tree') { F.buyTree(S, t.dataset.k); }
-  else if (a === 'treereset') { if (confirmTree > Date.now()) { const b = F.resetTree(S); confirmTree = 0; toast(`Recuperati ${cfmt(b)} oro`); rebuild(); } else confirmTree = Date.now() + 3000; }
+  else if (a === 'treereset') { if (confirmTree > Date.now()) { const b = F.skyReset(S); confirmTree = 0; toast(`Recuperati ${cfmt(b)} oro`); rebuild(); } else confirmTree = Date.now() + 3000; }
   else if (a === 'reset') { if (confirmReset > Date.now()) { S = F.newState(); save(); rebuild(); confirmReset = 0; toast('Nuova partita'); } else confirmReset = Date.now() + 3000; }
   else if (a === 'capadd') { F.addToTeam(S, id); rebuild(); closeModal(); }
   else if (a === 'share') { const m = S.roster[id], d = F.SPECIES[m.species]; const txt = `Ho catturato ${m.name} (${F.RARITY[d.rarity].label}, ${d.cls}) in Frontiera Arcana dopo ${fmt(m.waitKills)} incontri!`; try { navigator.clipboard.writeText(txt).then(() => { t.textContent = 'Copiato!'; }, () => { t.textContent = 'Copia non riuscita'; }); } catch (err) { t.textContent = 'Copia non riuscita'; } return; }
@@ -819,7 +846,7 @@ function frame(now) {
   handle(ev); updateScene(); hud();
   if (now - achAt > 1500) { achAt = now; for (const a of F.checkAch(S)) { toast(`Achievement: <b>${esc(a.name)}</b> · +${a.astri} Astri`, '#F2C14E'); dirty = true; } }
   if ($('#modal').hidden && capQueue.length) showCapture(capQueue.shift());
-  if (dirty && now - renderAt > 700 && !document.activeElement.matches('input,select')) { renderAt = now; render(); }
+  if (dirty && !skyDrag && now - renderAt > 700 && !document.activeElement.matches('input,select')) { renderAt = now; render(); }
   if (now - saveAt > 10000) { saveAt = now; if (F.ensureShop(S, Date.now())) toast('Il mercante ha nuovi oggetti', '#F49AC1'); save(); }
   requestAnimationFrame(frame);
 }

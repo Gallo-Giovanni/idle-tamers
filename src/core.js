@@ -3,10 +3,10 @@
 'use strict';
 
 const CLASSES = {
-  Tank:      { hp: 160, atk: 8,  def: 6, spd: 1.4, color: '#6E9BFF', ability: 'Provocazione', desc: 'Attira gli attacchi nemici e subisce il 30% di danni in meno.' },
+  Tank:      { hp: 180, atk: 7,  def: 7, spd: 1.4, block: 0.15, color: '#6E9BFF', ability: 'Provocazione', desc: 'Attira gli attacchi nemici, subisce il 30% di danni in meno e para il 15% dei colpi.' },
   Guerriero: { hp: 110, atk: 14, def: 3, spd: 1.1, color: '#F08A5D', ability: 'Fendente', desc: 'Ogni 3 attacchi sferra un colpo pesante: 220% dei danni sul bersaglio.' },
   Arciere:   { hp: 80,  atk: 12, def: 1, spd: 1.0, color: '#7ED36F', ability: 'Marchio', desc: 'Ogni 3 attacchi marchia il bersaglio: +30% danni subiti per 4 s.' },
-  Curatore:  { hp: 85,  atk: 7,  def: 2, spd: 1.3, color: '#F2E27A', ability: 'Luce curativa', desc: 'Ogni 3 s cura l\'alleato più ferito: 10% della sua vita più il 150% del proprio attacco.' },
+  Curatore:  { hp: 85,  atk: 7,  def: 2, spd: 1.3, color: '#F2E27A', ability: 'Luce curativa', desc: 'Ogni 3 s cura l\'alleato più ferito: 6% della sua vita più il 100% del proprio attacco. Chi è appena stato curato riceve metà cure per 2 s.' },
   Mago:      { hp: 70,  atk: 10, def: 1, spd: 1.6, color: '#C08CFF', ability: 'Tempesta arcana', desc: 'Ogni 5 s scaglia un fulmine arcano: 250% dei danni, ignora l\'armatura.' },
 };
 
@@ -114,7 +114,54 @@ const STARMAP = {
   richiamo: { x: 50, y: 87, req: ['lama', 5], ic: '✧' },
   furia:    { x: 85, y: 85, req: ['lama', 5], ic: '✸' },
 };
-// Costellazioni a cieli: ogni boss apre un cielo e alza il limite delle stelle già aperte
+
+// ===== Albero delle costellazioni (grande): anelli di stelle intorno al centro =====
+// Si accende una stella collegata a una già accesa. Gli anelli esterni si aprono con i boss.
+let SKY_RINGS = 10, SKY_COST0 = 20, SKY_COSTG = 3.0;
+if (typeof process !== 'undefined' && process.env && process.env.SKYG) { SKY_COSTG = +process.env.SKYG; SKY_COST0 = +(process.env.SKY0 || SKY_COST0); }
+const SKY_GATES = [0, 0, 0, 0, 2, 2, 4, 4, 6, 6, 8]; // anello -> zona da completare (indice = anello)
+const SKY_SECTORS = [
+  { name: 'Attacco', color: '#E2504A', ic: '⚔', kinds: [['atk', 0.04, 'Danni'], ['atk', 0.04, 'Danni'], ['aspd', 0.01, "Vel. d'attacco"]] },
+  { name: 'Vita', color: '#7ED36F', ic: '♥', kinds: [['hp', 0.05, 'Vita'], ['hp', 0.05, 'Vita'], ['heal', 0.04, 'Cure']] },
+  { name: 'Difesa', color: '#5B9BFF', ic: '⛨', kinds: [['def', 0.05, 'Difesa'], ['block', 0.004, 'Blocco'], ['dodge', 0.004, 'Schivata']] },
+  { name: 'Critico', color: '#FFD34D', ic: '✦', kinds: [['crit', 0.004, 'Prob. critico'], ['critDmg', 0.04, 'Danni critici'], ['critDmg', 0.04, 'Danni critici']] },
+  { name: 'Oro e vendita', color: '#F2994A', ic: '◈', kinds: [['gold', 0.05, 'Oro'], ['gold', 0.05, 'Oro'], ['sell', 0.1, 'Vendita oggetti']] },
+  { name: 'Esperienza e drop', color: '#B07CF0', ic: '✎', kinds: [['xp', 0.05, 'Esperienza'], ['drop', 0.03, 'Prob. di drop'], ['capture', 0.02, 'Prob. di cattura']] },
+];
+const SKY_SPECIAL = [['bag', 2, 'Posti zaino', '🎒'], ['chest', 2, 'Posti forziere', '📦'], ['offline', 1800, 'Tempo offline', '⏳'], ['move', 0.05, 'Velocità di marcia', '☄']];
+const SKY = (() => {
+  const nodes = [{ id: 0, r: 0, i: 0, x: 0, y: 0, sec: -1, kind: null, v: 0, cost: 0, adj: [] }];
+  for (let r = 1; r <= SKY_RINGS; r++) {
+    const n = r === 1 ? 6 : 6 * r + 6;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 - Math.PI / 2 + (r % 2) * 0.05, sec = Math.floor(i / n * 6), per = n / 6, j = i - Math.round(sec * per);
+      const special = r % 3 === 0 && j === Math.floor(per / 2);
+      let kind, v, label, ic;
+      if (special) { const sp = SKY_SPECIAL[(r / 3 - 1 + sec) % SKY_SPECIAL.length]; kind = sp[0]; v = sp[1]; label = sp[2]; ic = sp[3]; }
+      else { const kd = SKY_SECTORS[sec].kinds[(i + r) % 3]; kind = kd[0]; v = +(kd[1] * (1 + 0.15 * (r - 1))).toFixed(4); label = kd[2]; ic = SKY_SECTORS[sec].ic; }
+      nodes.push({ id: nodes.length, r, i, n, x: Math.cos(a) * r, y: Math.sin(a) * r, sec, kind, v, label, ic, special, cost: Math.round(SKY_COST0 * Math.pow(SKY_COSTG, r - 1) * (special ? 3 : 1)), adj: [] });
+    }
+  }
+  const ring = r => nodes.filter(o => o.r === r);
+  for (const o of nodes) { if (!o.r) continue;
+    const rg = ring(o.r), nx = rg[(o.i + 1) % rg.length]; o.adj.push(nx.id); nx.adj.push(o.id);
+    let best = null, bd = 1e9; for (const q of (o.r === 1 ? [nodes[0]] : ring(o.r - 1))) { const d = (q.x - o.x) ** 2 + (q.y - o.y) ** 2; if (d < bd) { bd = d; best = q; } }
+    o.adj.push(best.id); best.adj.push(o.id);
+  }
+  return nodes;
+})();
+function skyOwned(s) { if (!s.sky) s.sky = [0]; return s.sky; }
+function skyRingOpen(s, r) { return s.cleared >= (SKY_GATES[r] || 0); }
+function skyCanBuy(s, id) { const o = SKY[id], own = skyOwned(s); if (!o || own.includes(id) || !skyRingOpen(s, o.r)) return false; return o.adj.some(a => own.includes(a)); }
+function skyBuy(s, id) { if (!skyCanBuy(s, id) || s.gold < SKY[id].cost) return false; s.gold -= SKY[id].cost; s.sky.push(id); s._tb = null; return true; }
+function skyReset(s) { let back = 0; for (const id of skyOwned(s)) back += SKY[id].cost; s.sky = [0]; s.gold += back; s._tb = null; return back; }
+// somma dei bonus delle stelle accese (in cache)
+function tb(s) { if (s._tb && s._tbn === skyOwned(s).length) return s._tb; const t = {}; for (const id of skyOwned(s)) { const o = SKY[id]; if (o.kind) t[o.kind] = (t[o.kind] || 0) + o.v; } s._tb = t; s._tbn = s.sky.length; return t; }
+const B = (s, k) => tb(s)[k] || 0;
+// per la simulazione: compra sempre la stella raggiungibile più economica
+function autoSky(s) { let n = 0; for (;;) { let best = null; for (const o of SKY) if (skyCanBuy(s, o.id) && (!best || o.cost < best.cost)) best = o; if (!best || s.gold < best.cost || n > 300) break; skyBuy(s, best.id); n++; } return n; }
+
+// Costellazioni a cieli (vecchio sistema, non più usato): ogni boss apre un cielo e alza il limite delle stelle già aperte
 const TIERS = [
   { zone: 0, name: 'Primo cielo', stars: ['forza', 'vita', 'scudo'] },
   { zone: 2, name: 'Secondo cielo', stars: ['branco', 'tesoro', 'lama'] },
@@ -157,7 +204,7 @@ function newState() {
   return {
     v: 1, seed: (Date.now() % 2147483647) >>> 0,
     gold: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0, mitico: 0, astrale: 0, arcano: 0 }, astri: 0, shop: null, zone: 1, maxZone: 1, cleared: 0, battle: 1, maxBattle: 1, maxGlobal: 1,
-    team: ['hero'], roster: { hero: newMember('hero', 1) }, inventory: [], chest: [], rareLog: [], nextId: 1,
+    sky: [0], team: ['hero'], roster: { hero: newMember('hero', 1) }, inventory: [], chest: [], rareLog: [], nextId: 1,
     tree: { forza: 0, vita: 0, branco: 0, scudo: 0, lama: 0, furia: 0, tesoro: 0, saggezza: 0, commercio: 0, cometa: 0, richiamo: 0 },
     hunt: {}, // uccisioni per specie non ancora catturata
     stats: { kills: 0, gold: 0, items: 0, legendary: 0, wins: 0, losses: 0, played: 0, perMin: [] },
@@ -239,7 +286,7 @@ function itemPower(it) { return Math.round(itemBase(it) * (1 + 0.12 * ((it.bonus
 function itemName(it) { const base = it.slot === 'arma' ? WEAPON[it.cls] : it.slot === 'secondaria' ? SECONDARY[it.cls] : ITEM_NAME[it.slot]; const b = it.bonus && it.bonus[0]; return b ? base + ' ' + SUFFIX[b.k] : base; }
 function upgradeCost(it) { return Math.round(itemPower(it) * 6 * (1 + it.up)); }
 let _sellBonus = 0; // impostato dallo stato attivo (stella Commercio)
-function sellValue(it, s) { const c = s ? (s.tree.commercio || 0) : _sellBonus; return Math.round(itemPower(it) * 1.5 * (1 + 0.1 * c)); }
+function sellValue(it, s) { const c = s ? B(s, 'sell') : 0; return Math.round(itemPower(it) * 1.5 * (1 + c)); }
 function canUse(m, it) { return (it.slot !== 'arma' && it.slot !== 'secondaria') || it.cls === SPECIES[m.species].cls; }
 // posto in cui va l'oggetto: quello libero o il più debole tra quelli del suo tipo
 function targetSlot(m, it) { let best = null, bp = Infinity; for (const sl of SLOTS) { if (kindOf(sl) !== it.slot) continue; const c = m.eq[sl], p = c ? itemPower(c) : -1; if (p < bp) { bp = p; best = sl; } } return best; }
@@ -250,16 +297,16 @@ function memberStats(s, id) {
   const m = s.roster[id], cls = SPECIES[m.species].cls, b = CLASSES[cls];
   const lm = 1 + 0.35 * (m.lvl - 1);
   let hp = b.hp * lm, atk = b.atk * lm, def = b.def * lm, crit = 0.05, critDmg = 1.5;
-  let aspd = 0, block = 0, dodge = 0;
+  let aspd = 0, block = b.block || 0, dodge = 0;
   for (const sl of SLOTS) {
     const it = m.eq[sl]; if (!it) continue; const sm = 1 + 0.1 * ((m.slv && m.slv[sl]) || 0), st = itemStats(it);
     atk += (st.atk || 0) * sm; hp += (st.hp || 0) * sm; def += (st.def || 0) * sm;
     crit += (st.crit || 0) * sm; critDmg += (st.critDmg || 0) * sm; aspd += (st.aspd || 0) * sm; block += (st.block || 0) * sm; dodge += (st.dodge || 0) * sm;
   }
-  if (SPECIES[m.species].hero) hp *= 1 + 0.06 * s.tree.vita; else hp *= 1 + 0.06 * s.tree.branco;
-  atk *= 1 + 0.05 * s.tree.forza;
-  def *= 1 + 0.05 * s.tree.scudo;
-  crit += 0.01 * s.tree.lama; critDmg += 0.05 * (s.tree.furia || 0);
+  hp *= 1 + B(s, 'hp');
+  atk *= 1 + B(s, 'atk');
+  def *= 1 + B(s, 'def');
+  crit += B(s, 'crit'); critDmg += B(s, 'critDmg'); aspd += B(s, 'aspd'); block += B(s, 'block'); dodge += B(s, 'dodge');
   return { hp: Math.round(hp), atk: Math.round(atk), def: Math.round(def * 10) / 10, spd: b.spd / (1 + Math.min(aspd, 1)), crit: Math.min(crit, 0.75), critDmg, block: Math.min(block, 0.5), dodge: Math.min(dodge, 0.4), aspd: Math.min(aspd, 1), cls };
 }
 function memberPower(s, id) { const st = memberStats(s, id); return Math.round(st.hp / 6 + st.atk * 2 + st.def * 3 + st.crit * 100); }
@@ -271,7 +318,7 @@ function memberPower(s, id) { const st = memberStats(s, id); return Math.round(s
 let WZ = 1.03; if (typeof process !== 'undefined' && process.env && process.env.WZ) WZ = +process.env.WZ;
 function withinZone(n) { return Math.pow(WZ, n - 1); }
 // Passo tra le zone: sul primo pianeta più dolce, sul secondo più ripido (la squadra è già grande)
-let ZONE_K = [0, 0, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05]; // provvisorio: il gioco si finisce in pochi giorni, i tempi lunghi li darà l'albero dei potenziamenti
+let ZONE_K = [0, 0, 1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 1.6]; // tarato: 10 zone in circa 14-15 giorni (simulazione con giocatore che controlla ogni 4 ore)
 if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JSON.parse(process.env.ZK);
 const ZONE_BASE = [0, 1]; for (let z = 2; z <= 10; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n); }
@@ -352,7 +399,8 @@ function step(s, b, dt, ev) {
       u.ab += dt;
       if (u.ab >= 3) {
         let w = null; for (const a of b.party) if (a.hp > 0 && a.hp < a.maxHp && (!w || a.hp / a.maxHp < w.hp / w.maxHp)) w = a;
-        if (w) { u.ab = 0; const h = Math.round(Math.min(w.maxHp - w.hp, w.maxHp * 0.10 + u.atk * 1.5)); w.hp += h; u.healed = (u.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: w.idx, h }); }
+        if (w) { u.ab = 0; const fat = w.healT && b.time - w.healT < 2 ? 0.5 : 1; w.healT = b.time; // cure ravvicinate dimezzate: niente tank immortale
+          const h = Math.round(Math.min(w.maxHp - w.hp, (w.maxHp * 0.06 + u.atk * 1.0) * (1 + B(s, 'heal')) * fat)); w.hp += h; u.healed = (u.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: w.idx, h }); }
       }
     }
     if (u.side === 'p' && u.cls === 'Mago') {
@@ -405,14 +453,14 @@ function onKill(s, b, e, ev) {
   s.stats.kills++;
   s.kills = s.kills || {}; s.kills[e.species] = (s.kills[e.species] || 0) + 1;
   const pass = hasPass(s) ? 2 : 1; // Pass: oro ed esperienza doppi
-  const gold = Math.round(1 * f * (e.boss ? 10 : 1) * (1 + 0.05 * s.tree.tesoro) * pass);
+  const gold = Math.round(1 * f * (e.boss ? 10 : 1) * (1 + B(s, 'gold')) * pass);
   s.gold += gold; s.stats.gold += gold; trackMinute(s, 1, gold);
-  const xp = Math.round(3 * f * (e.boss ? 8 : 1) * pass * (1 + 0.05 * (s.tree.saggezza || 0)));
+  const xp = Math.round(3 * f * (e.boss ? 8 : 1) * pass * (1 + B(s, 'xp')));
   for (const u of b.party) if (u.hp > 0) gainXp(s, u.id, xp, ev); // solo chi è vivo in campo prende PE
   if (ev) ev.push({ type: 'kill', idx: e.idx, gold });
   // drop
   const firstBoss = e.boss && s.zone > s.cleared;
-  const dropP = e.boss ? (firstBoss ? 1 : 0.1) : 0.007;
+  const dropP = (e.boss ? (firstBoss ? 1 : 0.1) : 0.007) * (1 + B(s, 'drop'));
   if (rnd(s) < dropP) dropItem(s, e.boss, ev);
   // rune
   if (firstBoss) { addRune(s, 'noncomune', 2, ev); addRune(s, 'rara', 1, ev); }
@@ -424,7 +472,7 @@ function onKill(s, b, e, ev) {
 function tryCapture(s, e, ev) {
   const sp = e.species; if (s.roster[sp]) return;
   s.hunt[sp] = (s.hunt[sp] || 0) + 1;
-  let p = RARITY[SPECIES[sp].rarity].p * (1 + Math.min(0.5, 0.05 * s.tree.richiamo));
+  let p = RARITY[SPECIES[sp].rarity].p * (1 + Math.min(0.5, B(s, 'capture')));
   if (s.settings.test) p *= 200;
   const tutorial = capturedCount(s) === 0 && sp === 'glimmo' && gIndex(s.zone, s.battle) >= 3;
   const pity = s.hunt[sp] >= 3 / RARITY[SPECIES[sp].rarity].p; // rete di sicurezza a 3 volte il tempo medio
@@ -490,8 +538,8 @@ function rarityIndex(k) { return ITEM_RARITY.findIndex(r => r.key === k); }
 const FREE_MAX_FILTER = 1; // gratis: si vendono solo i comuni
 // Zaino e forziere: 20 posti ciascuno, il doppio col Pass. Le rune non occupano posto.
 const BAG_BASE = 20;
-function bagCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraBag || 0); }
-function chestCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraChest || 0); }
+function bagCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraBag || 0) + B(s, 'bag'); }
+function chestCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraChest || 0) + B(s, 'chest'); }
 // Spazi extra nello Shop: per sempre, ma se ne possono comprare pochi ogni mese
 const SPACE_PACK = { n: 2, cost: 500, perMonth: 2 };
 function monthKey(now) { const d = new Date(now || Date.now()); return d.getFullYear() * 100 + d.getMonth() + 1; }
@@ -499,7 +547,7 @@ function spaceLeft(s, kind) { const m = monthKey(); if (!s.spaceBuys || s.spaceB
 function buySpace(s, kind) { if (spaceLeft(s, kind) < 1 || s.astri < SPACE_PACK.cost) return false; const m = monthKey(); if (!s.spaceBuys || s.spaceBuys.m !== m) s.spaceBuys = { m, bag: 0, chest: 0 }; s.spaceBuys[kind]++; s.astri -= SPACE_PACK.cost; if (kind === 'bag') s.extraBag = (s.extraBag || 0) + SPACE_PACK.n; else s.extraChest = (s.extraChest || 0) + SPACE_PACK.n; return true; }
 function toChest(s, id) { const i = s.inventory.findIndex(x => x.id === id); if (i < 0 || s.chest.length >= chestCap(s)) return false; s.chest.push(s.inventory.splice(i, 1)[0]); return true; }
 function fromChest(s, id) { const i = s.chest.findIndex(x => x.id === id); if (i < 0 || s.inventory.length >= bagCap(s)) return false; s.inventory.push(s.chest.splice(i, 1)[0]); return true; }
-function offlineCap(s) { return OFFLINE_CAP * (hasPass(s) ? 2 : 1); }
+function offlineCap(s) { return OFFLINE_CAP * (hasPass(s) ? 2 : 1) + B(s, 'offline'); }
 const PASS_MAX_FILTER = 2; // col Pass si vendono in automatico anche i non comuni, mai oltre
 function maxFilter(s) { return hasPass(s) ? PASS_MAX_FILTER : FREE_MAX_FILTER; }
 function minKeep(s) { return Math.min(rarityIndex(s.settings.minRarity || 'comune'), maxFilter(s), protectIdx(s)); }
@@ -550,7 +598,7 @@ const RUNE_BUY = { epica: 100, leggendaria: 250, mitico: 500, astrale: 1000, arc
 function buyRune(s, k) { const c = RUNE_BUY[k]; if (!c || s.astri < c) return false; s.astri -= c; s.runes[k]++; return true; }
 // Oro per Astri nello Shop: la quantità segue la zona più lontana raggiunta (= ore di combattimento lì)
 const GOLD_PACKS = [{ astri: 30, hours: 2 }, { astri: 120, hours: 10 }, { astri: 300, hours: 30 }];
-function goldPack(s, i) { const p = GOLD_PACKS[i]; return Math.round(p.hours * 500 * enemyScale(s.maxZone, s.maxZone === s.zone ? s.maxBattle : 30) * (1 + 0.05 * s.tree.tesoro)); }
+function goldPack(s, i) { const p = GOLD_PACKS[i]; return Math.round(p.hours * 500 * enemyScale(s.maxZone, s.maxZone === s.zone ? s.maxBattle : 30) * (1 + B(s, 'gold'))); }
 function buyGold(s, i) { const p = GOLD_PACKS[i]; if (!p || s.astri < p.astri) return 0; const g = goldPack(s, i); s.astri -= p.astri; s.gold += g; return g; }
 function sellRunes(s, k, n) { n = Math.min(n, s.runes[k]); s.runes[k] -= n; const g = n * RUNE[k].value; s.astri += g; return g; }
 // Negozio: 6 oggetti, rinnovati alle 0, 8 e 16 (ora locale), rarità con le stesse probabilità dei drop
@@ -594,7 +642,7 @@ function claimMission(s, sp) {
 }
 function missionsReady(s) { return ALL_SPECIES.filter(sp => missionReady(s, sp)).length; }
 function setZone(s, z) { if (z < 1 || z > s.maxZone) return false; s.zone = z; s.battle = 1; s.runHp = {}; return true; }
-function moveSpeed(s) { return 1 + 0.05 * (s.tree.cometa || 0); }
+function moveSpeed(s) { return 1 + B(s, 'move'); }
 function migrate(s) {
   if (s.zone === undefined) { s.zone = 1; s.maxZone = 1; s.cleared = 0; s.battle = 1; s.maxBattle = 1; s.maxGlobal = 1; delete s.bossCleared; }
   if (typeof s.runes !== 'object' || s.runes === null) s.runes = { noncomune: s.runes || 0, rara: 0, epica: 0, leggendaria: 0 };
@@ -602,6 +650,7 @@ function migrate(s) {
   if (s.tree.corona) { const c = [500000, 50000000, 5000000000, 500000000000]; for (let l = 0; l < s.tree.corona; l++) s.gold += c[l]; delete s.tree.corona; }
   if (s.boughtSlots > SLOT_BUY_ZONES.length) { s.gold += 300000 * (s.boughtSlots - SLOT_BUY_ZONES.length); s.boughtSlots = SLOT_BUY_ZONES.length; }
   for (const k in TREE) if (s.tree[k] === undefined) s.tree[k] = 0;
+  if (!s.sky) { let back = 0; for (const k in TREE) { for (let l = 0; l < (s.tree[k] || 0); l++) back += TREE[k].cost(l); s.tree[k] = 0; } s.gold += back; s.sky = [0]; }
   if (!s.chest) s.chest = []; if (!s.rareLog) s.rareLog = [];
   delete s.settings.autoStars; delete s.settings.autoMode; delete s._nextStar;
   trimTeam(s);
@@ -667,7 +716,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
