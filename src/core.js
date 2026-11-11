@@ -92,6 +92,7 @@ const TREE = {
   branco:   { name: 'Branco',   desc: 'Vita delle creature +6% per livello', max: 30, cost: starCost(150, G) },
   scudo:    { name: 'Scudo',    desc: 'Difesa della squadra +5% per livello', max: 30, cost: starCost(150, G) },
   lama:     { name: 'Lama',     desc: 'Probabilità di critico +1% per livello', max: 20, cost: starCost(300, 2) },
+  furia:    { name: 'Furia',    desc: 'Danni critici +5% per livello', max: 20, cost: starCost(400, 2) },
   tesoro:   { name: 'Tesoro',   desc: 'Oro +5% per livello', max: 10, cost: starCost(500, 3) },
   cometa:   { name: 'Cometa',   desc: 'Velocità di movimento della squadra +5% per livello', max: 10, cost: starCost(1000, 3) },
   richiamo: { name: 'Richiamo', desc: 'Probabilità di cattura +5% per livello (max +50%)', max: 10, cost: starCost(2000, 3) },
@@ -105,8 +106,9 @@ const STARMAP = {
   branco:   { x: 16, y: 58, req: ['vita', 5], ic: '❀' },
   lama:     { x: 84, y: 58, req: ['scudo', 5], ic: '✦' },
   tesoro:   { x: 50, y: 16, req: ['forza', 8], ic: '◈' },
-  cometa:   { x: 34, y: 82, req: ['branco', 5], ic: '☄' },
-  richiamo: { x: 66, y: 82, req: ['lama', 5], ic: '✧' },
+  cometa:   { x: 15, y: 85, req: ['branco', 5], ic: '☄' },
+  richiamo: { x: 50, y: 85, req: ['lama', 5], ic: '✧' },
+  furia:    { x: 85, y: 85, req: ['lama', 5], ic: '✸' },
 };
 function starOpen(s, k) { const r = STARMAP[k] && STARMAP[k].req; return !r || s.tree[r[0]] >= r[1]; }
 const ACH = [
@@ -142,7 +144,7 @@ function newState() {
     v: 1, seed: (Date.now() % 2147483647) >>> 0,
     gold: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0, mitico: 0, astrale: 0, arcano: 0 }, astri: 0, shop: null, zone: 1, maxZone: 1, cleared: 0, battle: 1, maxBattle: 1, maxGlobal: 1,
     team: ['hero'], roster: { hero: newMember('hero', 1) }, inventory: [], chest: [], rareLog: [], nextId: 1,
-    tree: { forza: 0, vita: 0, branco: 0, scudo: 0, lama: 0, tesoro: 0, cometa: 0, richiamo: 0 },
+    tree: { forza: 0, vita: 0, branco: 0, scudo: 0, lama: 0, furia: 0, tesoro: 0, cometa: 0, richiamo: 0 },
     hunt: {}, // uccisioni per specie non ancora catturata
     stats: { kills: 0, gold: 0, items: 0, legendary: 0, wins: 0, losses: 0, played: 0, perMin: [] },
     ach: {}, settings: { autoEquip: false, test: false }, lastSeen: Date.now(),
@@ -230,7 +232,7 @@ function memberStats(s, id) {
   if (SPECIES[m.species].hero) hp *= 1 + 0.06 * s.tree.vita; else hp *= 1 + 0.06 * s.tree.branco;
   atk *= 1 + 0.05 * s.tree.forza;
   def *= 1 + 0.05 * s.tree.scudo;
-  crit += 0.01 * s.tree.lama;
+  crit += 0.01 * s.tree.lama; critDmg += 0.05 * (s.tree.furia || 0);
   return { hp: Math.round(hp), atk: Math.round(atk), def: Math.round(def * 10) / 10, spd: b.spd / (1 + Math.min(aspd, 1)), crit: Math.min(crit, 0.75), critDmg, block: Math.min(block, 0.5), dodge: Math.min(dodge, 0.4), aspd: Math.min(aspd, 1), cls };
 }
 function memberPower(s, id) { const st = memberStats(s, id); return Math.round(st.hp / 6 + st.atk * 2 + st.def * 3 + st.crit * 100); }

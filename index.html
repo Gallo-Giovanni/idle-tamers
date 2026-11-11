@@ -238,6 +238,8 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .rarbar.big{grid-template-columns:repeat(2,1fr);gap:6px}.rarbar.big .rb1{font-size:13px;padding:8px 6px;cursor:pointer;color:inherit;background-clip:padding-box}.rarbar.big .rb1 em{font-size:11px}
 .rb1.cur{box-shadow:0 0 0 2px var(--c)}.rb1{position:relative;overflow:hidden}.rb1:disabled{cursor:not-allowed;background:repeating-linear-gradient(135deg,#10143A 0 6px,#1b2050 6px 12px)}.rb1:disabled em{opacity:.5}
 .passov{position:absolute;top:0;right:0;background:#F2C14E;color:#1B1F3B;font-size:9.5px;font-weight:900;letter-spacing:1px;padding:2px 6px;border-bottom-left-radius:6px}.passm{color:var(--gold);font-weight:600}
+.ipx{image-rendering:pixelated;image-rendering:crisp-edges;display:inline-block;vertical-align:middle;flex-shrink:0}
+.it{background:radial-gradient(circle at 50% 32%,color-mix(in srgb,var(--c,#10143A) 28%,transparent) 0,transparent 62%),#10143A}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -375,6 +377,7 @@ const TREE = {
   branco:   { name: 'Branco',   desc: 'Vita delle creature +6% per livello', max: 30, cost: starCost(150, G) },
   scudo:    { name: 'Scudo',    desc: 'Difesa della squadra +5% per livello', max: 30, cost: starCost(150, G) },
   lama:     { name: 'Lama',     desc: 'Probabilità di critico +1% per livello', max: 20, cost: starCost(300, 2) },
+  furia:    { name: 'Furia',    desc: 'Danni critici +5% per livello', max: 20, cost: starCost(400, 2) },
   tesoro:   { name: 'Tesoro',   desc: 'Oro +5% per livello', max: 10, cost: starCost(500, 3) },
   cometa:   { name: 'Cometa',   desc: 'Velocità di movimento della squadra +5% per livello', max: 10, cost: starCost(1000, 3) },
   richiamo: { name: 'Richiamo', desc: 'Probabilità di cattura +5% per livello (max +50%)', max: 10, cost: starCost(2000, 3) },
@@ -388,8 +391,9 @@ const STARMAP = {
   branco:   { x: 16, y: 58, req: ['vita', 5], ic: '❀' },
   lama:     { x: 84, y: 58, req: ['scudo', 5], ic: '✦' },
   tesoro:   { x: 50, y: 16, req: ['forza', 8], ic: '◈' },
-  cometa:   { x: 34, y: 82, req: ['branco', 5], ic: '☄' },
-  richiamo: { x: 66, y: 82, req: ['lama', 5], ic: '✧' },
+  cometa:   { x: 15, y: 85, req: ['branco', 5], ic: '☄' },
+  richiamo: { x: 50, y: 85, req: ['lama', 5], ic: '✧' },
+  furia:    { x: 85, y: 85, req: ['lama', 5], ic: '✸' },
 };
 function starOpen(s, k) { const r = STARMAP[k] && STARMAP[k].req; return !r || s.tree[r[0]] >= r[1]; }
 const ACH = [
@@ -425,7 +429,7 @@ function newState() {
     v: 1, seed: (Date.now() % 2147483647) >>> 0,
     gold: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0, mitico: 0, astrale: 0, arcano: 0 }, astri: 0, shop: null, zone: 1, maxZone: 1, cleared: 0, battle: 1, maxBattle: 1, maxGlobal: 1,
     team: ['hero'], roster: { hero: newMember('hero', 1) }, inventory: [], chest: [], rareLog: [], nextId: 1,
-    tree: { forza: 0, vita: 0, branco: 0, scudo: 0, lama: 0, tesoro: 0, cometa: 0, richiamo: 0 },
+    tree: { forza: 0, vita: 0, branco: 0, scudo: 0, lama: 0, furia: 0, tesoro: 0, cometa: 0, richiamo: 0 },
     hunt: {}, // uccisioni per specie non ancora catturata
     stats: { kills: 0, gold: 0, items: 0, legendary: 0, wins: 0, losses: 0, played: 0, perMin: [] },
     ach: {}, settings: { autoEquip: false, test: false }, lastSeen: Date.now(),
@@ -513,7 +517,7 @@ function memberStats(s, id) {
   if (SPECIES[m.species].hero) hp *= 1 + 0.06 * s.tree.vita; else hp *= 1 + 0.06 * s.tree.branco;
   atk *= 1 + 0.05 * s.tree.forza;
   def *= 1 + 0.05 * s.tree.scudo;
-  crit += 0.01 * s.tree.lama;
+  crit += 0.01 * s.tree.lama; critDmg += 0.05 * (s.tree.furia || 0);
   return { hp: Math.round(hp), atk: Math.round(atk), def: Math.round(def * 10) / 10, spd: b.spd / (1 + Math.min(aspd, 1)), crit: Math.min(crit, 0.75), critDmg, block: Math.min(block, 0.5), dodge: Math.min(dodge, 0.4), aspd: Math.min(aspd, 1), cls };
 }
 function memberPower(s, id) { const st = memberStats(s, id); return Math.round(st.hp / 6 + st.atk * 2 + st.def * 3 + st.crit * 100); }
@@ -964,7 +968,8 @@ const IC = {
   gem: '<path d="M6 4h12l3 5-9 11L3 9z"/><path d="M3 9h18M9 4l3 16M15 4l-3 16"/>',
   rune: '<rect x="6" y="3" width="12" height="18" rx="3"/><path d="M10 8l4 4-4 4"/>',
 };
-const icon = (n, c, s, label) => `<svg width="${s || 20}" height="${s || 20}" viewBox="0 0 24 24" fill="none" stroke="${c || 'currentColor'}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ${label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"'}>${IC[n]}</svg>`;
+const icon = (n, c, s, label) => n === 'rune' && typeof ipx === 'function' ? ipx('runa', s || 20, c) : svgIcon(n, c, s, label);
+const svgIcon = (n, c, s, label) => `<svg width="${s || 20}" height="${s || 20}" viewBox="0 0 24 24" fill="none" stroke="${c || 'currentColor'}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ${label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"'}>${IC[n]}</svg>`;
 
 // ---------- icone degli oggetti ----------
 const ITEM_IC = {
@@ -988,7 +993,75 @@ const ITEM_IC = {
 const WEAP_IC = { Tank: 'mazza', Guerriero: 'spada', Arciere: 'arco', Mago: 'bastone', Curatore: 'bastone' };
 const SEC_IC = { Tank: 'scudo', Guerriero: 'pugnale', Arciere: 'faretra', Mago: 'tomo', Curatore: 'tomo' };
 function itemIconKey(kind, cls) { return kind === 'arma' ? WEAP_IC[cls] || 'spada' : kind === 'secondaria' ? SEC_IC[cls] || 'scudo' : kind; }
-const itemIcon = (kind, cls, color, size) => `<svg width="${size || 22}" height="${size || 22}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:${color}">${ITEM_IC[itemIconKey(kind, cls)]}</svg>`;
+// Icone oggetto in pixel art 16x16 (colori realistici). Lettere -> colori della palette dell'oggetto.
+const IPX = {
+  spada: [{ a: '#E8EEF8', b: '#A9B4C8', c: '#6B7690', g: '#F2C14E', h: '#B07A2A', w: '#7A4A22' }, [
+    '..............ab', '.............aba', '............abc.', '...........abc..', '..........abc...', '.........abc....', '........abc.....', '...g...abc......',
+    '...gg.abc.......', '....ggbc........', '....hgg.........', '...wh.gg........', '..ww...g........', '.ww.............', 'ww..............', 'w...............']],
+  mazza: [{ a: '#C9D3E6', b: '#8A94AC', c: '#555E78', w: '#8A5A2B', d: '#5E3A1A' }, [
+    '..........aab...', '.........abbbc..', '........aabbbcc.', '........abbbbc..', '.........bbcc...', '..........cd....', '.........wd.....', '........wd......',
+    '.......wd.......', '......wd........', '.....wd.........', '....wd..........', '...wd...........', '..wd............', '.dd.............', '................']],
+  arco: [{ w: '#A86A32', d: '#6E4220', s: '#E8E2D0', g: '#F2C14E' }, [
+    '.........ww.....', '..........wd....', '...........wd...', '...........sw...', '..........s.wd..', '.........s..wd..', '........s...gw..', '.......s....gw..',
+    '......s.....gw..', '.....s......wd..', '....s.......wd..', '...s.......wd...', '..s........wd...', '..........wd....', '.........ww.....', '................']],
+  bastone: [{ o: '#7FE3FF', p: '#B07CF0', q: '#E8FBFF', w: '#8A5A2B', d: '#5E3A1A', g: '#F2C14E' }, [
+    '...........ppp..', '..........poqop.', '..........pqoop.', '..........poop..', '..........gpp...', '.........wg.....', '........wd......', '.......wd.......',
+    '......wd........', '.....wd.........', '....wd..........', '...wd...........', '..wd............', '.wd.............', '.d..............', '................']],
+  scudo: [{ a: '#4A78D8', b: '#2E4FA0', g: '#F2C14E', s: '#C9D3E6', k: '#1B2A55' }, [
+    '................', '..gggggggggggg..', '..gaaaaaaaaaag..', '..gaaasssaaaag..', '..gaaasssaaaag..', '..gasssssssaag..', '..gasssssssaag..', '..gaaasssaaaag..',
+    '..gaaasssaaaag..', '..gbaaaaaaaabg..', '...gbaaaaaabg...', '....gbaaaabg....', '.....gbaabg.....', '......gbbg......', '.......gg.......', '................']],
+  pugnale: [{ a: '#E8EEF8', b: '#A9B4C8', g: '#F2C14E', w: '#4A2A6A', d: '#2E1A44' }, [
+    '................', '................', '...........ab...', '..........abb...', '.........abb....', '........abb.....', '.......abb......', '.....g.ab.......',
+    '.....ggb........', '......gg........', '.....w.gg.......', '....wd..........', '...wd...........', '...d............', '................', '................']],
+  faretra: [{ l: '#8A5A2B', d: '#5E3A1A', f: '#E8E2D0', r: '#E2504A', s: '#C9D3E6', g: '#F2C14E' }, [
+    '.....r..r.......', '....rr.rr.r.....', '.....s..s.rr....', '.....s..s..s....', '....llllllls....', '....lddddddl....', '....lgggggdl....', '....lddddddl....',
+    '....ldddddl.....', '....ldddddl.....', '....lgggggl.....', '....ldddddl.....', '....ldddddl.....', '.....llllll.....', '................', '................']],
+  tomo: [{ c: '#6A3FB8', d: '#432580', p: '#F4ECD8', g: '#F2C14E', o: '#7FE3FF' }, [
+    '................', '...cccccccccc...', '..cddddddddddc..', '..cdgggggggdcp..', '..cdg..o..gdcp..', '..cdg.ooo.gdcp..', '..cdg..o..gdcp..', '..cdgggggggdcp..',
+    '..cddddddddddcp.', '..cddddddddddcp.', '..cddddddddddcp.', '..cddddddddddcp.', '..cccccccccccp..', '...ppppppppppp..', '................', '................']],
+  elmo: [{ a: '#C9D3E6', b: '#8A94AC', c: '#555E78', k: '#141830', r: '#E2504A' }, [
+    '.......rr.......', '......rrrr......', '.....aaaaaa.....', '....aaaaaaab....', '...aaaaaaaabb...', '...aaaaaaabbb...', '...akkkkkkkbb...', '...ak.k..k.kb...',
+    '...akkkkkkkbb...', '...aakk..kkbb...', '...aak....kbb...', '...aak....kbc...', '....ak....kc....', '................', '................', '................']],
+  corazza: [{ a: '#C9D3E6', b: '#8A94AC', c: '#555E78', g: '#F2C14E' }, [
+    '................', '...aa......aa...', '..aaab....baaa..', '..aaabbbbbbaab..', '..aaaagggabaab..', '...aaaagaabab...', '....aaagaabb....', '....aaagaabb....',
+    '....aaaaaabb....', '....bbbbbbbb....', '....aaaaaabb....', '....aaaaaabc....', '....bbbbbbcc....', '................', '................', '................']],
+  gambe: [{ a: '#C9D3E6', b: '#8A94AC', c: '#555E78', g: '#F2C14E' }, [
+    '................', '....gggggggg....', '....aaaaaabb....', '....aaaaaabb....', '....aaab.aab....', '....aaab.aab....', '....aaab.aab....', '....bbbb.bbb....',
+    '....aaab.aab....', '....aaab.aab....', '....aaab.aab....', '....aabb.abb....', '....abbb.abbc...', '...cccc..cccc...', '................', '................']],
+  stivali: [{ l: '#8A5A2B', d: '#5E3A1A', s: '#3A2210', g: '#F2C14E' }, [
+    '................', '................', '...lll....lll...', '...lld....lld...', '...lld....lld...', '...ggg....ggg...', '...lld....lld...', '...lld....lld...',
+    '...lldd...lldd..', '...llldd..llldd.', '..lllldd.lllldd.', '..sssssss.sssss.', '................', '................', '................', '................']],
+  guanti: [{ l: '#9A6A3A', d: '#6A4422', g: '#F2C14E', s: '#C9D3E6' }, [
+    '................', '.....l.l.l......', '.....l.l.l.l....', '....lllllll.l...', '....lllllllll...', '....llllllldl...', '.l..lllllllll...', '.ll.llllllldl...',
+    '..lllllllllll...', '...llllllllld...', '....lllllllld...', '....ggggggggg...', '....sssssssss...', '....ddddddddd...', '................', '................']],
+  collana: [{ g: '#F2C14E', h: '#B88A20', r: '#E2504A', w: '#FFB3B0' }, [
+    '................', '..g..........g..', '..g..........g..', '...g........g...', '...g........g...', '....g......g....', '.....g....g.....', '......gggg......',
+    '.......gg.......', '......hrrh......', '.....hrwrrh.....', '.....hrrrrh.....', '......hrrh......', '.......hh.......', '................', '................']],
+  orecchini: [{ g: '#F2C14E', h: '#B88A20', b: '#7FE3FF', w: '#E8FBFF', d: '#3E9FC0' }, [
+    '................', '...g......g.....', '..g.g....g.g....', '...g......g.....', '...g......g.....', '...h......h.....', '..bbb....bbb....', '.bwbbd..bwbbd...',
+    '.bbbbd..bbbbd...', '.bbbdd..bbbdd...', '..bdd....bdd....', '...d......d.....', '................', '................', '................', '................']],
+  anello: [{ g: '#F2C14E', h: '#B88A20', d: '#8A6410', b: '#B07CF0', w: '#F0E0FF', p: '#7A4AC0' }, [
+    '................', '......bbbb......', '.....bwbbbp.....', '.....bbbbpp.....', '......pppp......', '.....gghhgg.....', '....gg....hg....', '...gg......hg...',
+    '...g........h...', '...g........d...', '...gg......dh...', '....gg....dh....', '.....ghhhdd.....', '................', '................', '................']],
+  runa: [{ x: 'RUNE', l: 'RUNEL', d: 'RUNED', w: '#FFFFFF', k: '#1B1F3B' }, [
+    '................', '.......kk.......', '......kxxk......', '.....kxwlxk.....', '....kxwllxxk....', '...kxwllxxxdk...', '...kxllxxxxdk...', '..kxlxxxxxxddk..',
+    '..kxxxxxxxxddk..', '...kxxxxxxddk...', '...kxxxxxddk....', '....kxxxxddk....', '.....kxxddk.....', '......kxdk......', '.......kk.......', '................']],
+
+};
+const _ipxCache = {};
+function shade(hex, f) { const n = parseInt(hex.slice(1, 7), 16); let r = n >> 16, g = n >> 8 & 255, b = n & 255; r = Math.min(255, Math.round(r * f)); g = Math.min(255, Math.round(g * f)); b = Math.min(255, Math.round(b * f)); return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1); }
+function ipxURL(kind, runeColor) {
+  const key = kind + (runeColor || ''); if (_ipxCache[key]) return _ipxCache[key];
+  const [pal0, rows] = IPX[kind]; const pal = Object.assign({}, pal0);
+  if (runeColor) { pal.x = runeColor; pal.l = shade(runeColor, 1.45); pal.d = shade(runeColor, 0.6); }
+  const c = document.createElement('canvas'); c.width = 16; c.height = 16; const g = c.getContext('2d');
+  rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) { const col = pal[r[x]]; if (r[x] !== '.' && col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); } } });
+  return (_ipxCache[key] = c.toDataURL());
+}
+function ipx(kind, size, runeColor) { return `<img class="ipx" src="${ipxURL(kind, runeColor)}" width="${size}" height="${size}" alt="">`; }
+
+// Immagine dell'oggetto in pixel art; la rarità resta nel bordo e nell'alone della tessera
+const itemIcon = (kind, cls, color, size) => ipx(itemIconKey(kind, cls), size || 22);
 
 // ---------- stato ----------
 let S;
@@ -1209,7 +1282,7 @@ function pSquadra() {
 }
 function rcls(r) { return r.rainbow ? ' rbw' : ''; }
 function itemGrid(list, empty, sellMode) {
-  return `<div class="igrid">${list.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it); return `<button class="it${selItem === it.id ? ' sel' : ''}${r.rainbow ? ' rbo' : ''}" style="border-color:${r.color}" data-act="selit" data-item="${it.id}" aria-label="${esc(F.itemName(it))}, ${r.label}, potere ${F.itemPower(it)}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b><em>${sellMode ? (prot ? 'protetto' : cfmt(F.sellValue(it)) + ' oro') : it.cls ? it.cls : F.SLOT_LABEL[it.slot]}</em>${it.isNew ? '<i>nuovo</i>' : ''}${(it.locked || (prot && sellMode)) ? `<i class="plk">${icon('lock', '#F2C14E', 10)}</i>` : ''}</button>`; }).join('') || `<div class="note" style="grid-column:1/-1">${empty}</div>`}</div>`;
+  return `<div class="igrid">${list.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it); return `<button class="it${selItem === it.id ? ' sel' : ''}${r.rainbow ? ' rbo' : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selit" data-item="${it.id}" aria-label="${esc(F.itemName(it))}, ${r.label}, potere ${F.itemPower(it)}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b><em>${sellMode ? (prot ? 'protetto' : cfmt(F.sellValue(it)) + ' oro') : it.cls ? it.cls : F.SLOT_LABEL[it.slot]}</em>${it.isNew ? '<i>nuovo</i>' : ''}${(it.locked || (prot && sellMode)) ? `<i class="plk">${icon('lock', '#F2C14E', 10)}</i>` : ''}</button>`; }).join('') || `<div class="note" style="grid-column:1/-1">${empty}</div>`}</div>`;
 }
 const byPower = l => l.slice().sort((a, b) => F.itemPower(b) - F.itemPower(a));
 function itemDetail(it, where) {
@@ -1228,7 +1301,7 @@ function itemDetail(it, where) {
 }
 let selRune = null, selShop = null;
 function runeTiles() {
-  return `<div class="igrid">${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<button class="it${selRune === k ? ' sel' : ''}" style="border-color:${r.color}" data-act="selrune" data-k="${k}" aria-label="${r.label}: ${S.runes[k]}">${icon('rune', r.color, 22)}<b>${fmt(S.runes[k])}</b><em>${r.label.replace('Runa ', '')}</em></button>`; }).join('')}</div>`;
+  return `<div class="igrid">${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<button class="it${selRune === k ? ' sel' : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selrune" data-k="${k}" aria-label="${r.label}: ${S.runes[k]}">${icon('rune', r.color, 22)}<b>${fmt(S.runes[k])}</b><em>${r.label.replace('Runa ', '')}</em></button>`; }).join('')}</div>`;
 }
 function runeDetail(k) {
   const r = F.RUNE[k], n = S.runes[k], nr = F.ITEM_RARITY.find(x => x.key === k);
@@ -1379,7 +1452,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 19:46</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 19:51</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {

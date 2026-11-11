@@ -57,7 +57,8 @@ const IC = {
   gem: '<path d="M6 4h12l3 5-9 11L3 9z"/><path d="M3 9h18M9 4l3 16M15 4l-3 16"/>',
   rune: '<rect x="6" y="3" width="12" height="18" rx="3"/><path d="M10 8l4 4-4 4"/>',
 };
-const icon = (n, c, s, label) => `<svg width="${s || 20}" height="${s || 20}" viewBox="0 0 24 24" fill="none" stroke="${c || 'currentColor'}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ${label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"'}>${IC[n]}</svg>`;
+const icon = (n, c, s, label) => n === 'rune' && typeof ipx === 'function' ? ipx('runa', s || 20, c) : svgIcon(n, c, s, label);
+const svgIcon = (n, c, s, label) => `<svg width="${s || 20}" height="${s || 20}" viewBox="0 0 24 24" fill="none" stroke="${c || 'currentColor'}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ${label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"'}>${IC[n]}</svg>`;
 
 // ---------- icone degli oggetti ----------
 const ITEM_IC = {
@@ -81,7 +82,75 @@ const ITEM_IC = {
 const WEAP_IC = { Tank: 'mazza', Guerriero: 'spada', Arciere: 'arco', Mago: 'bastone', Curatore: 'bastone' };
 const SEC_IC = { Tank: 'scudo', Guerriero: 'pugnale', Arciere: 'faretra', Mago: 'tomo', Curatore: 'tomo' };
 function itemIconKey(kind, cls) { return kind === 'arma' ? WEAP_IC[cls] || 'spada' : kind === 'secondaria' ? SEC_IC[cls] || 'scudo' : kind; }
-const itemIcon = (kind, cls, color, size) => `<svg width="${size || 22}" height="${size || 22}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:${color}">${ITEM_IC[itemIconKey(kind, cls)]}</svg>`;
+// Icone oggetto in pixel art 16x16 (colori realistici). Lettere -> colori della palette dell'oggetto.
+const IPX = {
+  spada: [{ a: '#E8EEF8', b: '#A9B4C8', c: '#6B7690', g: '#F2C14E', h: '#B07A2A', w: '#7A4A22' }, [
+    '..............ab', '.............aba', '............abc.', '...........abc..', '..........abc...', '.........abc....', '........abc.....', '...g...abc......',
+    '...gg.abc.......', '....ggbc........', '....hgg.........', '...wh.gg........', '..ww...g........', '.ww.............', 'ww..............', 'w...............']],
+  mazza: [{ a: '#C9D3E6', b: '#8A94AC', c: '#555E78', w: '#8A5A2B', d: '#5E3A1A' }, [
+    '..........aab...', '.........abbbc..', '........aabbbcc.', '........abbbbc..', '.........bbcc...', '..........cd....', '.........wd.....', '........wd......',
+    '.......wd.......', '......wd........', '.....wd.........', '....wd..........', '...wd...........', '..wd............', '.dd.............', '................']],
+  arco: [{ w: '#A86A32', d: '#6E4220', s: '#E8E2D0', g: '#F2C14E' }, [
+    '.........ww.....', '..........wd....', '...........wd...', '...........sw...', '..........s.wd..', '.........s..wd..', '........s...gw..', '.......s....gw..',
+    '......s.....gw..', '.....s......wd..', '....s.......wd..', '...s.......wd...', '..s........wd...', '..........wd....', '.........ww.....', '................']],
+  bastone: [{ o: '#7FE3FF', p: '#B07CF0', q: '#E8FBFF', w: '#8A5A2B', d: '#5E3A1A', g: '#F2C14E' }, [
+    '...........ppp..', '..........poqop.', '..........pqoop.', '..........poop..', '..........gpp...', '.........wg.....', '........wd......', '.......wd.......',
+    '......wd........', '.....wd.........', '....wd..........', '...wd...........', '..wd............', '.wd.............', '.d..............', '................']],
+  scudo: [{ a: '#4A78D8', b: '#2E4FA0', g: '#F2C14E', s: '#C9D3E6', k: '#1B2A55' }, [
+    '................', '..gggggggggggg..', '..gaaaaaaaaaag..', '..gaaasssaaaag..', '..gaaasssaaaag..', '..gasssssssaag..', '..gasssssssaag..', '..gaaasssaaaag..',
+    '..gaaasssaaaag..', '..gbaaaaaaaabg..', '...gbaaaaaabg...', '....gbaaaabg....', '.....gbaabg.....', '......gbbg......', '.......gg.......', '................']],
+  pugnale: [{ a: '#E8EEF8', b: '#A9B4C8', g: '#F2C14E', w: '#4A2A6A', d: '#2E1A44' }, [
+    '................', '................', '...........ab...', '..........abb...', '.........abb....', '........abb.....', '.......abb......', '.....g.ab.......',
+    '.....ggb........', '......gg........', '.....w.gg.......', '....wd..........', '...wd...........', '...d............', '................', '................']],
+  faretra: [{ l: '#8A5A2B', d: '#5E3A1A', f: '#E8E2D0', r: '#E2504A', s: '#C9D3E6', g: '#F2C14E' }, [
+    '.....r..r.......', '....rr.rr.r.....', '.....s..s.rr....', '.....s..s..s....', '....llllllls....', '....lddddddl....', '....lgggggdl....', '....lddddddl....',
+    '....ldddddl.....', '....ldddddl.....', '....lgggggl.....', '....ldddddl.....', '....ldddddl.....', '.....llllll.....', '................', '................']],
+  tomo: [{ c: '#6A3FB8', d: '#432580', p: '#F4ECD8', g: '#F2C14E', o: '#7FE3FF' }, [
+    '................', '...cccccccccc...', '..cddddddddddc..', '..cdgggggggdcp..', '..cdg..o..gdcp..', '..cdg.ooo.gdcp..', '..cdg..o..gdcp..', '..cdgggggggdcp..',
+    '..cddddddddddcp.', '..cddddddddddcp.', '..cddddddddddcp.', '..cddddddddddcp.', '..cccccccccccp..', '...ppppppppppp..', '................', '................']],
+  elmo: [{ a: '#C9D3E6', b: '#8A94AC', c: '#555E78', k: '#141830', r: '#E2504A' }, [
+    '.......rr.......', '......rrrr......', '.....aaaaaa.....', '....aaaaaaab....', '...aaaaaaaabb...', '...aaaaaaabbb...', '...akkkkkkkbb...', '...ak.k..k.kb...',
+    '...akkkkkkkbb...', '...aakk..kkbb...', '...aak....kbb...', '...aak....kbc...', '....ak....kc....', '................', '................', '................']],
+  corazza: [{ a: '#C9D3E6', b: '#8A94AC', c: '#555E78', g: '#F2C14E' }, [
+    '................', '...aa......aa...', '..aaab....baaa..', '..aaabbbbbbaab..', '..aaaagggabaab..', '...aaaagaabab...', '....aaagaabb....', '....aaagaabb....',
+    '....aaaaaabb....', '....bbbbbbbb....', '....aaaaaabb....', '....aaaaaabc....', '....bbbbbbcc....', '................', '................', '................']],
+  gambe: [{ a: '#C9D3E6', b: '#8A94AC', c: '#555E78', g: '#F2C14E' }, [
+    '................', '....gggggggg....', '....aaaaaabb....', '....aaaaaabb....', '....aaab.aab....', '....aaab.aab....', '....aaab.aab....', '....bbbb.bbb....',
+    '....aaab.aab....', '....aaab.aab....', '....aaab.aab....', '....aabb.abb....', '....abbb.abbc...', '...cccc..cccc...', '................', '................']],
+  stivali: [{ l: '#8A5A2B', d: '#5E3A1A', s: '#3A2210', g: '#F2C14E' }, [
+    '................', '................', '...lll....lll...', '...lld....lld...', '...lld....lld...', '...ggg....ggg...', '...lld....lld...', '...lld....lld...',
+    '...lldd...lldd..', '...llldd..llldd.', '..lllldd.lllldd.', '..sssssss.sssss.', '................', '................', '................', '................']],
+  guanti: [{ l: '#9A6A3A', d: '#6A4422', g: '#F2C14E', s: '#C9D3E6' }, [
+    '................', '.....l.l.l......', '.....l.l.l.l....', '....lllllll.l...', '....lllllllll...', '....llllllldl...', '.l..lllllllll...', '.ll.llllllldl...',
+    '..lllllllllll...', '...llllllllld...', '....lllllllld...', '....ggggggggg...', '....sssssssss...', '....ddddddddd...', '................', '................']],
+  collana: [{ g: '#F2C14E', h: '#B88A20', r: '#E2504A', w: '#FFB3B0' }, [
+    '................', '..g..........g..', '..g..........g..', '...g........g...', '...g........g...', '....g......g....', '.....g....g.....', '......gggg......',
+    '.......gg.......', '......hrrh......', '.....hrwrrh.....', '.....hrrrrh.....', '......hrrh......', '.......hh.......', '................', '................']],
+  orecchini: [{ g: '#F2C14E', h: '#B88A20', b: '#7FE3FF', w: '#E8FBFF', d: '#3E9FC0' }, [
+    '................', '...g......g.....', '..g.g....g.g....', '...g......g.....', '...g......g.....', '...h......h.....', '..bbb....bbb....', '.bwbbd..bwbbd...',
+    '.bbbbd..bbbbd...', '.bbbdd..bbbdd...', '..bdd....bdd....', '...d......d.....', '................', '................', '................', '................']],
+  anello: [{ g: '#F2C14E', h: '#B88A20', d: '#8A6410', b: '#B07CF0', w: '#F0E0FF', p: '#7A4AC0' }, [
+    '................', '......bbbb......', '.....bwbbbp.....', '.....bbbbpp.....', '......pppp......', '.....gghhgg.....', '....gg....hg....', '...gg......hg...',
+    '...g........h...', '...g........d...', '...gg......dh...', '....gg....dh....', '.....ghhhdd.....', '................', '................', '................']],
+  runa: [{ x: 'RUNE', l: 'RUNEL', d: 'RUNED', w: '#FFFFFF', k: '#1B1F3B' }, [
+    '................', '.......kk.......', '......kxxk......', '.....kxwlxk.....', '....kxwllxxk....', '...kxwllxxxdk...', '...kxllxxxxdk...', '..kxlxxxxxxddk..',
+    '..kxxxxxxxxddk..', '...kxxxxxxddk...', '...kxxxxxddk....', '....kxxxxddk....', '.....kxxddk.....', '......kxdk......', '.......kk.......', '................']],
+
+};
+const _ipxCache = {};
+function shade(hex, f) { const n = parseInt(hex.slice(1, 7), 16); let r = n >> 16, g = n >> 8 & 255, b = n & 255; r = Math.min(255, Math.round(r * f)); g = Math.min(255, Math.round(g * f)); b = Math.min(255, Math.round(b * f)); return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1); }
+function ipxURL(kind, runeColor) {
+  const key = kind + (runeColor || ''); if (_ipxCache[key]) return _ipxCache[key];
+  const [pal0, rows] = IPX[kind]; const pal = Object.assign({}, pal0);
+  if (runeColor) { pal.x = runeColor; pal.l = shade(runeColor, 1.45); pal.d = shade(runeColor, 0.6); }
+  const c = document.createElement('canvas'); c.width = 16; c.height = 16; const g = c.getContext('2d');
+  rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) { const col = pal[r[x]]; if (r[x] !== '.' && col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); } } });
+  return (_ipxCache[key] = c.toDataURL());
+}
+function ipx(kind, size, runeColor) { return `<img class="ipx" src="${ipxURL(kind, runeColor)}" width="${size}" height="${size}" alt="">`; }
+
+// Immagine dell'oggetto in pixel art; la rarità resta nel bordo e nell'alone della tessera
+const itemIcon = (kind, cls, color, size) => ipx(itemIconKey(kind, cls), size || 22);
 
 // ---------- stato ----------
 let S;
@@ -302,7 +371,7 @@ function pSquadra() {
 }
 function rcls(r) { return r.rainbow ? ' rbw' : ''; }
 function itemGrid(list, empty, sellMode) {
-  return `<div class="igrid">${list.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it); return `<button class="it${selItem === it.id ? ' sel' : ''}${r.rainbow ? ' rbo' : ''}" style="border-color:${r.color}" data-act="selit" data-item="${it.id}" aria-label="${esc(F.itemName(it))}, ${r.label}, potere ${F.itemPower(it)}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b><em>${sellMode ? (prot ? 'protetto' : cfmt(F.sellValue(it)) + ' oro') : it.cls ? it.cls : F.SLOT_LABEL[it.slot]}</em>${it.isNew ? '<i>nuovo</i>' : ''}${(it.locked || (prot && sellMode)) ? `<i class="plk">${icon('lock', '#F2C14E', 10)}</i>` : ''}</button>`; }).join('') || `<div class="note" style="grid-column:1/-1">${empty}</div>`}</div>`;
+  return `<div class="igrid">${list.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it); return `<button class="it${selItem === it.id ? ' sel' : ''}${r.rainbow ? ' rbo' : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selit" data-item="${it.id}" aria-label="${esc(F.itemName(it))}, ${r.label}, potere ${F.itemPower(it)}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b><em>${sellMode ? (prot ? 'protetto' : cfmt(F.sellValue(it)) + ' oro') : it.cls ? it.cls : F.SLOT_LABEL[it.slot]}</em>${it.isNew ? '<i>nuovo</i>' : ''}${(it.locked || (prot && sellMode)) ? `<i class="plk">${icon('lock', '#F2C14E', 10)}</i>` : ''}</button>`; }).join('') || `<div class="note" style="grid-column:1/-1">${empty}</div>`}</div>`;
 }
 const byPower = l => l.slice().sort((a, b) => F.itemPower(b) - F.itemPower(a));
 function itemDetail(it, where) {
@@ -321,7 +390,7 @@ function itemDetail(it, where) {
 }
 let selRune = null, selShop = null;
 function runeTiles() {
-  return `<div class="igrid">${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<button class="it${selRune === k ? ' sel' : ''}" style="border-color:${r.color}" data-act="selrune" data-k="${k}" aria-label="${r.label}: ${S.runes[k]}">${icon('rune', r.color, 22)}<b>${fmt(S.runes[k])}</b><em>${r.label.replace('Runa ', '')}</em></button>`; }).join('')}</div>`;
+  return `<div class="igrid">${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<button class="it${selRune === k ? ' sel' : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selrune" data-k="${k}" aria-label="${r.label}: ${S.runes[k]}">${icon('rune', r.color, 22)}<b>${fmt(S.runes[k])}</b><em>${r.label.replace('Runa ', '')}</em></button>`; }).join('')}</div>`;
 }
 function runeDetail(k) {
   const r = F.RUNE[k], n = S.runes[k], nr = F.ITEM_RARITY.find(x => x.key === k);
