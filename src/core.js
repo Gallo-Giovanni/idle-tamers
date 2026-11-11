@@ -481,10 +481,10 @@ function sellItem(s, itemId) { const i = s.inventory.findIndex(x => x.id === ite
 // Rune: ognuna porta un oggetto alla sua rarità (dalla rarità precedente), si vendono per Astri e potenziano gli slot
 const RUNE_KEYS = ['leggendaria', 'epica', 'rara', 'noncomune']; // dal più raro, per il tiro del drop
 const RUNE = {
-  noncomune:   { label: 'Runa verde',     color: '#6CCB5F', from: 'comune',    value: 1 },
-  rara:        { label: 'Runa blu',       color: '#5B9BFF', from: 'noncomune', value: 2 },
-  epica:       { label: 'Runa viola',     color: '#B07CF0', from: 'rara',      value: 4 },
-  leggendaria: { label: 'Runa arancione', color: '#F2994A', from: 'epica',     value: 8 },
+  noncomune:   { label: 'Runa verde',     color: '#6CCB5F', from: 'comune',    value: 2 },
+  rara:        { label: 'Runa blu',       color: '#5B9BFF', from: 'noncomune', value: 5 },
+  epica:       { label: 'Runa viola',     color: '#B07CF0', from: 'rara',      value: 10 },
+  leggendaria: { label: 'Runa arancione', color: '#F2994A', from: 'epica',     value: 15 },
 };
 // probabilità per nemico (provvisorie, da tarare sui dati reali)
 const RUNE_DROP = { noncomune: 0.0004, rara: 0.00015, epica: 0.00005, leggendaria: 0.00001 };
@@ -497,7 +497,7 @@ function slotRune(l) { return l < 4 ? 'noncomune' : l < 7 ? 'rara' : l < 9 ? 'ep
 function slotCost(l) { return 1; }
 function upgradeSlot(s, id, sl) { const m = s.roster[id]; if (!m) return false; const l = m.slv[sl] || 0, k = slotRune(l); if (l >= 10 || s.runes[k] < 1) return false; s.runes[k] -= 1; m.slv[sl] = l + 1; return true; }
 // Rune in vendita nello Shop per Astri (10 volte il valore di vendita, provvisorio)
-const RUNE_BUY = { noncomune: 10, rara: 20, epica: 40, leggendaria: 80 };
+const RUNE_BUY = { noncomune: 20, rara: 50, epica: 100, leggendaria: 150 };
 function buyRune(s, k) { const c = RUNE_BUY[k]; if (!c || s.astri < c) return false; s.astri -= c; s.runes[k]++; return true; }
 function sellRunes(s, k, n) { n = Math.min(n, s.runes[k]); s.runes[k] -= n; const g = n * RUNE[k].value; s.astri += g; return g; }
 // Negozio: 6 oggetti, rinnovati alle 0, 8 e 16 (ora locale), rarità con le stesse probabilità dei drop
