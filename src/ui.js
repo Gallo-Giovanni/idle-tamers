@@ -366,7 +366,8 @@ function pSquadra() {
   <div class="note">L'ordine conta: chi sta più in alto riceve per primo l'equipaggiamento.</div>
   ${S.team.map((id, i) => memberRow(id, true, i)).join('')}
   ${n < slots ? `<div class="card free">Posto libero: aggiungi una creatura dalla riserva o catturane una nuova.</div>` : ''}
-  ${F.nextSlotZone(S) ? `<div class="lockgrid"><div class="lk">${icon('lock', '#7C84BC', 16)}<span>Nuovo posto: sconfiggi il boss della zona ${F.nextSlotZone(S)} o accendi la stella Corona</span></div></div>` : ''}
+  ${(() => { const can = F.slotsBuyable(S), price = F.nextSlotPrice(S); if (F.slotCount(S) >= F.CREATURE_SLOTS) return '';
+    return `<div class="card slotbuy"><div style="flex:1"><b>Nuovo posto in squadra</b><div class="msub">${can > 0 ? `Sbloccato dalla zona completata: compralo con l'oro.` : price ? `Il prossimo si sblocca completando la zona ${(S.boughtSlots || 0) + 1}.` : 'Altri posti gratis con le zone 10 e 20.'}${F.nextSlotZone(S) ? ` Posto gratis alla zona ${F.nextSlotZone(S)}.` : ''}</div></div>${price ? `<button class="pb" data-act="buyslot" ${can < 1 || S.gold < price ? 'disabled' : ''}>${can < 1 ? icon('lock', '#1B1F3B', 12) + ' ' : ''}${cfmt(price)}<br><small>oro</small></button>` : ''}</div>`; })()}
   ${reserve.length ? `<div class="ph"><h2>Riserva</h2><span>${reserve.length}</span></div>${reserve.map(id => memberRow(id, false)).join('')}` : ''}`;
 }
 function rcls(r) { return r.rainbow ? ' rbw' : ''; }
@@ -762,6 +763,7 @@ document.addEventListener('click', e => {
   else if (a === 'givegold') { S.gold += +t.dataset.v; toast(`+${cfmt(+t.dataset.v)} oro`, '#F2C14E'); }
   else if (a === 'giveastri') { S.astri += +t.dataset.v; toast(`+${fmt(+t.dataset.v)} Astri`, '#F49AC1'); }
   else if (a === 'selstar') selStar = t.dataset.k;
+  else if (a === 'buyslot') { if (F.buySlot(S)) { toast('Nuovo posto in squadra!', '#F2C14E'); rebuild(); } }
   else if (a === 'buygold') { const g = F.buyGold(S, +t.dataset.i); if (g) toast(`+${cfmt(g)} oro`, '#F2C14E'); }
   else if (a === 'buyspace') { if (F.buySpace(S, t.dataset.k)) toast(`+${F.SPACE_PACK.n} posti ${t.dataset.k === 'bag' ? 'nello zaino' : 'nel forziere'}`, '#F2C14E'); }
   else if (a === 'buyrune') { if (F.buyRune(S, t.dataset.k)) toast(`+1 ${F.RUNE[t.dataset.k].label.toLowerCase()}`, F.RUNE[t.dataset.k].color); }

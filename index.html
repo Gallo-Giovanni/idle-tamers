@@ -278,6 +278,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .pop .iname{font-size:13.5px!important}.pop .msub{font-size:10.5px}.pop .stbox{font-size:11.5px;padding:4px 6px;margin:4px 0}
 .pop .srow2{padding:1px 0}.pop .row2{margin:4px 0 0;gap:5px;flex-wrap:wrap}.pop .sb,.pop .pb{min-height:30px;font-size:11px;padding:0 8px}.pop select{min-height:30px;font-size:12px}
 .gold3{grid-template-columns:repeat(3,1fr)!important}.gold3 .sitem{padding:6px 4px;text-align:center;align-items:center}.gold3 b{font-size:14px}.gold3 span{font-size:10px}
+.slotbuy{display:flex;align-items:center;gap:10px;border-color:#F2C14E66}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -420,7 +421,6 @@ const TREE = {
   saggezza: { name: 'Saggezza', desc: 'Esperienza +5% per livello', max: 20, cost: starCost(800, 2.4) },
   commercio:{ name: 'Commercio', desc: 'Oro dalla vendita degli oggetti +10% per livello', max: 10, cost: starCost(600, 3) },
   cometa:   { name: 'Cometa',   desc: 'Velocità di movimento della squadra +5% per livello', max: 10, cost: starCost(1000, 3) },
-  corona:   { name: 'Corona',   desc: '+1 posto in squadra per livello', max: 4, cost: l => [50000, 2000000, 80000000, 3000000000][l] },
   richiamo: { name: 'Richiamo', desc: 'Probabilità di cattura +5% per livello (max +50%)', max: 10, cost: starCost(2000, 3) },
 };
 
@@ -434,7 +434,6 @@ const STARMAP = {
   tesoro:   { x: 50, y: 16, req: ['forza', 8], ic: '◈' },
   saggezza: { x: 17, y: 12, req: ['tesoro', 3], ic: '✎' },
   commercio:{ x: 83, y: 12, req: ['tesoro', 3], ic: '⚖' },
-  corona:   { x: 50, y: 69, req: ['forza', 10], ic: '♛' },
   cometa:   { x: 15, y: 85, req: ['branco', 5], ic: '☄' },
   richiamo: { x: 50, y: 87, req: ['lama', 5], ic: '✧' },
   furia:    { x: 85, y: 85, req: ['lama', 5], ic: '✸' },
@@ -473,7 +472,7 @@ function newState() {
     v: 1, seed: (Date.now() % 2147483647) >>> 0,
     gold: 0, runes: { noncomune: 0, rara: 0, epica: 0, leggendaria: 0, mitico: 0, astrale: 0, arcano: 0 }, astri: 0, shop: null, zone: 1, maxZone: 1, cleared: 0, battle: 1, maxBattle: 1, maxGlobal: 1,
     team: ['hero'], roster: { hero: newMember('hero', 1) }, inventory: [], chest: [], rareLog: [], nextId: 1,
-    tree: { forza: 0, vita: 0, branco: 0, scudo: 0, lama: 0, furia: 0, tesoro: 0, saggezza: 0, commercio: 0, cometa: 0, richiamo: 0, corona: 0 },
+    tree: { forza: 0, vita: 0, branco: 0, scudo: 0, lama: 0, furia: 0, tesoro: 0, saggezza: 0, commercio: 0, cometa: 0, richiamo: 0 },
     hunt: {}, // uccisioni per specie non ancora catturata
     stats: { kills: 0, gold: 0, items: 0, legendary: 0, wins: 0, losses: 0, played: 0, perMin: [] },
     ach: {}, settings: { autoEquip: false, test: false }, lastSeen: Date.now(),
@@ -485,12 +484,17 @@ function newMember(species, lvl) {
 function capturedCount(s) { return ALL_SPECIES.filter(k => s.roster[k]).length; }
 // Squadra: 4 posti per le creature; gli eroi (Guerriero gratis, gli altri dal negozio) non occupano posti
 // Si parte con 4 posti (eroi esclusi); ogni boss indicato sblocca un posto in più
-let SLOT_UNLOCKS = [5, 10, 15, 20]; // +1 posto ogni 5 zone (15 e 20 arriveranno con i nuovi pianeti)
+let SLOT_UNLOCKS = [10, 20]; // posti gratis (il 20 arriverà con i nuovi pianeti)
 if (typeof process !== 'undefined' && process.env && process.env.SLOTS) SLOT_UNLOCKS = JSON.parse(process.env.SLOTS);
 const BASE_SLOTS = 4;
-const CREATURE_SLOTS = 12; // massimo: 4 di base + 4 dalle zone + 4 dalla stella Corona
+const CREATURE_SLOTS = 12; // massimo: 4 di base + 2 gratis (zone 10 e 20) + 6 da comprare
+// Ogni zona completata permette di comprare un posto in più con l'oro
+const SLOT_PRICES = [5000, 40000, 300000, 2000000, 15000000, 100000000];
+function slotsBuyable(s) { return Math.min(SLOT_PRICES.length, s.cleared) - (s.boughtSlots || 0); }
+function nextSlotPrice(s) { return SLOT_PRICES[s.boughtSlots || 0]; }
+function buySlot(s) { const c = nextSlotPrice(s); if (slotsBuyable(s) < 1 || !c || s.gold < c || slotCount(s) >= CREATURE_SLOTS) return false; s.gold -= c; s.boughtSlots = (s.boughtSlots || 0) + 1; fillTeam(s); return true; }
 function isHero(id) { return !!(SPECIES[id] && SPECIES[id].hero); }
-function slotCount(s) { return Math.min(CREATURE_SLOTS, BASE_SLOTS + SLOT_UNLOCKS.filter(z => s.cleared >= z).length + (s.tree.corona || 0)); }
+function slotCount(s) { return Math.min(CREATURE_SLOTS, BASE_SLOTS + SLOT_UNLOCKS.filter(z => s.cleared >= z).length + (s.boughtSlots || 0)); }
 function nextSlotZone(s) { return SLOT_UNLOCKS.find(z => s.cleared < z && z <= MAX_ZONE) || null; }
 function creaturesInTeam(s) { return s.team.filter(id => !isHero(id)).length; }
 function teamFull(s) { return creaturesInTeam(s) >= slotCount(s); }
@@ -895,6 +899,8 @@ function migrate(s) {
   if (s.zone === undefined) { s.zone = 1; s.maxZone = 1; s.cleared = 0; s.battle = 1; s.maxBattle = 1; s.maxGlobal = 1; delete s.bossCleared; }
   if (typeof s.runes !== 'object' || s.runes === null) s.runes = { noncomune: s.runes || 0, rara: 0, epica: 0, leggendaria: 0 };
   if (s.runes.mitico === undefined) s.runes.mitico = 0; if (s.runes.astrale === undefined) s.runes.astrale = 0; if (s.runes.arcano === undefined) s.runes.arcano = 0;
+  if (s.tree.corona) { const c = [50000, 2000000, 80000000, 3000000000]; for (let l = 0; l < s.tree.corona; l++) s.gold += c[l]; }
+  delete s.tree.corona;
   for (const k in TREE) if (s.tree[k] === undefined) s.tree[k] = 0;
   if (!s.chest) s.chest = []; if (!s.rareLog) s.rareLog = [];
   delete s.settings.autoStars; delete s.settings.autoMode; delete s._nextStar;
@@ -916,7 +922,7 @@ function migrate(s) {
   return s;
 }
 
-function buyTree(s, key) { const t = TREE[key], l = s.tree[key]; if (l >= t.max || !starOpen(s, key)) return false; const c = t.cost(l); if (s.gold < c) return false; s.gold -= c; s.tree[key]++; s._nextStar = 0; if (key === 'corona') fillTeam(s); return true; }
+function buyTree(s, key) { const t = TREE[key], l = s.tree[key]; if (l >= t.max || !starOpen(s, key)) return false; const c = t.cost(l); if (s.gold < c) return false; s.gold -= c; s.tree[key]++; s._nextStar = 0; return true; }
 function resetTree(s) { let back = 0; for (const k in TREE) { for (let l = 0; l < s.tree[k]; l++) back += TREE[k].cost(l); s.tree[k] = 0; } s.gold += back; s._nextStar = 0; trimTeam(s); return back; }
 function trimTeam(s) { const keep = []; let n = 0; for (const id of s.team) { if (isHero(id)) keep.push(id); else if (n < slotCount(s)) { keep.push(id); n++; } } s.team = keep; }
 function fillTeam(s) { const res = Object.keys(s.roster).filter(id => !s.team.includes(id) && !isHero(id)).sort((a, c) => s.roster[c].lvl - s.roster[a].lvl); while (res.length && !teamFull(s)) s.team.push(res.shift()); }
@@ -958,7 +964,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
@@ -1334,7 +1340,8 @@ function pSquadra() {
   <div class="note">L'ordine conta: chi sta più in alto riceve per primo l'equipaggiamento.</div>
   ${S.team.map((id, i) => memberRow(id, true, i)).join('')}
   ${n < slots ? `<div class="card free">Posto libero: aggiungi una creatura dalla riserva o catturane una nuova.</div>` : ''}
-  ${F.nextSlotZone(S) ? `<div class="lockgrid"><div class="lk">${icon('lock', '#7C84BC', 16)}<span>Nuovo posto: sconfiggi il boss della zona ${F.nextSlotZone(S)} o accendi la stella Corona</span></div></div>` : ''}
+  ${(() => { const can = F.slotsBuyable(S), price = F.nextSlotPrice(S); if (F.slotCount(S) >= F.CREATURE_SLOTS) return '';
+    return `<div class="card slotbuy"><div style="flex:1"><b>Nuovo posto in squadra</b><div class="msub">${can > 0 ? `Sbloccato dalla zona completata: compralo con l'oro.` : price ? `Il prossimo si sblocca completando la zona ${(S.boughtSlots || 0) + 1}.` : 'Altri posti gratis con le zone 10 e 20.'}${F.nextSlotZone(S) ? ` Posto gratis alla zona ${F.nextSlotZone(S)}.` : ''}</div></div>${price ? `<button class="pb" data-act="buyslot" ${can < 1 || S.gold < price ? 'disabled' : ''}>${can < 1 ? icon('lock', '#1B1F3B', 12) + ' ' : ''}${cfmt(price)}<br><small>oro</small></button>` : ''}</div>`; })()}
   ${reserve.length ? `<div class="ph"><h2>Riserva</h2><span>${reserve.length}</span></div>${reserve.map(id => memberRow(id, false)).join('')}` : ''}`;
 }
 function rcls(r) { return r.rainbow ? ' rbw' : ''; }
@@ -1513,7 +1520,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 20:58</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 21:02</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -1730,6 +1737,7 @@ document.addEventListener('click', e => {
   else if (a === 'givegold') { S.gold += +t.dataset.v; toast(`+${cfmt(+t.dataset.v)} oro`, '#F2C14E'); }
   else if (a === 'giveastri') { S.astri += +t.dataset.v; toast(`+${fmt(+t.dataset.v)} Astri`, '#F49AC1'); }
   else if (a === 'selstar') selStar = t.dataset.k;
+  else if (a === 'buyslot') { if (F.buySlot(S)) { toast('Nuovo posto in squadra!', '#F2C14E'); rebuild(); } }
   else if (a === 'buygold') { const g = F.buyGold(S, +t.dataset.i); if (g) toast(`+${cfmt(g)} oro`, '#F2C14E'); }
   else if (a === 'buyspace') { if (F.buySpace(S, t.dataset.k)) toast(`+${F.SPACE_PACK.n} posti ${t.dataset.k === 'bag' ? 'nello zaino' : 'nel forziere'}`, '#F2C14E'); }
   else if (a === 'buyrune') { if (F.buyRune(S, t.dataset.k)) toast(`+1 ${F.RUNE[t.dataset.k].label.toLowerCase()}`, F.RUNE[t.dataset.k].color); }
