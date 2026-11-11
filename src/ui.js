@@ -9,6 +9,20 @@ const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 
 // ---------- sprite pixel art ----------
 const SPR = {
+  fiorastro: [{ P: '#F49AC1', Q: '#D9669C', Y: '#FFE27A', G: '#5A9E6F', H: '#3F7A52', K: '#1B1F3B', W: '#FFFFFF' }, ['....PP.PP....', '...PQPPPQP...', '..PPPYYYPPP..', '...PYKYKYP...', '..PPYYYYYPP..', '...PQPPPQP...', '....PP.PP....', '......G......', '...HH.G.HH...', '....HHGHH....', '......G......', '....GGGGG....']],
+  polvino: [{ L: '#C9C2E6', D: '#9A92C0', W: '#FFFFFF', K: '#1B1F3B', P: '#F49AC1', Y: '#FFE27A' }, ['..L.......L..', '.LDL.....LDL.', '.LDL.....LDL.', '..LLLLLLLLL..', '.LLLLLLLLLLL.', 'LLLWKLLLWKLLL', 'LLLKKLLLKKLLL', 'LLPLLLYLLLPLL', '.LLLLLLLLLLL.', '..LLLLLLLLL..', '..DD.....DD..']],
+  meteorino: [{ R: '#E2504A', O: '#F28B3C', Y: '#FFE27A', S: '#7A6E66', T: '#5A504A', K: '#1B1F3B', W: '#FFFFFF' }, ['Y............', 'YO...........', '.OR..........', '..ORR.SSSS...', '...RSSSSSSS..', '....SSWKSWKS.', '...SSSKKSKKS.', '...SSSSSSSSS.', '...STSSSTSSS.', '....SSSSSSS..', '.....SSSSS...', '.....T...T...']],
+  radichino: [{ B: '#8A5A2B', D: '#5E3A1A', G: '#7ED36F', H: '#4E9A4A', K: '#1B1F3B', W: '#FFFFFF' }, ['.....G.G.....', '....GHGHG....', '.....GGG.....', '...BBBBBBB...', '..BBBBBBBBB..', '.BBWKBBBWKBB.', '.BBKKBBBKKBB.', '.BBBBBBBBBBB.', '.BBDBBDBBDBB.', '..BBBBBBBBB..', '.D.D.D.D.D.D.', 'D..D..D..D..D']],
+  lucciolo: [{ Y: '#FFE27A', L: '#FFF6C0', B: '#3E6FD8', D: '#2A4A9A', W: '#BFE8FF', K: '#1B1F3B' }, ['..W.......W..', '.WWW.....WWW.', 'WWWWW...WWWWW', '.WWW.BBB.WWW.', '....BBBBB....', '...BBKBKBB...', '...BBBBBBB...', '....DBBBD....', '....YYYYY....', '...YYLLLYY...', '...YYLLLYY...', '....YYYYY....']],
+  pipistrella: [{ V: '#6A3FB8', D: '#432580', P: '#F49AC1', W: '#FFFFFF', K: '#1B1F3B', Y: '#FFE27A' }, ['....V...V....', '....VV.VV....', 'V...VVVVV...V', 'VV.VVWVWVV.VV', 'VVVVVKVKVVVVV', 'VDVVVVVVVVVDV', 'D.DVVVPVVVD.D', '...DVVVVVD...', '....DVVVD....', '.....Y.Y.....']],
+  orbo: [{ C: '#B07CF0', D: '#7A4AC0', W: '#FFFFFF', B: '#5BD8E6', K: '#1B1F3B', Y: '#FFE27A' }, ['.Y.........Y.', '..Y..CCC..Y..', '....CCCCC....', '...CCWWWCC...', '..CCWWBBWWCC.', '..CWWBKKBWWC.', '..CWWBKKBWWC.', '..CCWWBBWWCC.', '...CCWWWCC...', '....DCCCD....', '...D.D.D.D...', '..D..D.D..D..']],
+  brinello: [{ W: '#E8FBFF', C: '#9FE6FF', D: '#5BB8E0', K: '#1B1F3B', P: '#F49AC1' }, ['......W......', '...W..C..W...', '....WCCCW....', '..WCCCCCCCW..', '...CCCCCCC...', '..CCKCCCKCC..', '..CCCCCCCCC..', '..CCPCCCPCC..', '...CCCCCCC...', '....DCCCD....', '...D.....D...']],
+  stalagmo: [{ G: '#8E9AB8', D: '#5E6A88', P: '#C08CFF', W: '#FFFFFF', K: '#1B1F3B' }, ['.....P...P...', '....PP..PP...', '...GPGGGPG...', '..GGGGGGGGG..', '.GGWKGGGWKGG.', '.GGKKGGGKKGG.', '.GGGGGGGGGGG.', 'GGDGGGDGGGDGG', 'GGGGGGGGGGGGG', '.GGG.GGG.GGG.', '.DDD.DDD.DDD.']],
+  cristallux: [{ C: '#7FE3FF', D: '#3FA0C8', W: '#FFFFFF', K: '#1B1F3B', R: '#E2504A' }, ['.....CCC.....', '....CWCCC....', '...CCCCCCC...', 'D..CRCCCRC..D', '.D.CCCCCCC.D.', '..DDCCCCCDD..', '.D..DCCCD..D.', 'D..D.D.D.D..D', '..D..D.D..D..', '.D...D.D...D.']],
+  gufolunare: [{ S: '#B8C4E8', D: '#7E8AB8', Y: '#FFE27A', K: '#1B1F3B', O: '#F28B3C', W: '#FFFFFF' }, ['..S.......S..', '..SS.....SS..', '..SSSSSSSSS..', '.SSWWSSSWWSS.', '.SWYKWSWYKWS.', '.SSWWSOSWWSS.', '.SSSSSOSSSSS.', 'DSSSSSSSSSSSD', 'DSSDSSDSSDSSD', '.SSSSSSSSSSS.', '..SSSSSSSSS..', '...O.....O...']],
+  ghiacciolo: [{ C: '#BFF1FF', D: '#7FCDE6', W: '#FFFFFF', K: '#1B1F3B', P: '#F49AC1' }, ['......W......', '.....WCW.....', '....CCCCC....', '...CCCCCCC...', '..CCWCCCWCC..', '.CCCKCCCKCCC.', '.CCCCCCCCCCC.', 'CCCPCCCCCPCCC', 'CCCCCCCCCCCCC', '.DDDDDDDDDDD.']],
+  lunella: [{ W: '#F4F7FF', S: '#C9D3E6', Y: '#FFE27A', K: '#1B1F3B', B: '#7FA8E0' }, ['...Y.....Y...', '....Y...Y....', 'WW...SSS...WW', 'WSW.SSSSS.WSW', 'WBSWSKSKSWSBW', 'WSSWSSSSSWSSW', '.WSWSSSSSWSW.', '..WWWSSSWWW..', '.WSW.SSS.WSW.', '.WW...S...WW.']],
+  riflessa: [{ M: '#E8ECFF', V: '#C08CFF', B: '#7FE3FF', K: '#1B1F3B', P: '#F49AC1', Y: '#FFE27A' }, ['.B....Y....B.', 'BBB..YYY..BBB', 'BVBB.MMM.BBVB', '.BVBMMMMMBVB.', '..BBMKMKMBB..', '....MMPMM....', '...VVMMMVV...', '..V.VVVVV.V..', '....VV.VV....', '....M...M....']],
   hero_arc: [{ R: '#7ED36F', S: '#C9D3E6', B: '#3F8F4A', K: '#1B1F3B', C: '#F2C14E', W: '#C9935A', G: '#F2C14E' }, ['....RRR.....', '...SSSSS....', '..SSSSSSS...', '..SKKKKKS...', '..SKCCCKS...', '..SSSSSSS...', '.BBBBGBBBB.W', 'BBBSBBBSBBWW', 'BB.BBBBB.BW.', 'SS.BBGBB.S..', '...BBBBB....', '...BB.BB....', '..KKK.KKK...']],
   hero_mag: [{ R: '#B07CF0', S: '#C9D3E6', B: '#6A3FB8', K: '#1B1F3B', C: '#F49AC1', W: '#7FE3FF', G: '#F2C14E' }, ['....RRR.....', '...SSSSS....', '..SSSSSSS...', '..SKKKKKS...', '..SKCCCKS...', '..SSSSSSS...', '.BBBBGBBBB.W', 'BBBSBBBSBBWW', 'BB.BBBBB.BW.', 'SS.BBGBB.S..', '...BBBBB....', '...BB.BB....', '..KKK.KKK...']],
   hero: [{ R: '#E2504A', S: '#C9D3E6', B: '#3E6FD8', K: '#1B1F3B', C: '#5BD8E6', W: '#F4F7FF', G: '#F2C14E' }, ['....RRR.....', '...SSSSS....', '..SSSSSSS...', '..SKKKKKS...', '..SKCCCKS...', '..SSSSSSS...', '.BBBBGBBBB.W', 'BBBSBBBSBBWW', 'BB.BBBBB.BW.', 'SS.BBGBB.S..', '...BBBBB....', '...BB.BB....', '..KKK.KKK...']],
@@ -161,7 +175,7 @@ function load() {
 function save() { S.lastSeen = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignora */ } }
 
 let B; // battaglia corrente (non salvata)
-let tab = 'squadra', bagView = 'zaino', dirty = true, selItem = null, selSlot = null, equipOpen = null, eqSel = null, openMember = null, confirmReset = 0, confirmTree = 0;
+let confirmRune = null, tab = 'squadra', bagView = 'zaino', dirty = true, selItem = null, selSlot = null, equipOpen = null, eqSel = null, openMember = null, confirmReset = 0, confirmTree = 0;
 
 // ---------- scena ----------
 const scene = () => $('#scene');
@@ -261,18 +275,20 @@ const capQueue = [];
 let lvlToastAt = 0;
 function handle(ev) {
   for (const e of ev) {
-    if (e.type === 'dmg') { const el = (e.side === 'p' ? pEls : eEls)[e.idx]; floatText(el, (e.crit ? 'CRIT ' : '') + cfmt(e.dmg), e.crit ? 'crit' : (e.side === 'p' ? 'hurt' : '')); }
+    if (e.type === 'dmg' && e.side === 'e') snd(e.crit ? 'crit' : 'hit');
+    if (e.type === 'dmg') { const el = (e.side === 'p' ? pEls : eEls)[e.idx]; floatText(el, cfmt(e.dmg), e.crit ? 'crit' : (e.side === 'p' ? 'hurt' : '')); }
     else if (e.type === 'atk') { lunge((e.side === 'p' ? pEls : eEls)[e.idx], e.side === 'p' ? 8 : -8); }
     else if (e.type === 'skill') { floatText(pEls[e.idx], e.name, 'skill'); }
     else if (e.type === 'heal') { floatText(pEls[e.idx], '+' + cfmt(e.h), 'heal'); }
-    else if (e.type === 'kill') { dirty = true; }
+    else if (e.type === 'kill') { snd('kill'); dirty = true; }
     else if (e.type === 'drop') { const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); if (e.item.rarity !== 'comune') toast(`Trovato: <b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${esc(F.itemName(e.item))}</b> · ${r.label}`, r.color); dirty = true; }
-    else if (e.type === 'level') { const now = Date.now(); if (now - lvlToastAt > 4000) { lvlToastAt = now; toast(`${esc(S.roster[e.id].name)} sale al livello ${e.lvl}`); } dirty = true; }
-    else if (e.type === 'capture') { capQueue.push(e.species); dirty = true; }
-    else if (e.type === 'rare') { setTimeout(shareDrops, 500); const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); banner('DROP ' + r.label.toUpperCase() + '!'); toast(`<b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}!</b> ${esc(F.itemName(e.item))}`, r.color); dirty = true; }
+    else if (e.type === 'level') { const now = Date.now(); if (now - lvlToastAt > 4000) { lvlToastAt = now; snd('level'); toast(`${esc(S.roster[e.id].name)} sale al livello ${e.lvl}`); } dirty = true; }
+    else if (e.type === 'capture') { snd('capture'); capQueue.push(e.species); dirty = true; }
+    else if (e.type === 'rare') { snd('rare'); setTimeout(shareDrops, 500); const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); banner('DROP ' + r.label.toUpperCase() + '!'); toast(`<b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}!</b> ${esc(F.itemName(e.item))}`, r.color); dirty = true; }
     else if (e.type === 'lost') { if (!window._lostAt || Date.now() - window._lostAt > 20000) { window._lostAt = Date.now(); toast('<b style="color:#FF8A96">Zaino pieno:</b> gli oggetti nuovi vanno persi', '#FF8A96'); } }
     else if (e.type === 'rune') { const r = F.RUNE[e.rune]; toast(`${icon('rune', r.color, 14)} +${e.n} <b style="color:${r.color}">${r.label}</b>`, r.color); dirty = true; }
     else if (e.type === 'unlock') { toast(e.text, '#F2C14E'); dirty = true; }
+    else if (e.type === 'zonetime') { const m = Math.floor(e.t / 60), sec = Math.round(e.t % 60); toast(`Zona ${e.zone} completata in <b>${m}:${String(sec).padStart(2, '0')}</b>${e.best ? ' · nuovo record!' : ''}`, '#F2C14E'); }
     else if (e.type === 'battle') { buildScene(); banner(e.result === 'win' ? (S.battle === F.BOSS_BATTLE ? 'BOSS: ' + F.SPECIES[F.ZONES[S.zone].boss].name.toUpperCase() : (S.battle === 1 ? 'ZONA ' + S.zone + ' · ' : '') + 'BATTAGLIA ' + S.battle) : 'SCONFITTA · SI RIPARTE DALLA BATTAGLIA 1'); dirty = true; }
   }
 }
@@ -289,10 +305,27 @@ function hud() {
 
 // ---------- pannelli ----------
 const CC = c => F.CLASSES[c].color;
+// ---------- suoni (sintetizzati, niente file da scaricare) ----------
+let actx = null; const sndAt = {};
+function snd(kind) {
+  if (S.settings.sound === false || document.hidden) return;
+  const now = performance.now(), gap = { hit: 120, crit: 150, kill: 90, coin: 200 }[kind] || 0; if (gap && now - (sndAt[kind] || 0) < gap) return; sndAt[kind] = now;
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) { return; }
+  const t = actx.currentTime, vol = (S.settings.volume ?? 0.5) * 0.25;
+  const tone = (f, d, type, v, at, f2) => { const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.setValueAtTime(f, t + at); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + at + d); g.gain.setValueAtTime(0.0001, t + at); g.gain.exponentialRampToValueAtTime(v * vol, t + at + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + at + d); o.connect(g).connect(actx.destination); o.start(t + at); o.stop(t + at + d + 0.02); };
+  if (kind === 'hit') tone(180, 0.06, 'square', 0.25, 0, 90);
+  else if (kind === 'crit') { tone(520, 0.08, 'square', 0.35, 0, 260); tone(880, 0.06, 'triangle', 0.25, 0.02); }
+  else if (kind === 'kill') tone(300, 0.1, 'triangle', 0.3, 0, 120);
+  else if (kind === 'coin') { tone(988, 0.07, 'square', 0.18, 0); tone(1319, 0.12, 'square', 0.18, 0.06); }
+  else if (kind === 'level') [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.14, 'triangle', 0.35, i * 0.08));
+  else if (kind === 'rare') [659, 784, 988, 1319, 1568].forEach((f, i) => tone(f, 0.18, 'square', 0.3, i * 0.07));
+  else if (kind === 'capture') [392, 523, 659, 784, 659, 1047].forEach((f, i) => tone(f, 0.15, 'triangle', 0.4, i * 0.09));
+  else if (kind === 'click') tone(660, 0.03, 'square', 0.12, 0);
+}
 function synergyHTML() {
-  const cc = F.classCounts(S);
-  const chips = Object.keys(cc).map(c => { const n = cc[c], lv = n >= 6 ? '+40%' : n >= 4 ? '+25%' : n >= 2 ? '+10%' : ''; return `<span class="chip"><i style="background:${CC(c)}"></i>${c} ${n}${lv ? ` <em>${lv}</em>` : ''}</span>`; }).join('');
-  return `<div class="chips">${chips}</div><div class="note">Bonus di classe con 2, 4 e 6 membri della stessa classe.</div>`;
+  const cc = F.classCounts(S), all = Object.values(cc).every(x => x > 0);
+  const chips = Object.keys(cc).map(c => { const n = cc[c], v = F.SYN_SAME.find(([k]) => n >= k); return `<span class="chip"><i style="background:${CC(c)}"></i>${c} ${n}${v ? ` <em>+${Math.round(v[1] * 100)}%</em>` : ''}</span>`; }).join('');
+  return `<div class="chips">${chips}<span class="chip${all ? '' : ' off'}">${all ? '★' : '☆'} Tutte le classi <em>${all ? '+' + Math.round(F.SYN_ALL * 100) + '%' : ''}</em></span></div><div class="note">Classi uguali: +5% con 2, +12% con 4, +20% con 6 (vita e attacco). Con tutte e 5 le classi in squadra: +8% a tutti.</div>`;
 }
 // Statistiche di un oggetto, in stile scheda
 function statsHTML(it, lv) {
@@ -363,6 +396,7 @@ function pSquadra() {
   const slots = F.slotCount(S), n = F.creaturesInTeam(S);
   const reserve = Object.keys(S.roster).filter(id => !S.team.includes(id));
   return `<div class="ph"><h2>Squadra</h2><span>creature ${n}/${slots} (max ${F.CREATURE_SLOTS}) · eroi esclusi</span></div>
+  ${synergyHTML()}
   <div class="note">L'ordine conta: chi sta più in alto riceve per primo l'equipaggiamento.</div>
   ${S.team.map((id, i) => memberRow(id, true, i)).join('')}
   ${n < slots ? `<div class="card free">Posto libero: aggiungi una creatura dalla riserva o catturane una nuova.</div>` : ''}
@@ -459,6 +493,8 @@ function pNegozio() {
   <div class="row2"><label for="prot">Tieni sempre</label><select id="prot" data-act="prot">${F.ITEM_RARITY.slice(1).map((r, k) => `<option value="${r.key}" ${pi === k + 1 ? 'selected' : ''}>da ${r.label} in su</option>`).join('')}<option value="none" ${pi >= F.ITEM_RARITY.length ? 'selected' : ''}>Nessuna protezione</option></select></div>
   <button class="sb wide" data-act="sellrest">Vendi tutto ciò che non migliora nessuno</button>
   ${itemGrid(byPower(S.inventory), 'Zaino vuoto.', true)}
+  ${(S.sold || []).length ? `<div class="ph"><h2 style="font-size:13px">Riacquista</h2><span>ultimi 10 venduti, allo stesso prezzo</span></div>
+  ${S.sold.map((e, i) => { const r = F.ITEM_RARITY.find(x => x.key === e.it.rarity); return `<div class="card srow"><div style="display:flex;align-items:center;gap:8px">${itemIcon(e.it.slot, e.it.cls, r.color, 22)}<div><b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${esc(F.itemName(e.it))}</b><div class="msub">${r.label} · Lv ${F.itemLevel(e.it)}</div></div></div><button class="sb" data-act="buyback" data-i="${i}" ${S.gold < e.g || S.inventory.length >= F.bagCap(S) ? 'disabled' : ''}>${cfmt(e.g)} oro</button></div>`; }).join('')}` : ''}
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio · tocca per vendere</span></div>
   ${runeTiles()}`;
 }
@@ -567,6 +603,8 @@ function pAltro() {
   <div class="ph"><h2>Achievement</h2><span>${Object.keys(S.ach).length}/${F.ACH.length}</span></div>
   ${F.ACH.map(a => `<div class="card arow${S.ach[a.id] ? ' done' : ''}">${S.ach[a.id] ? icon('check', '#7ED36F', 20) : icon('lock', '#7C84BC', 20)}<div><b>${a.name}</b><div class="msub">${a.desc} · +${a.astri} Astri</div></div></div>`).join('')}
   <div class="ph"><h2>Impostazioni</h2></div>
+  <label class="tg"><input type="checkbox" data-act="sound" ${S.settings.sound !== false ? 'checked' : ''}> Suoni</label>
+  <div class="row2"><label for="vol">Volume</label><input id="vol" type="range" min="0" max="1" step="0.1" value="${S.settings.volume ?? 0.5}" data-act="vol" style="flex:1"></div>
   <label class="tg"><input type="checkbox" data-act="test" ${S.settings.test ? 'checked' : ''}> Modalità test: velocità ×5 e catture ×200</label>
   <div class="ph"><h2>Strumenti di test</h2></div>
   <div class="note">Fa avanzare il gioco come se fosse passato questo tempo (senza il limite di ore offline).</div>
@@ -784,10 +822,11 @@ document.addEventListener('click', e => {
   else if (a === 'sell') { F.sellItem(S, item); selItem = null; }
   else if (a === 'equip') { selSlot = null; eqSel = null; showEquip(id); return; }
   else if (a === 'selslot') { const v = id + ':' + t.dataset.slot; selSlot = selSlot === v ? null : v; }
-  else if (a === 'slotup') { if (F.upgradeSlot(S, id, t.dataset.slot)) rebuild(); }
+  else if (a === 'slotup') { if (confirmRune !== 'slot' + id + t.dataset.slot) { confirmRune = 'slot' + id + t.dataset.slot; toast('Tocca di nuovo per usare la runa', '#F2C14E'); setTimeout(() => { confirmRune = null; }, 3000); return; } confirmRune = null; if (F.upgradeSlot(S, id, t.dataset.slot)) rebuild(); }
   else if (a === 'sellrune1') { F.sellRunes(S, t.dataset.k, 1); }
   else if (a === 'sellruneall') { const g = F.sellRunes(S, t.dataset.k, S.runes[t.dataset.k]); toast(`+${g} Astri`); }
-  else if (a === 'raise') { const it = S.inventory.find(x => x.id === item); if (it && F.raiseRarity(S, it)) { toast(`Rarità migliorata: ${esc(F.itemName(it))}`, F.ITEM_RARITY.find(x => x.key === it.rarity).color); if (S.settings.autoEquip) F.autoEquip(S); } }
+  else if (a === 'raise' && confirmRune !== 'raise' + item) { confirmRune = 'raise' + item; toast('Tocca di nuovo per usare la runa', '#F2C14E'); setTimeout(() => { confirmRune = null; }, 3000); return; }
+  else if (a === 'raise') { confirmRune = null; const it = S.inventory.find(x => x.id === item); if (it && F.raiseRarity(S, it)) { toast(`Rarità migliorata: ${esc(F.itemName(it))}`, F.ITEM_RARITY.find(x => x.key === it.rarity).color); if (S.settings.autoEquip) F.autoEquip(S); } }
   else if (a === 'buy') { if (F.buyShop(S, +t.dataset.i)) toast('Acquistato: lo trovi nello zaino'); }
   else if (a === 'reroll') { selShop = null; if (F.rerollShop(S)) toast('Il mercante ha cambiato la merce', '#F49AC1'); }
   else if (a === 'skip') { skipTime(+t.dataset.h); return; }
@@ -802,6 +841,7 @@ document.addEventListener('click', e => {
   else if (a === 'skybuy') { if (F.skyBuy(S, +t.dataset.id)) { const o = F.SKY[+t.dataset.id]; toast(`${o.ic} ${o.label} ${fmtPct(o.kind, o.v)}`, o.special ? '#FFFFFF' : F.SKY_SECTORS[o.sec].color); rebuild(); } }
   else if (a === 'skyzoom') { skyView.k = Math.max(10, Math.min(90, skyView.k * +t.dataset.z)); }
   else if (a === 'skycenter') { skyView = { x: 0, y: 0, k: 34 }; }
+  else if (a === 'buyback') { if (F.buyBack(S, +t.dataset.i)) toast('Oggetto riacquistato', '#7ED36F'); }
   else if (a === 'buyslot') { if (F.buySlot(S)) { toast('Nuovo posto in squadra!', '#F2C14E'); rebuild(); } }
   else if (a === 'buygold') { const g = F.buyGold(S, +t.dataset.i); if (g) toast(`+${cfmt(g)} oro`, '#F2C14E'); }
   else if (a === 'buyspace') { if (F.buySpace(S, t.dataset.k)) toast(`+${F.SPACE_PACK.n} posti ${t.dataset.k === 'bag' ? 'nello zaino' : 'nel forziere'}`, '#F2C14E'); }
@@ -815,7 +855,7 @@ document.addEventListener('click', e => {
   else if (a === 'capadd') { F.addToTeam(S, id); rebuild(); closeModal(); }
   else if (a === 'share') { const m = S.roster[id], d = F.SPECIES[m.species]; const txt = `Ho catturato ${m.name} (${F.RARITY[d.rarity].label}, ${d.cls}) in Frontiera Arcana dopo ${fmt(m.waitKills)} incontri!`; try { navigator.clipboard.writeText(txt).then(() => { t.textContent = 'Copiato!'; }, () => { t.textContent = 'Copia non riuscita'; }); } catch (err) { t.textContent = 'Copia non riuscita'; } return; }
   else if (a === 'close') { closeModal(); }
-  else if (a === 'lockm' || a === 'autoeq' || a === 'test' || a === 'minr' || a === 'prot') return; // gestiti da change
+  else if (a === 'lockm' || a === 'autoeq' || a === 'test' || a === 'minr' || a === 'prot' || a === 'sound' || a === 'vol') return; // gestiti da change
   if (a === 'tree' || a === 'treereset') { /* stelle cambiano le statistiche */ B.party.forEach(() => {}); }
   save(); render(); if (equipOpen && !$('#modal').hidden) { const y = $('#modal .mod') ? $('#modal .mod').scrollTop : 0; showEquip(equipOpen); if ($('#modal .mod')) $('#modal .mod').scrollTop = y; }
 });
@@ -825,6 +865,8 @@ document.addEventListener('change', e => {
   if (a === 'autoeq') { S.settings.autoEquip = t.checked; if (t.checked) F.autoEquip(S); }
   if (a === 'test') S.settings.test = t.checked;
   if (a === 'minr') S.settings.minRarity = t.value;
+  if (a === 'sound') { S.settings.sound = t.checked; if (t.checked) snd('coin'); }
+  if (a === 'vol') { S.settings.volume = +t.value; snd('coin'); }
   if (a === 'prot') { S.settings.protect = t.value; dirty = true; }
   save(); render(); hud();
 });

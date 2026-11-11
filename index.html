@@ -300,6 +300,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:10.5px;color:var(--muted);margin:4px 0}.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px}
 .skysum{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--muted)}.skysum b{color:var(--gold)}
 .skypulse{animation:skyp 1.4s ease-in-out infinite}@keyframes skyp{50%{opacity:.1}}
+.chip.off{opacity:.5}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -356,10 +357,10 @@ const CLASSES = {
 };
 
 const RARITY = {
-  comune:      { label: 'Comune',      weight: 3,   p: 1 / 6000 },
-  noncomune:   { label: 'Non comune',  weight: 1.5, p: 1 / 12000 },
-  rara:        { label: 'Rara',        weight: 0.6, p: 1 / 15000 },
-  boss:        { label: 'Boss',        weight: 0,   p: 1 / 14000 },
+  comune:      { label: 'Comune',      weight: 3,   p: 1 / 2500 },
+  noncomune:   { label: 'Non comune',  weight: 1.5, p: 1 / 6000 },
+  rara:        { label: 'Rara',        weight: 0.6, p: 1 / 12000 },
+  boss:        { label: 'Boss',        weight: 0,   p: 1 / 8000 },
 };
 
 const SPECIES = {
@@ -379,25 +380,34 @@ const SPECIES = {
   gemmerla:  { name: 'Gemmerla',  cls: 'Arciere',   rarity: 'noncomune', quote: 'Ogni mia piuma è una freccia di cristallo.' },
   quarzillo: { name: 'Quarzillo', cls: 'Tank',      rarity: 'noncomune', quote: 'Piccolo golem, grande abbraccio.' },
   prismella: { name: 'Prismella', cls: 'Mago',      rarity: 'rara',      quote: 'Spezzo la luce in sette colori, e i nemici in sette pezzi.' },
+  fiorastro: { name: 'Fiorastro', cls: 'Curatore', rarity: 'comune', quote: "Ogni petalo è una piccola stella. Ne regalo uno a te." },
+  polvino: { name: 'Polvino', cls: 'Arciere', rarity: 'comune', quote: "Sono fatto di polvere di cometa. Non soffiare!" },
+  meteorino: { name: 'Meteorino', cls: 'Guerriero', rarity: 'comune', quote: "Sono caduto dal cielo e mi è piaciuto." },
+  radichino: { name: 'Radichino', cls: 'Tank', rarity: 'noncomune', quote: "Metto radici dove serve: davanti a te." },
+  lucciolo: { name: 'Lucciolo', cls: 'Mago', rarity: 'noncomune', quote: "Faccio luce anche nelle notti più buie." },
+  pipistrella: { name: 'Pipistrella', cls: 'Arciere', rarity: 'noncomune', quote: "Volo al contrario, così vedo il mondo dritto." },
+  orbo: { name: 'Orbo', cls: 'Mago', rarity: 'rara', quote: "Ti osservo da sempre. Con affetto." },
+  brinello: { name: 'Brinello', cls: 'Mago', rarity: 'comune', quote: "Un fiocco di neve con un carattere frizzante." },
+  stalagmo: { name: 'Stalagmo', cls: 'Tank', rarity: 'comune', quote: "Cresco di un millimetro all'anno. Ma che millimetro!" },
+  cristallux: { name: 'Cristallux', cls: 'Guerriero', rarity: 'comune', quote: "Otto zampe, otto cristalli, un solo amico." },
+  gufolunare: { name: 'Gufolunare', cls: 'Arciere', rarity: 'noncomune', quote: "Di notte vedo tutto. Di giorno pure." },
+  ghiacciolo: { name: 'Ghiacciolo', cls: 'Curatore', rarity: 'noncomune', quote: "Le mie cure sono fresche come la luna." },
+  lunella: { name: 'Lunella', cls: 'Arciere', rarity: 'comune', quote: "Danzo intorno alla luce della luna." },
+  riflessa: { name: 'Riflessa', cls: 'Mago', rarity: 'rara', quote: "Guardami bene: dentro di me ci sei tu." },
   reginaquarzo: { name: 'Regina di Quarzo', cls: 'Arciere', rarity: 'boss', quote: 'Una regina non si arrende. Sceglie solo chi servire.' },
 };
 // Pianeti e zone: 10 zone da 30 battaglie, 5 per pianeta
 const PLANETS = [
-  { name: 'Prati Stellari', zones: [1, 5], species: ['glimmo', 'cometuga', 'sporello', 'bzzt', 'astrillo', 'nebulina', 'revuoto'] },
-  { name: 'Luna di Cristallo', zones: [6, 10], species: ['scheggia', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo', 'prismella', 'reginaquarzo'] },
+  { name: 'Prati Stellari', zones: [1, 5], species: ['glimmo', 'cometuga', 'fiorastro', 'sporello', 'polvino', 'meteorino', 'bzzt', 'radichino', 'lucciolo', 'astrillo', 'pipistrella', 'nebulina', 'orbo', 'revuoto'] },
+  { name: 'Luna di Cristallo', zones: [6, 10], species: ['scheggia', 'geodino', 'brinello', 'lumispettro', 'stalagmo', 'cristallux', 'gemmerla', 'gufolunare', 'lunella', 'quarzillo', 'ghiacciolo', 'prismella', 'riflessa', 'reginaquarzo'] },
 ];
-const ZONES = [null,
-  { pool: ['glimmo', 'cometuga'], boss: 'cometuga' },
-  { pool: ['glimmo', 'cometuga', 'sporello'], boss: 'sporello' },
-  { pool: ['glimmo', 'cometuga', 'sporello', 'bzzt'], boss: 'bzzt' },
-  { pool: ['glimmo', 'cometuga', 'sporello', 'bzzt', 'astrillo'], boss: 'astrillo' },
-  { pool: ['glimmo', 'cometuga', 'sporello', 'bzzt', 'astrillo', 'nebulina'], boss: 'revuoto' },
-  { pool: ['scheggia', 'geodino'], boss: 'geodino' },
-  { pool: ['scheggia', 'geodino', 'lumispettro'], boss: 'lumispettro' },
-  { pool: ['scheggia', 'geodino', 'lumispettro', 'gemmerla'], boss: 'gemmerla' },
-  { pool: ['scheggia', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo'], boss: 'quarzillo' },
-  { pool: ['scheggia', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo', 'prismella'], boss: 'reginaquarzo' },
+// Ogni zona porta 3 creature nuove; nei combattimenti compaiono anche quelle delle zone precedenti dello stesso pianeta
+const ZONE_NEW = [null,
+  ['glimmo', 'cometuga', 'fiorastro'], ['sporello', 'polvino', 'meteorino'], ['bzzt', 'radichino', 'lucciolo'], ['astrillo', 'pipistrella', 'nebulina'], ['orbo'],
+  ['scheggia', 'geodino', 'brinello'], ['lumispettro', 'stalagmo', 'cristallux'], ['gemmerla', 'gufolunare', 'lunella'], ['quarzillo', 'ghiacciolo', 'prismella'], ['riflessa'],
 ];
+const ZONE_BOSS = [null, 'cometuga', 'sporello', 'bzzt', 'astrillo', 'revuoto', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo', 'reginaquarzo'];
+const ZONES = [null]; for (let z = 1; z <= 10; z++) { const first = z <= 5 ? 1 : 6, pool = []; for (let k = first; k <= z; k++) pool.push(...ZONE_NEW[k]); ZONES.push({ pool, boss: ZONE_BOSS[z] }); }
 const MAX_ZONE = 10;
 const ALL_SPECIES = PLANETS.flatMap(p => p.species);
 function planetOf(z) { return PLANETS.find(p => z >= p.zones[0] && z <= p.zones[1]); }
@@ -636,6 +646,9 @@ function canUse(m, it) { return (it.slot !== 'arma' && it.slot !== 'secondaria')
 // posto in cui va l'oggetto: quello libero o il più debole tra quelli del suo tipo
 function targetSlot(m, it) { let best = null, bp = Infinity; for (const sl of SLOTS) { if (kindOf(sl) !== it.slot) continue; const c = m.eq[sl], p = c ? itemPower(c) : -1; if (p < bp) { bp = p; best = sl; } } return best; }
 
+// Sinergie: bonus per classi uguali (2/4/6) e per la squadra con tutte e 5 le classi
+const SYN_SAME = [[6, 0.20], [4, 0.12], [2, 0.05]], SYN_ALL = 0.08;
+function synergy(s, cls) { const cc = classCounts(s), n = cc[cls] || 0; let v = 0; for (const [k, b] of SYN_SAME) if (n >= k) { v = b; break; } if (Object.values(cc).every(x => x > 0)) v += SYN_ALL; return v; }
 function classCounts(s) { const c = { Tank: 0, Guerriero: 0, Arciere: 0, Mago: 0, Curatore: 0 }; for (const id of s.team) c[SPECIES[s.roster[id].species].cls]++; return c; }
 
 function memberStats(s, id) {
@@ -648,6 +661,7 @@ function memberStats(s, id) {
     atk += (st.atk || 0) * sm; hp += (st.hp || 0) * sm; def += (st.def || 0) * sm;
     crit += (st.crit || 0) * sm; critDmg += (st.critDmg || 0) * sm; aspd += (st.aspd || 0) * sm; block += (st.block || 0) * sm; dodge += (st.dodge || 0) * sm;
   }
+  const syn = synergy(s, cls); hp *= 1 + syn; atk *= 1 + syn;
   hp *= 1 + B(s, 'hp');
   atk *= 1 + B(s, 'atk');
   def *= 1 + B(s, 'def');
@@ -663,7 +677,7 @@ function memberPower(s, id) { const st = memberStats(s, id); return Math.round(s
 let WZ = 1.03; if (typeof process !== 'undefined' && process.env && process.env.WZ) WZ = +process.env.WZ;
 function withinZone(n) { return Math.pow(WZ, n - 1); }
 // Passo tra le zone: sul primo pianeta più dolce, sul secondo più ripido (la squadra è già grande)
-let ZONE_K = [0, 0, 1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 1.6]; // tarato: 10 zone in circa 14-15 giorni (simulazione con giocatore che controlla ogni 4 ore)
+let ZONE_K = [0, 0, 1.87, 1.87, 1.87, 1.87, 1.67, 1.67, 1.67, 1.67, 1.57]; // tarato: 10 zone in circa 14-15 giorni (simulazione con giocatore che controlla ogni 4 ore)
 if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JSON.parse(process.env.ZK);
 const ZONE_BASE = [0, 1]; for (let z = 2; z <= 10; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n); }
@@ -745,7 +759,7 @@ function step(s, b, dt, ev) {
       if (u.ab >= 3) {
         let w = null; for (const a of b.party) if (a.hp > 0 && a.hp < a.maxHp && (!w || a.hp / a.maxHp < w.hp / w.maxHp)) w = a;
         if (w) { u.ab = 0; const fat = w.healT && b.time - w.healT < 2 ? 0.5 : 1; w.healT = b.time; // cure ravvicinate dimezzate: niente tank immortale
-          const h = Math.round(Math.min(w.maxHp - w.hp, (w.maxHp * 0.06 + u.atk * 1.0) * (1 + B(s, 'heal')) * fat)); w.hp += h; u.healed = (u.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: w.idx, h }); }
+          const h = Math.round(Math.min(w.maxHp - w.hp, (w.maxHp * 0.06 + u.atk * 1.0) * (u.side === 'p' ? 1 + B(s, 'heal') : 1) * fat)); w.hp += h; u.healed = (u.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: w.idx, h }); }
       }
     }
     if (u.side === 'p' && u.cls === 'Mago') {
@@ -771,6 +785,7 @@ function finishBattle(s, b, ev) {
   if (b.over === 'win') {
     s.stats.wins++;
     if (s.battle === BOSS_BATTLE) {
+      const zt = s.clock - (s.zoneStart || 0); s.bestZone = s.bestZone || {}; if (!s.bestZone[s.zone] || zt < s.bestZone[s.zone]) s.bestZone[s.zone] = zt; if (ev) ev.push({ type: 'zonetime', zone: s.zone, t: zt, best: s.bestZone[s.zone] === zt });
       const first = s.zone > s.cleared;
       if (first) {
         s.cleared = s.zone;
@@ -781,13 +796,13 @@ function finishBattle(s, b, ev) {
         }
         if (s.zone < MAX_ZONE) { s.maxZone = Math.max(s.maxZone, s.zone + 1); s.zone++; s.maxBattle = 1; if (ev) ev.push({ type: 'unlock', text: `Zona ${s.zone} sbloccata!` }); }
       }
-      s.battle = 1; s.runHp = {}; s.deadAt = {}; // la campagna avanza; le zone già finite ricominciano dalla battaglia 1
+      s.battle = 1; s.runHp = {}; s.deadAt = {}; s.zoneStart = s.clock; // la campagna avanza; le zone già finite ricominciano dalla battaglia 1
     } else s.battle++;
     if (s.zone === s.maxZone) s.maxBattle = Math.max(s.maxBattle, s.battle);
     s.maxGlobal = Math.max(s.maxGlobal || 1, gIndex(s.zone, s.battle));
   } else {
     s.stats.losses++;
-    s.battle = 1; s.runHp = {}; s.deadAt = {}; // squadra sconfitta: la zona ricomincia dalla battaglia 1, a vita piena
+    s.battle = 1; s.runHp = {}; s.deadAt = {}; s.zoneStart = s.clock; // squadra sconfitta: la zona ricomincia dalla battaglia 1, a vita piena
   }
   if (ev) ev.push({ type: 'battle', result: b.over });
   const nb = startBattle(s); Object.assign(b, nb);
@@ -900,14 +915,14 @@ function minKeep(s) { return Math.min(rarityIndex(s.settings.minRarity || 'comun
 function protectIdx(s) { const k = s.settings.protect || 'segreto'; return k === 'none' ? ITEM_RARITY.length : rarityIndex(k); }
 function isProtected(s, it) { return !!it.locked || rarityIndex(it.rarity) >= protectIdx(s); }
 function toggleLock(s, id) { const it = s.inventory.find(x => x.id === id) || s.chest.find(x => x.id === id); if (!it) return false; it.locked = !it.locked; return it.locked; }
-function sellBelow(s) { const min = minKeep(s); let gold = 0, n = 0; s.inventory = s.inventory.filter(it => { if (rarityIndex(it.rarity) < min && !isProtected(s, it)) { gold += sellValue(it, s); n++; return false; } return true; }); s.gold += gold; return { gold, n }; }
+function sellBelow(s) { const min = minKeep(s); let gold = 0, n = 0; s.inventory = s.inventory.filter(it => { if (rarityIndex(it.rarity) < min && !isProtected(s, it)) { const g = sellValue(it, s); gold += g; n++; logSold(s, it, g); return false; } return true; }); s.gold += gold; return { gold, n }; }
 function sellRest(s) {
-  // vende ciò che non migliora nessuno nella squadra né nella riserva
+  // vende ciò che non migliora nessuno della squadra (la riserva non conta)
   let gold = 0, n = 0;
   const keep = [];
   for (const it of s.inventory) {
-    const useful = Object.keys(s.roster).some(id => { const m = s.roster[id]; if (m.locked || !canUse(m, it)) return false; const c = m.eq[targetSlot(m, it)]; return !c || itemPower(it) > itemPower(c); });
-    if (useful || isProtected(s, it)) keep.push(it); else { gold += sellValue(it, s); n++; }
+    const useful = s.team.some(id => { const m = s.roster[id]; if (m.locked || !canUse(m, it)) return false; const c = m.eq[targetSlot(m, it)]; return !c || itemPower(it) > itemPower(c); });
+    if (useful || isProtected(s, it)) keep.push(it); else { const g = sellValue(it, s); gold += g; n++; logSold(s, it, g); }
   }
   s.inventory = keep; s.gold += gold; return { gold, n };
 }
@@ -916,7 +931,9 @@ function equipTo(s, itemId, memberId) {
   const sl = targetSlot(m, it), cur = m.eq[sl]; s.inventory = s.inventory.filter(x => x.id !== itemId); if (cur) s.inventory.push(cur); m.eq[sl] = it; it.isNew = false; return true;
 }
 function unequip(s, memberId, slot) { const m = s.roster[memberId]; if (m && m.eq[slot]) { s.inventory.push(m.eq[slot]); m.eq[slot] = null; } }
-function sellItem(s, itemId) { const i = s.inventory.findIndex(x => x.id === itemId); if (i < 0 || isProtected(s, s.inventory[i])) return 0; const [it] = s.inventory.splice(i, 1); const g = sellValue(it, s); s.gold += g; return g; }
+function logSold(s, it, g) { (s.sold = s.sold || []).unshift({ it, g }); s.sold.length = Math.min(s.sold.length, 10); }
+function buyBack(s, idx) { const e = (s.sold || [])[idx]; if (!e || s.gold < e.g || s.inventory.length >= bagCap(s)) return false; s.gold -= e.g; s.inventory.push(e.it); s.sold.splice(idx, 1); return true; }
+function sellItem(s, itemId) { const i = s.inventory.findIndex(x => x.id === itemId); if (i < 0 || isProtected(s, s.inventory[i])) return 0; const [it] = s.inventory.splice(i, 1); const g = sellValue(it, s); s.gold += g; logSold(s, it, g); return g; }
 // Rune: ognuna porta un oggetto alla sua rarità (dalla rarità precedente), si vendono per Astri e potenziano gli slot
 const RUNE_KEYS = ['arcano', 'astrale', 'mitico', 'leggendaria', 'epica', 'rara', 'noncomune']; // dal più raro, per il tiro del drop
 const RUNE = {
@@ -986,7 +1003,7 @@ function claimMission(s, sp) {
   s.missions = s.missions || {}; s.missions[sp] = t + 1; return r;
 }
 function missionsReady(s) { return ALL_SPECIES.filter(sp => missionReady(s, sp)).length; }
-function setZone(s, z) { if (z < 1 || z > s.maxZone) return false; s.zone = z; s.battle = 1; s.runHp = {}; return true; }
+function setZone(s, z) { if (z < 1 || z > s.maxZone) return false; s.zone = z; s.battle = 1; s.runHp = {}; s.zoneStart = s.clock || 0; return true; }
 function moveSpeed(s) { return 1 + B(s, 'move'); }
 function migrate(s) {
   if (s.zone === undefined) { s.zone = 1; s.maxZone = 1; s.cleared = 0; s.battle = 1; s.maxBattle = 1; s.maxGlobal = 1; delete s.bossCleared; }
@@ -1061,7 +1078,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
@@ -1080,6 +1097,20 @@ const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 
 // ---------- sprite pixel art ----------
 const SPR = {
+  fiorastro: [{ P: '#F49AC1', Q: '#D9669C', Y: '#FFE27A', G: '#5A9E6F', H: '#3F7A52', K: '#1B1F3B', W: '#FFFFFF' }, ['....PP.PP....', '...PQPPPQP...', '..PPPYYYPPP..', '...PYKYKYP...', '..PPYYYYYPP..', '...PQPPPQP...', '....PP.PP....', '......G......', '...HH.G.HH...', '....HHGHH....', '......G......', '....GGGGG....']],
+  polvino: [{ L: '#C9C2E6', D: '#9A92C0', W: '#FFFFFF', K: '#1B1F3B', P: '#F49AC1', Y: '#FFE27A' }, ['..L.......L..', '.LDL.....LDL.', '.LDL.....LDL.', '..LLLLLLLLL..', '.LLLLLLLLLLL.', 'LLLWKLLLWKLLL', 'LLLKKLLLKKLLL', 'LLPLLLYLLLPLL', '.LLLLLLLLLLL.', '..LLLLLLLLL..', '..DD.....DD..']],
+  meteorino: [{ R: '#E2504A', O: '#F28B3C', Y: '#FFE27A', S: '#7A6E66', T: '#5A504A', K: '#1B1F3B', W: '#FFFFFF' }, ['Y............', 'YO...........', '.OR..........', '..ORR.SSSS...', '...RSSSSSSS..', '....SSWKSWKS.', '...SSSKKSKKS.', '...SSSSSSSSS.', '...STSSSTSSS.', '....SSSSSSS..', '.....SSSSS...', '.....T...T...']],
+  radichino: [{ B: '#8A5A2B', D: '#5E3A1A', G: '#7ED36F', H: '#4E9A4A', K: '#1B1F3B', W: '#FFFFFF' }, ['.....G.G.....', '....GHGHG....', '.....GGG.....', '...BBBBBBB...', '..BBBBBBBBB..', '.BBWKBBBWKBB.', '.BBKKBBBKKBB.', '.BBBBBBBBBBB.', '.BBDBBDBBDBB.', '..BBBBBBBBB..', '.D.D.D.D.D.D.', 'D..D..D..D..D']],
+  lucciolo: [{ Y: '#FFE27A', L: '#FFF6C0', B: '#3E6FD8', D: '#2A4A9A', W: '#BFE8FF', K: '#1B1F3B' }, ['..W.......W..', '.WWW.....WWW.', 'WWWWW...WWWWW', '.WWW.BBB.WWW.', '....BBBBB....', '...BBKBKBB...', '...BBBBBBB...', '....DBBBD....', '....YYYYY....', '...YYLLLYY...', '...YYLLLYY...', '....YYYYY....']],
+  pipistrella: [{ V: '#6A3FB8', D: '#432580', P: '#F49AC1', W: '#FFFFFF', K: '#1B1F3B', Y: '#FFE27A' }, ['....V...V....', '....VV.VV....', 'V...VVVVV...V', 'VV.VVWVWVV.VV', 'VVVVVKVKVVVVV', 'VDVVVVVVVVVDV', 'D.DVVVPVVVD.D', '...DVVVVVD...', '....DVVVD....', '.....Y.Y.....']],
+  orbo: [{ C: '#B07CF0', D: '#7A4AC0', W: '#FFFFFF', B: '#5BD8E6', K: '#1B1F3B', Y: '#FFE27A' }, ['.Y.........Y.', '..Y..CCC..Y..', '....CCCCC....', '...CCWWWCC...', '..CCWWBBWWCC.', '..CWWBKKBWWC.', '..CWWBKKBWWC.', '..CCWWBBWWCC.', '...CCWWWCC...', '....DCCCD....', '...D.D.D.D...', '..D..D.D..D..']],
+  brinello: [{ W: '#E8FBFF', C: '#9FE6FF', D: '#5BB8E0', K: '#1B1F3B', P: '#F49AC1' }, ['......W......', '...W..C..W...', '....WCCCW....', '..WCCCCCCCW..', '...CCCCCCC...', '..CCKCCCKCC..', '..CCCCCCCCC..', '..CCPCCCPCC..', '...CCCCCCC...', '....DCCCD....', '...D.....D...']],
+  stalagmo: [{ G: '#8E9AB8', D: '#5E6A88', P: '#C08CFF', W: '#FFFFFF', K: '#1B1F3B' }, ['.....P...P...', '....PP..PP...', '...GPGGGPG...', '..GGGGGGGGG..', '.GGWKGGGWKGG.', '.GGKKGGGKKGG.', '.GGGGGGGGGGG.', 'GGDGGGDGGGDGG', 'GGGGGGGGGGGGG', '.GGG.GGG.GGG.', '.DDD.DDD.DDD.']],
+  cristallux: [{ C: '#7FE3FF', D: '#3FA0C8', W: '#FFFFFF', K: '#1B1F3B', R: '#E2504A' }, ['.....CCC.....', '....CWCCC....', '...CCCCCCC...', 'D..CRCCCRC..D', '.D.CCCCCCC.D.', '..DDCCCCCDD..', '.D..DCCCD..D.', 'D..D.D.D.D..D', '..D..D.D..D..', '.D...D.D...D.']],
+  gufolunare: [{ S: '#B8C4E8', D: '#7E8AB8', Y: '#FFE27A', K: '#1B1F3B', O: '#F28B3C', W: '#FFFFFF' }, ['..S.......S..', '..SS.....SS..', '..SSSSSSSSS..', '.SSWWSSSWWSS.', '.SWYKWSWYKWS.', '.SSWWSOSWWSS.', '.SSSSSOSSSSS.', 'DSSSSSSSSSSSD', 'DSSDSSDSSDSSD', '.SSSSSSSSSSS.', '..SSSSSSSSS..', '...O.....O...']],
+  ghiacciolo: [{ C: '#BFF1FF', D: '#7FCDE6', W: '#FFFFFF', K: '#1B1F3B', P: '#F49AC1' }, ['......W......', '.....WCW.....', '....CCCCC....', '...CCCCCCC...', '..CCWCCCWCC..', '.CCCKCCCKCCC.', '.CCCCCCCCCCC.', 'CCCPCCCCCPCCC', 'CCCCCCCCCCCCC', '.DDDDDDDDDDD.']],
+  lunella: [{ W: '#F4F7FF', S: '#C9D3E6', Y: '#FFE27A', K: '#1B1F3B', B: '#7FA8E0' }, ['...Y.....Y...', '....Y...Y....', 'WW...SSS...WW', 'WSW.SSSSS.WSW', 'WBSWSKSKSWSBW', 'WSSWSSSSSWSSW', '.WSWSSSSSWSW.', '..WWWSSSWWW..', '.WSW.SSS.WSW.', '.WW...S...WW.']],
+  riflessa: [{ M: '#E8ECFF', V: '#C08CFF', B: '#7FE3FF', K: '#1B1F3B', P: '#F49AC1', Y: '#FFE27A' }, ['.B....Y....B.', 'BBB..YYY..BBB', 'BVBB.MMM.BBVB', '.BVBMMMMMBVB.', '..BBMKMKMBB..', '....MMPMM....', '...VVMMMVV...', '..V.VVVVV.V..', '....VV.VV....', '....M...M....']],
   hero_arc: [{ R: '#7ED36F', S: '#C9D3E6', B: '#3F8F4A', K: '#1B1F3B', C: '#F2C14E', W: '#C9935A', G: '#F2C14E' }, ['....RRR.....', '...SSSSS....', '..SSSSSSS...', '..SKKKKKS...', '..SKCCCKS...', '..SSSSSSS...', '.BBBBGBBBB.W', 'BBBSBBBSBBWW', 'BB.BBBBB.BW.', 'SS.BBGBB.S..', '...BBBBB....', '...BB.BB....', '..KKK.KKK...']],
   hero_mag: [{ R: '#B07CF0', S: '#C9D3E6', B: '#6A3FB8', K: '#1B1F3B', C: '#F49AC1', W: '#7FE3FF', G: '#F2C14E' }, ['....RRR.....', '...SSSSS....', '..SSSSSSS...', '..SKKKKKS...', '..SKCCCKS...', '..SSSSSSS...', '.BBBBGBBBB.W', 'BBBSBBBSBBWW', 'BB.BBBBB.BW.', 'SS.BBGBB.S..', '...BBBBB....', '...BB.BB....', '..KKK.KKK...']],
   hero: [{ R: '#E2504A', S: '#C9D3E6', B: '#3E6FD8', K: '#1B1F3B', C: '#5BD8E6', W: '#F4F7FF', G: '#F2C14E' }, ['....RRR.....', '...SSSSS....', '..SSSSSSS...', '..SKKKKKS...', '..SKCCCKS...', '..SSSSSSS...', '.BBBBGBBBB.W', 'BBBSBBBSBBWW', 'BB.BBBBB.BW.', 'SS.BBGBB.S..', '...BBBBB....', '...BB.BB....', '..KKK.KKK...']],
@@ -1232,7 +1263,7 @@ function load() {
 function save() { S.lastSeen = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignora */ } }
 
 let B; // battaglia corrente (non salvata)
-let tab = 'squadra', bagView = 'zaino', dirty = true, selItem = null, selSlot = null, equipOpen = null, eqSel = null, openMember = null, confirmReset = 0, confirmTree = 0;
+let confirmRune = null, tab = 'squadra', bagView = 'zaino', dirty = true, selItem = null, selSlot = null, equipOpen = null, eqSel = null, openMember = null, confirmReset = 0, confirmTree = 0;
 
 // ---------- scena ----------
 const scene = () => $('#scene');
@@ -1332,18 +1363,20 @@ const capQueue = [];
 let lvlToastAt = 0;
 function handle(ev) {
   for (const e of ev) {
-    if (e.type === 'dmg') { const el = (e.side === 'p' ? pEls : eEls)[e.idx]; floatText(el, (e.crit ? 'CRIT ' : '') + cfmt(e.dmg), e.crit ? 'crit' : (e.side === 'p' ? 'hurt' : '')); }
+    if (e.type === 'dmg' && e.side === 'e') snd(e.crit ? 'crit' : 'hit');
+    if (e.type === 'dmg') { const el = (e.side === 'p' ? pEls : eEls)[e.idx]; floatText(el, cfmt(e.dmg), e.crit ? 'crit' : (e.side === 'p' ? 'hurt' : '')); }
     else if (e.type === 'atk') { lunge((e.side === 'p' ? pEls : eEls)[e.idx], e.side === 'p' ? 8 : -8); }
     else if (e.type === 'skill') { floatText(pEls[e.idx], e.name, 'skill'); }
     else if (e.type === 'heal') { floatText(pEls[e.idx], '+' + cfmt(e.h), 'heal'); }
-    else if (e.type === 'kill') { dirty = true; }
+    else if (e.type === 'kill') { snd('kill'); dirty = true; }
     else if (e.type === 'drop') { const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); if (e.item.rarity !== 'comune') toast(`Trovato: <b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${esc(F.itemName(e.item))}</b> · ${r.label}`, r.color); dirty = true; }
-    else if (e.type === 'level') { const now = Date.now(); if (now - lvlToastAt > 4000) { lvlToastAt = now; toast(`${esc(S.roster[e.id].name)} sale al livello ${e.lvl}`); } dirty = true; }
-    else if (e.type === 'capture') { capQueue.push(e.species); dirty = true; }
-    else if (e.type === 'rare') { setTimeout(shareDrops, 500); const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); banner('DROP ' + r.label.toUpperCase() + '!'); toast(`<b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}!</b> ${esc(F.itemName(e.item))}`, r.color); dirty = true; }
+    else if (e.type === 'level') { const now = Date.now(); if (now - lvlToastAt > 4000) { lvlToastAt = now; snd('level'); toast(`${esc(S.roster[e.id].name)} sale al livello ${e.lvl}`); } dirty = true; }
+    else if (e.type === 'capture') { snd('capture'); capQueue.push(e.species); dirty = true; }
+    else if (e.type === 'rare') { snd('rare'); setTimeout(shareDrops, 500); const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); banner('DROP ' + r.label.toUpperCase() + '!'); toast(`<b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}!</b> ${esc(F.itemName(e.item))}`, r.color); dirty = true; }
     else if (e.type === 'lost') { if (!window._lostAt || Date.now() - window._lostAt > 20000) { window._lostAt = Date.now(); toast('<b style="color:#FF8A96">Zaino pieno:</b> gli oggetti nuovi vanno persi', '#FF8A96'); } }
     else if (e.type === 'rune') { const r = F.RUNE[e.rune]; toast(`${icon('rune', r.color, 14)} +${e.n} <b style="color:${r.color}">${r.label}</b>`, r.color); dirty = true; }
     else if (e.type === 'unlock') { toast(e.text, '#F2C14E'); dirty = true; }
+    else if (e.type === 'zonetime') { const m = Math.floor(e.t / 60), sec = Math.round(e.t % 60); toast(`Zona ${e.zone} completata in <b>${m}:${String(sec).padStart(2, '0')}</b>${e.best ? ' · nuovo record!' : ''}`, '#F2C14E'); }
     else if (e.type === 'battle') { buildScene(); banner(e.result === 'win' ? (S.battle === F.BOSS_BATTLE ? 'BOSS: ' + F.SPECIES[F.ZONES[S.zone].boss].name.toUpperCase() : (S.battle === 1 ? 'ZONA ' + S.zone + ' · ' : '') + 'BATTAGLIA ' + S.battle) : 'SCONFITTA · SI RIPARTE DALLA BATTAGLIA 1'); dirty = true; }
   }
 }
@@ -1360,10 +1393,27 @@ function hud() {
 
 // ---------- pannelli ----------
 const CC = c => F.CLASSES[c].color;
+// ---------- suoni (sintetizzati, niente file da scaricare) ----------
+let actx = null; const sndAt = {};
+function snd(kind) {
+  if (S.settings.sound === false || document.hidden) return;
+  const now = performance.now(), gap = { hit: 120, crit: 150, kill: 90, coin: 200 }[kind] || 0; if (gap && now - (sndAt[kind] || 0) < gap) return; sndAt[kind] = now;
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) { return; }
+  const t = actx.currentTime, vol = (S.settings.volume ?? 0.5) * 0.25;
+  const tone = (f, d, type, v, at, f2) => { const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.setValueAtTime(f, t + at); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + at + d); g.gain.setValueAtTime(0.0001, t + at); g.gain.exponentialRampToValueAtTime(v * vol, t + at + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + at + d); o.connect(g).connect(actx.destination); o.start(t + at); o.stop(t + at + d + 0.02); };
+  if (kind === 'hit') tone(180, 0.06, 'square', 0.25, 0, 90);
+  else if (kind === 'crit') { tone(520, 0.08, 'square', 0.35, 0, 260); tone(880, 0.06, 'triangle', 0.25, 0.02); }
+  else if (kind === 'kill') tone(300, 0.1, 'triangle', 0.3, 0, 120);
+  else if (kind === 'coin') { tone(988, 0.07, 'square', 0.18, 0); tone(1319, 0.12, 'square', 0.18, 0.06); }
+  else if (kind === 'level') [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.14, 'triangle', 0.35, i * 0.08));
+  else if (kind === 'rare') [659, 784, 988, 1319, 1568].forEach((f, i) => tone(f, 0.18, 'square', 0.3, i * 0.07));
+  else if (kind === 'capture') [392, 523, 659, 784, 659, 1047].forEach((f, i) => tone(f, 0.15, 'triangle', 0.4, i * 0.09));
+  else if (kind === 'click') tone(660, 0.03, 'square', 0.12, 0);
+}
 function synergyHTML() {
-  const cc = F.classCounts(S);
-  const chips = Object.keys(cc).map(c => { const n = cc[c], lv = n >= 6 ? '+40%' : n >= 4 ? '+25%' : n >= 2 ? '+10%' : ''; return `<span class="chip"><i style="background:${CC(c)}"></i>${c} ${n}${lv ? ` <em>${lv}</em>` : ''}</span>`; }).join('');
-  return `<div class="chips">${chips}</div><div class="note">Bonus di classe con 2, 4 e 6 membri della stessa classe.</div>`;
+  const cc = F.classCounts(S), all = Object.values(cc).every(x => x > 0);
+  const chips = Object.keys(cc).map(c => { const n = cc[c], v = F.SYN_SAME.find(([k]) => n >= k); return `<span class="chip"><i style="background:${CC(c)}"></i>${c} ${n}${v ? ` <em>+${Math.round(v[1] * 100)}%</em>` : ''}</span>`; }).join('');
+  return `<div class="chips">${chips}<span class="chip${all ? '' : ' off'}">${all ? '★' : '☆'} Tutte le classi <em>${all ? '+' + Math.round(F.SYN_ALL * 100) + '%' : ''}</em></span></div><div class="note">Classi uguali: +5% con 2, +12% con 4, +20% con 6 (vita e attacco). Con tutte e 5 le classi in squadra: +8% a tutti.</div>`;
 }
 // Statistiche di un oggetto, in stile scheda
 function statsHTML(it, lv) {
@@ -1434,6 +1484,7 @@ function pSquadra() {
   const slots = F.slotCount(S), n = F.creaturesInTeam(S);
   const reserve = Object.keys(S.roster).filter(id => !S.team.includes(id));
   return `<div class="ph"><h2>Squadra</h2><span>creature ${n}/${slots} (max ${F.CREATURE_SLOTS}) · eroi esclusi</span></div>
+  ${synergyHTML()}
   <div class="note">L'ordine conta: chi sta più in alto riceve per primo l'equipaggiamento.</div>
   ${S.team.map((id, i) => memberRow(id, true, i)).join('')}
   ${n < slots ? `<div class="card free">Posto libero: aggiungi una creatura dalla riserva o catturane una nuova.</div>` : ''}
@@ -1530,6 +1581,8 @@ function pNegozio() {
   <div class="row2"><label for="prot">Tieni sempre</label><select id="prot" data-act="prot">${F.ITEM_RARITY.slice(1).map((r, k) => `<option value="${r.key}" ${pi === k + 1 ? 'selected' : ''}>da ${r.label} in su</option>`).join('')}<option value="none" ${pi >= F.ITEM_RARITY.length ? 'selected' : ''}>Nessuna protezione</option></select></div>
   <button class="sb wide" data-act="sellrest">Vendi tutto ciò che non migliora nessuno</button>
   ${itemGrid(byPower(S.inventory), 'Zaino vuoto.', true)}
+  ${(S.sold || []).length ? `<div class="ph"><h2 style="font-size:13px">Riacquista</h2><span>ultimi 10 venduti, allo stesso prezzo</span></div>
+  ${S.sold.map((e, i) => { const r = F.ITEM_RARITY.find(x => x.key === e.it.rarity); return `<div class="card srow"><div style="display:flex;align-items:center;gap:8px">${itemIcon(e.it.slot, e.it.cls, r.color, 22)}<div><b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${esc(F.itemName(e.it))}</b><div class="msub">${r.label} · Lv ${F.itemLevel(e.it)}</div></div></div><button class="sb" data-act="buyback" data-i="${i}" ${S.gold < e.g || S.inventory.length >= F.bagCap(S) ? 'disabled' : ''}>${cfmt(e.g)} oro</button></div>`; }).join('')}` : ''}
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio · tocca per vendere</span></div>
   ${runeTiles()}`;
 }
@@ -1638,6 +1691,8 @@ function pAltro() {
   <div class="ph"><h2>Achievement</h2><span>${Object.keys(S.ach).length}/${F.ACH.length}</span></div>
   ${F.ACH.map(a => `<div class="card arow${S.ach[a.id] ? ' done' : ''}">${S.ach[a.id] ? icon('check', '#7ED36F', 20) : icon('lock', '#7C84BC', 20)}<div><b>${a.name}</b><div class="msub">${a.desc} · +${a.astri} Astri</div></div></div>`).join('')}
   <div class="ph"><h2>Impostazioni</h2></div>
+  <label class="tg"><input type="checkbox" data-act="sound" ${S.settings.sound !== false ? 'checked' : ''}> Suoni</label>
+  <div class="row2"><label for="vol">Volume</label><input id="vol" type="range" min="0" max="1" step="0.1" value="${S.settings.volume ?? 0.5}" data-act="vol" style="flex:1"></div>
   <label class="tg"><input type="checkbox" data-act="test" ${S.settings.test ? 'checked' : ''}> Modalità test: velocità ×5 e catture ×200</label>
   <div class="ph"><h2>Strumenti di test</h2></div>
   <div class="note">Fa avanzare il gioco come se fosse passato questo tempo (senza il limite di ore offline).</div>
@@ -1646,7 +1701,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 22:24</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 22:35</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -1855,10 +1910,11 @@ document.addEventListener('click', e => {
   else if (a === 'sell') { F.sellItem(S, item); selItem = null; }
   else if (a === 'equip') { selSlot = null; eqSel = null; showEquip(id); return; }
   else if (a === 'selslot') { const v = id + ':' + t.dataset.slot; selSlot = selSlot === v ? null : v; }
-  else if (a === 'slotup') { if (F.upgradeSlot(S, id, t.dataset.slot)) rebuild(); }
+  else if (a === 'slotup') { if (confirmRune !== 'slot' + id + t.dataset.slot) { confirmRune = 'slot' + id + t.dataset.slot; toast('Tocca di nuovo per usare la runa', '#F2C14E'); setTimeout(() => { confirmRune = null; }, 3000); return; } confirmRune = null; if (F.upgradeSlot(S, id, t.dataset.slot)) rebuild(); }
   else if (a === 'sellrune1') { F.sellRunes(S, t.dataset.k, 1); }
   else if (a === 'sellruneall') { const g = F.sellRunes(S, t.dataset.k, S.runes[t.dataset.k]); toast(`+${g} Astri`); }
-  else if (a === 'raise') { const it = S.inventory.find(x => x.id === item); if (it && F.raiseRarity(S, it)) { toast(`Rarità migliorata: ${esc(F.itemName(it))}`, F.ITEM_RARITY.find(x => x.key === it.rarity).color); if (S.settings.autoEquip) F.autoEquip(S); } }
+  else if (a === 'raise' && confirmRune !== 'raise' + item) { confirmRune = 'raise' + item; toast('Tocca di nuovo per usare la runa', '#F2C14E'); setTimeout(() => { confirmRune = null; }, 3000); return; }
+  else if (a === 'raise') { confirmRune = null; const it = S.inventory.find(x => x.id === item); if (it && F.raiseRarity(S, it)) { toast(`Rarità migliorata: ${esc(F.itemName(it))}`, F.ITEM_RARITY.find(x => x.key === it.rarity).color); if (S.settings.autoEquip) F.autoEquip(S); } }
   else if (a === 'buy') { if (F.buyShop(S, +t.dataset.i)) toast('Acquistato: lo trovi nello zaino'); }
   else if (a === 'reroll') { selShop = null; if (F.rerollShop(S)) toast('Il mercante ha cambiato la merce', '#F49AC1'); }
   else if (a === 'skip') { skipTime(+t.dataset.h); return; }
@@ -1873,6 +1929,7 @@ document.addEventListener('click', e => {
   else if (a === 'skybuy') { if (F.skyBuy(S, +t.dataset.id)) { const o = F.SKY[+t.dataset.id]; toast(`${o.ic} ${o.label} ${fmtPct(o.kind, o.v)}`, o.special ? '#FFFFFF' : F.SKY_SECTORS[o.sec].color); rebuild(); } }
   else if (a === 'skyzoom') { skyView.k = Math.max(10, Math.min(90, skyView.k * +t.dataset.z)); }
   else if (a === 'skycenter') { skyView = { x: 0, y: 0, k: 34 }; }
+  else if (a === 'buyback') { if (F.buyBack(S, +t.dataset.i)) toast('Oggetto riacquistato', '#7ED36F'); }
   else if (a === 'buyslot') { if (F.buySlot(S)) { toast('Nuovo posto in squadra!', '#F2C14E'); rebuild(); } }
   else if (a === 'buygold') { const g = F.buyGold(S, +t.dataset.i); if (g) toast(`+${cfmt(g)} oro`, '#F2C14E'); }
   else if (a === 'buyspace') { if (F.buySpace(S, t.dataset.k)) toast(`+${F.SPACE_PACK.n} posti ${t.dataset.k === 'bag' ? 'nello zaino' : 'nel forziere'}`, '#F2C14E'); }
@@ -1886,7 +1943,7 @@ document.addEventListener('click', e => {
   else if (a === 'capadd') { F.addToTeam(S, id); rebuild(); closeModal(); }
   else if (a === 'share') { const m = S.roster[id], d = F.SPECIES[m.species]; const txt = `Ho catturato ${m.name} (${F.RARITY[d.rarity].label}, ${d.cls}) in Frontiera Arcana dopo ${fmt(m.waitKills)} incontri!`; try { navigator.clipboard.writeText(txt).then(() => { t.textContent = 'Copiato!'; }, () => { t.textContent = 'Copia non riuscita'; }); } catch (err) { t.textContent = 'Copia non riuscita'; } return; }
   else if (a === 'close') { closeModal(); }
-  else if (a === 'lockm' || a === 'autoeq' || a === 'test' || a === 'minr' || a === 'prot') return; // gestiti da change
+  else if (a === 'lockm' || a === 'autoeq' || a === 'test' || a === 'minr' || a === 'prot' || a === 'sound' || a === 'vol') return; // gestiti da change
   if (a === 'tree' || a === 'treereset') { /* stelle cambiano le statistiche */ B.party.forEach(() => {}); }
   save(); render(); if (equipOpen && !$('#modal').hidden) { const y = $('#modal .mod') ? $('#modal .mod').scrollTop : 0; showEquip(equipOpen); if ($('#modal .mod')) $('#modal .mod').scrollTop = y; }
 });
@@ -1896,6 +1953,8 @@ document.addEventListener('change', e => {
   if (a === 'autoeq') { S.settings.autoEquip = t.checked; if (t.checked) F.autoEquip(S); }
   if (a === 'test') S.settings.test = t.checked;
   if (a === 'minr') S.settings.minRarity = t.value;
+  if (a === 'sound') { S.settings.sound = t.checked; if (t.checked) snd('coin'); }
+  if (a === 'vol') { S.settings.volume = +t.value; snd('coin'); }
   if (a === 'prot') { S.settings.protect = t.value; dirty = true; }
   save(); render(); hud();
 });

@@ -11,10 +11,10 @@ const CLASSES = {
 };
 
 const RARITY = {
-  comune:      { label: 'Comune',      weight: 3,   p: 1 / 6000 },
-  noncomune:   { label: 'Non comune',  weight: 1.5, p: 1 / 12000 },
-  rara:        { label: 'Rara',        weight: 0.6, p: 1 / 15000 },
-  boss:        { label: 'Boss',        weight: 0,   p: 1 / 14000 },
+  comune:      { label: 'Comune',      weight: 3,   p: 1 / 2500 },
+  noncomune:   { label: 'Non comune',  weight: 1.5, p: 1 / 6000 },
+  rara:        { label: 'Rara',        weight: 0.6, p: 1 / 12000 },
+  boss:        { label: 'Boss',        weight: 0,   p: 1 / 8000 },
 };
 
 const SPECIES = {
@@ -34,25 +34,34 @@ const SPECIES = {
   gemmerla:  { name: 'Gemmerla',  cls: 'Arciere',   rarity: 'noncomune', quote: 'Ogni mia piuma è una freccia di cristallo.' },
   quarzillo: { name: 'Quarzillo', cls: 'Tank',      rarity: 'noncomune', quote: 'Piccolo golem, grande abbraccio.' },
   prismella: { name: 'Prismella', cls: 'Mago',      rarity: 'rara',      quote: 'Spezzo la luce in sette colori, e i nemici in sette pezzi.' },
+  fiorastro: { name: 'Fiorastro', cls: 'Curatore', rarity: 'comune', quote: "Ogni petalo è una piccola stella. Ne regalo uno a te." },
+  polvino: { name: 'Polvino', cls: 'Arciere', rarity: 'comune', quote: "Sono fatto di polvere di cometa. Non soffiare!" },
+  meteorino: { name: 'Meteorino', cls: 'Guerriero', rarity: 'comune', quote: "Sono caduto dal cielo e mi è piaciuto." },
+  radichino: { name: 'Radichino', cls: 'Tank', rarity: 'noncomune', quote: "Metto radici dove serve: davanti a te." },
+  lucciolo: { name: 'Lucciolo', cls: 'Mago', rarity: 'noncomune', quote: "Faccio luce anche nelle notti più buie." },
+  pipistrella: { name: 'Pipistrella', cls: 'Arciere', rarity: 'noncomune', quote: "Volo al contrario, così vedo il mondo dritto." },
+  orbo: { name: 'Orbo', cls: 'Mago', rarity: 'rara', quote: "Ti osservo da sempre. Con affetto." },
+  brinello: { name: 'Brinello', cls: 'Mago', rarity: 'comune', quote: "Un fiocco di neve con un carattere frizzante." },
+  stalagmo: { name: 'Stalagmo', cls: 'Tank', rarity: 'comune', quote: "Cresco di un millimetro all'anno. Ma che millimetro!" },
+  cristallux: { name: 'Cristallux', cls: 'Guerriero', rarity: 'comune', quote: "Otto zampe, otto cristalli, un solo amico." },
+  gufolunare: { name: 'Gufolunare', cls: 'Arciere', rarity: 'noncomune', quote: "Di notte vedo tutto. Di giorno pure." },
+  ghiacciolo: { name: 'Ghiacciolo', cls: 'Curatore', rarity: 'noncomune', quote: "Le mie cure sono fresche come la luna." },
+  lunella: { name: 'Lunella', cls: 'Arciere', rarity: 'comune', quote: "Danzo intorno alla luce della luna." },
+  riflessa: { name: 'Riflessa', cls: 'Mago', rarity: 'rara', quote: "Guardami bene: dentro di me ci sei tu." },
   reginaquarzo: { name: 'Regina di Quarzo', cls: 'Arciere', rarity: 'boss', quote: 'Una regina non si arrende. Sceglie solo chi servire.' },
 };
 // Pianeti e zone: 10 zone da 30 battaglie, 5 per pianeta
 const PLANETS = [
-  { name: 'Prati Stellari', zones: [1, 5], species: ['glimmo', 'cometuga', 'sporello', 'bzzt', 'astrillo', 'nebulina', 'revuoto'] },
-  { name: 'Luna di Cristallo', zones: [6, 10], species: ['scheggia', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo', 'prismella', 'reginaquarzo'] },
+  { name: 'Prati Stellari', zones: [1, 5], species: ['glimmo', 'cometuga', 'fiorastro', 'sporello', 'polvino', 'meteorino', 'bzzt', 'radichino', 'lucciolo', 'astrillo', 'pipistrella', 'nebulina', 'orbo', 'revuoto'] },
+  { name: 'Luna di Cristallo', zones: [6, 10], species: ['scheggia', 'geodino', 'brinello', 'lumispettro', 'stalagmo', 'cristallux', 'gemmerla', 'gufolunare', 'lunella', 'quarzillo', 'ghiacciolo', 'prismella', 'riflessa', 'reginaquarzo'] },
 ];
-const ZONES = [null,
-  { pool: ['glimmo', 'cometuga'], boss: 'cometuga' },
-  { pool: ['glimmo', 'cometuga', 'sporello'], boss: 'sporello' },
-  { pool: ['glimmo', 'cometuga', 'sporello', 'bzzt'], boss: 'bzzt' },
-  { pool: ['glimmo', 'cometuga', 'sporello', 'bzzt', 'astrillo'], boss: 'astrillo' },
-  { pool: ['glimmo', 'cometuga', 'sporello', 'bzzt', 'astrillo', 'nebulina'], boss: 'revuoto' },
-  { pool: ['scheggia', 'geodino'], boss: 'geodino' },
-  { pool: ['scheggia', 'geodino', 'lumispettro'], boss: 'lumispettro' },
-  { pool: ['scheggia', 'geodino', 'lumispettro', 'gemmerla'], boss: 'gemmerla' },
-  { pool: ['scheggia', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo'], boss: 'quarzillo' },
-  { pool: ['scheggia', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo', 'prismella'], boss: 'reginaquarzo' },
+// Ogni zona porta 3 creature nuove; nei combattimenti compaiono anche quelle delle zone precedenti dello stesso pianeta
+const ZONE_NEW = [null,
+  ['glimmo', 'cometuga', 'fiorastro'], ['sporello', 'polvino', 'meteorino'], ['bzzt', 'radichino', 'lucciolo'], ['astrillo', 'pipistrella', 'nebulina'], ['orbo'],
+  ['scheggia', 'geodino', 'brinello'], ['lumispettro', 'stalagmo', 'cristallux'], ['gemmerla', 'gufolunare', 'lunella'], ['quarzillo', 'ghiacciolo', 'prismella'], ['riflessa'],
 ];
+const ZONE_BOSS = [null, 'cometuga', 'sporello', 'bzzt', 'astrillo', 'revuoto', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo', 'reginaquarzo'];
+const ZONES = [null]; for (let z = 1; z <= 10; z++) { const first = z <= 5 ? 1 : 6, pool = []; for (let k = first; k <= z; k++) pool.push(...ZONE_NEW[k]); ZONES.push({ pool, boss: ZONE_BOSS[z] }); }
 const MAX_ZONE = 10;
 const ALL_SPECIES = PLANETS.flatMap(p => p.species);
 function planetOf(z) { return PLANETS.find(p => z >= p.zones[0] && z <= p.zones[1]); }
@@ -291,6 +300,9 @@ function canUse(m, it) { return (it.slot !== 'arma' && it.slot !== 'secondaria')
 // posto in cui va l'oggetto: quello libero o il più debole tra quelli del suo tipo
 function targetSlot(m, it) { let best = null, bp = Infinity; for (const sl of SLOTS) { if (kindOf(sl) !== it.slot) continue; const c = m.eq[sl], p = c ? itemPower(c) : -1; if (p < bp) { bp = p; best = sl; } } return best; }
 
+// Sinergie: bonus per classi uguali (2/4/6) e per la squadra con tutte e 5 le classi
+const SYN_SAME = [[6, 0.20], [4, 0.12], [2, 0.05]], SYN_ALL = 0.08;
+function synergy(s, cls) { const cc = classCounts(s), n = cc[cls] || 0; let v = 0; for (const [k, b] of SYN_SAME) if (n >= k) { v = b; break; } if (Object.values(cc).every(x => x > 0)) v += SYN_ALL; return v; }
 function classCounts(s) { const c = { Tank: 0, Guerriero: 0, Arciere: 0, Mago: 0, Curatore: 0 }; for (const id of s.team) c[SPECIES[s.roster[id].species].cls]++; return c; }
 
 function memberStats(s, id) {
@@ -303,6 +315,7 @@ function memberStats(s, id) {
     atk += (st.atk || 0) * sm; hp += (st.hp || 0) * sm; def += (st.def || 0) * sm;
     crit += (st.crit || 0) * sm; critDmg += (st.critDmg || 0) * sm; aspd += (st.aspd || 0) * sm; block += (st.block || 0) * sm; dodge += (st.dodge || 0) * sm;
   }
+  const syn = synergy(s, cls); hp *= 1 + syn; atk *= 1 + syn;
   hp *= 1 + B(s, 'hp');
   atk *= 1 + B(s, 'atk');
   def *= 1 + B(s, 'def');
@@ -318,7 +331,7 @@ function memberPower(s, id) { const st = memberStats(s, id); return Math.round(s
 let WZ = 1.03; if (typeof process !== 'undefined' && process.env && process.env.WZ) WZ = +process.env.WZ;
 function withinZone(n) { return Math.pow(WZ, n - 1); }
 // Passo tra le zone: sul primo pianeta più dolce, sul secondo più ripido (la squadra è già grande)
-let ZONE_K = [0, 0, 1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 1.7, 1.6]; // tarato: 10 zone in circa 14-15 giorni (simulazione con giocatore che controlla ogni 4 ore)
+let ZONE_K = [0, 0, 1.87, 1.87, 1.87, 1.87, 1.67, 1.67, 1.67, 1.67, 1.57]; // tarato: 10 zone in circa 14-15 giorni (simulazione con giocatore che controlla ogni 4 ore)
 if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JSON.parse(process.env.ZK);
 const ZONE_BASE = [0, 1]; for (let z = 2; z <= 10; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n); }
@@ -400,7 +413,7 @@ function step(s, b, dt, ev) {
       if (u.ab >= 3) {
         let w = null; for (const a of b.party) if (a.hp > 0 && a.hp < a.maxHp && (!w || a.hp / a.maxHp < w.hp / w.maxHp)) w = a;
         if (w) { u.ab = 0; const fat = w.healT && b.time - w.healT < 2 ? 0.5 : 1; w.healT = b.time; // cure ravvicinate dimezzate: niente tank immortale
-          const h = Math.round(Math.min(w.maxHp - w.hp, (w.maxHp * 0.06 + u.atk * 1.0) * (1 + B(s, 'heal')) * fat)); w.hp += h; u.healed = (u.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: w.idx, h }); }
+          const h = Math.round(Math.min(w.maxHp - w.hp, (w.maxHp * 0.06 + u.atk * 1.0) * (u.side === 'p' ? 1 + B(s, 'heal') : 1) * fat)); w.hp += h; u.healed = (u.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: w.idx, h }); }
       }
     }
     if (u.side === 'p' && u.cls === 'Mago') {
@@ -426,6 +439,7 @@ function finishBattle(s, b, ev) {
   if (b.over === 'win') {
     s.stats.wins++;
     if (s.battle === BOSS_BATTLE) {
+      const zt = s.clock - (s.zoneStart || 0); s.bestZone = s.bestZone || {}; if (!s.bestZone[s.zone] || zt < s.bestZone[s.zone]) s.bestZone[s.zone] = zt; if (ev) ev.push({ type: 'zonetime', zone: s.zone, t: zt, best: s.bestZone[s.zone] === zt });
       const first = s.zone > s.cleared;
       if (first) {
         s.cleared = s.zone;
@@ -436,13 +450,13 @@ function finishBattle(s, b, ev) {
         }
         if (s.zone < MAX_ZONE) { s.maxZone = Math.max(s.maxZone, s.zone + 1); s.zone++; s.maxBattle = 1; if (ev) ev.push({ type: 'unlock', text: `Zona ${s.zone} sbloccata!` }); }
       }
-      s.battle = 1; s.runHp = {}; s.deadAt = {}; // la campagna avanza; le zone già finite ricominciano dalla battaglia 1
+      s.battle = 1; s.runHp = {}; s.deadAt = {}; s.zoneStart = s.clock; // la campagna avanza; le zone già finite ricominciano dalla battaglia 1
     } else s.battle++;
     if (s.zone === s.maxZone) s.maxBattle = Math.max(s.maxBattle, s.battle);
     s.maxGlobal = Math.max(s.maxGlobal || 1, gIndex(s.zone, s.battle));
   } else {
     s.stats.losses++;
-    s.battle = 1; s.runHp = {}; s.deadAt = {}; // squadra sconfitta: la zona ricomincia dalla battaglia 1, a vita piena
+    s.battle = 1; s.runHp = {}; s.deadAt = {}; s.zoneStart = s.clock; // squadra sconfitta: la zona ricomincia dalla battaglia 1, a vita piena
   }
   if (ev) ev.push({ type: 'battle', result: b.over });
   const nb = startBattle(s); Object.assign(b, nb);
@@ -555,14 +569,14 @@ function minKeep(s) { return Math.min(rarityIndex(s.settings.minRarity || 'comun
 function protectIdx(s) { const k = s.settings.protect || 'segreto'; return k === 'none' ? ITEM_RARITY.length : rarityIndex(k); }
 function isProtected(s, it) { return !!it.locked || rarityIndex(it.rarity) >= protectIdx(s); }
 function toggleLock(s, id) { const it = s.inventory.find(x => x.id === id) || s.chest.find(x => x.id === id); if (!it) return false; it.locked = !it.locked; return it.locked; }
-function sellBelow(s) { const min = minKeep(s); let gold = 0, n = 0; s.inventory = s.inventory.filter(it => { if (rarityIndex(it.rarity) < min && !isProtected(s, it)) { gold += sellValue(it, s); n++; return false; } return true; }); s.gold += gold; return { gold, n }; }
+function sellBelow(s) { const min = minKeep(s); let gold = 0, n = 0; s.inventory = s.inventory.filter(it => { if (rarityIndex(it.rarity) < min && !isProtected(s, it)) { const g = sellValue(it, s); gold += g; n++; logSold(s, it, g); return false; } return true; }); s.gold += gold; return { gold, n }; }
 function sellRest(s) {
-  // vende ciò che non migliora nessuno nella squadra né nella riserva
+  // vende ciò che non migliora nessuno della squadra (la riserva non conta)
   let gold = 0, n = 0;
   const keep = [];
   for (const it of s.inventory) {
-    const useful = Object.keys(s.roster).some(id => { const m = s.roster[id]; if (m.locked || !canUse(m, it)) return false; const c = m.eq[targetSlot(m, it)]; return !c || itemPower(it) > itemPower(c); });
-    if (useful || isProtected(s, it)) keep.push(it); else { gold += sellValue(it, s); n++; }
+    const useful = s.team.some(id => { const m = s.roster[id]; if (m.locked || !canUse(m, it)) return false; const c = m.eq[targetSlot(m, it)]; return !c || itemPower(it) > itemPower(c); });
+    if (useful || isProtected(s, it)) keep.push(it); else { const g = sellValue(it, s); gold += g; n++; logSold(s, it, g); }
   }
   s.inventory = keep; s.gold += gold; return { gold, n };
 }
@@ -571,7 +585,9 @@ function equipTo(s, itemId, memberId) {
   const sl = targetSlot(m, it), cur = m.eq[sl]; s.inventory = s.inventory.filter(x => x.id !== itemId); if (cur) s.inventory.push(cur); m.eq[sl] = it; it.isNew = false; return true;
 }
 function unequip(s, memberId, slot) { const m = s.roster[memberId]; if (m && m.eq[slot]) { s.inventory.push(m.eq[slot]); m.eq[slot] = null; } }
-function sellItem(s, itemId) { const i = s.inventory.findIndex(x => x.id === itemId); if (i < 0 || isProtected(s, s.inventory[i])) return 0; const [it] = s.inventory.splice(i, 1); const g = sellValue(it, s); s.gold += g; return g; }
+function logSold(s, it, g) { (s.sold = s.sold || []).unshift({ it, g }); s.sold.length = Math.min(s.sold.length, 10); }
+function buyBack(s, idx) { const e = (s.sold || [])[idx]; if (!e || s.gold < e.g || s.inventory.length >= bagCap(s)) return false; s.gold -= e.g; s.inventory.push(e.it); s.sold.splice(idx, 1); return true; }
+function sellItem(s, itemId) { const i = s.inventory.findIndex(x => x.id === itemId); if (i < 0 || isProtected(s, s.inventory[i])) return 0; const [it] = s.inventory.splice(i, 1); const g = sellValue(it, s); s.gold += g; logSold(s, it, g); return g; }
 // Rune: ognuna porta un oggetto alla sua rarità (dalla rarità precedente), si vendono per Astri e potenziano gli slot
 const RUNE_KEYS = ['arcano', 'astrale', 'mitico', 'leggendaria', 'epica', 'rara', 'noncomune']; // dal più raro, per il tiro del drop
 const RUNE = {
@@ -641,7 +657,7 @@ function claimMission(s, sp) {
   s.missions = s.missions || {}; s.missions[sp] = t + 1; return r;
 }
 function missionsReady(s) { return ALL_SPECIES.filter(sp => missionReady(s, sp)).length; }
-function setZone(s, z) { if (z < 1 || z > s.maxZone) return false; s.zone = z; s.battle = 1; s.runHp = {}; return true; }
+function setZone(s, z) { if (z < 1 || z > s.maxZone) return false; s.zone = z; s.battle = 1; s.runHp = {}; s.zoneStart = s.clock || 0; return true; }
 function moveSpeed(s) { return 1 + B(s, 'move'); }
 function migrate(s) {
   if (s.zone === undefined) { s.zone = 1; s.maxZone = 1; s.cleared = 0; s.battle = 1; s.maxBattle = 1; s.maxGlobal = 1; delete s.bossCleared; }
@@ -716,7 +732,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
