@@ -76,8 +76,8 @@ const KINDS = ['arma', 'secondaria', 'elmo', 'corazza', 'gambe', 'stivali', 'gua
 const kindOf = sl => sl === 'anello1' || sl === 'anello2' ? 'anello' : sl;
 const SLOT_LABEL = { arma: 'Arma', secondaria: 'Secondaria', elmo: 'Elmo', corazza: 'Corazza', gambe: 'Gambe', stivali: 'Stivali', guanti: 'Guanti', collana: 'Collana', orecchini: 'Orecchini', anello: 'Anello', anello1: 'Anello', anello2: 'Anello' };
 const WEAPON = { Tank: 'Mazza cometa', Guerriero: 'Spada stellare', Arciere: 'Arco di luce', Mago: 'Bastone nebulare', Curatore: 'Scettro di luce' };
-const SECONDARY = { Tank: 'Scudo cometa', Guerriero: 'Pugnale lunare', Arciere: 'Faretra astrale', Mago: 'Tomo arcano', Curatore: 'Libro delle preghiere' };
-const ITEM_NAME = { elmo: 'Elmo astrale', corazza: 'Corazza astrale', gambe: 'Gambali astrali', stivali: 'Stivali cometa', guanti: 'Guanti stellari', collana: 'Collana del vuoto', orecchini: 'Orecchini di nebula', anello: 'Anello lunare' };
+const SECONDARY = { Tank: 'Scudo cometa', Guerriero: 'Pugnale lunare', Arciere: 'Faretra siderale', Mago: 'Tomo runico', Curatore: 'Libro delle preghiere' };
+const ITEM_NAME = { elmo: 'Elmo siderale', corazza: 'Corazza siderale', gambe: 'Gambali siderali', stivali: 'Stivali cometa', guanti: 'Guanti stellari', collana: 'Collana del vuoto', orecchini: 'Orecchini di nebula', anello: 'Anello lunare' };
 const emptyEq = () => Object.fromEntries(SLOTS.map(k => [k, null]));
 const emptySlv = () => Object.fromEntries(SLOTS.map(k => [k, 0]));
 
