@@ -74,7 +74,7 @@ function sprite(key, p, opts) {
   opts = opts || {};
   const ck = key + p;
   if (!sprCache[ck]) {
-    const [pal, rows] = SPR[key]; const parts = [];
+    const [pal, rows] = SPR[key] || SPR[F.SPECIES[key].base]; const parts = [];
     rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] !== '.') parts.push(`${(x + 1) * p}px ${(y + 1) * p}px 0 0 ${pal[r[x]]}`); });
     sprCache[ck] = { bs: parts.join(','), w: Math.max(...rows.map(r => r.length)) * p, h: rows.length * p };
   }
@@ -231,9 +231,9 @@ function buildScene() {
   // nemici: quelli da mischia si ammassano sul primo bersaglio, quelli a distanza restano indietro
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
-    const bp = u.boss ? 3 : 2, r = isRanged(u.cls);
+    const bp = u.secret ? 4 : u.boss ? 3 : 2, r = isRanged(u.cls);
     const x = r ? 248 + (rk++) * 12 : 190 + (mk++) * 7 - (u.boss ? 6 : 0), y = 26 + ((r ? rk : mk) % 2) * 5;
-    const el = document.createElement('div'); el.className = 'u'; el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
+    const el = document.createElement('div'); el.className = 'u' + (u.secret ? ' secret' : ''); el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
     el.innerHTML = `<div class="hpb"><b style="background:#FF5A6E"></b></div><div class="mk">${icon('dust', '#7ED36F', 10)}</div>${sprite(u.species, bp, { flip: true })}`;
     sc.appendChild(el); eEls[u.idx] = el;
   });
@@ -320,7 +320,7 @@ function handle(ev) {
     else if (e.type === 'rune') { const r = F.RUNE[e.rune]; toast(`${icon('rune', r.color, 14)} +${e.n} <b style="color:${r.color}">${r.label}</b>`, r.color); dirty = true; }
     else if (e.type === 'unlock') { toast(e.text, '#F2C14E'); dirty = true; }
     else if (e.type === 'zonetime') { const m = Math.floor(e.t / 60), sec = Math.round(e.t % 60); toast(`Zona ${e.zone} completata in <b>${m}:${String(sec).padStart(2, '0')}</b>${e.best ? ' · nuovo record!' : ''}`, '#F2C14E'); }
-    else if (e.type === 'battle') { buildScene(); banner(e.result === 'win' ? (S.battle === F.BOSS_BATTLE ? 'BOSS: ' + F.SPECIES[F.ZONES[S.zone].boss].name.toUpperCase() : (S.battle === 1 ? 'ZONA ' + S.zone + ' · ' : '') + 'BATTAGLIA ' + S.battle) : 'SCONFITTA · SI RIPARTE DALLA BATTAGLIA 1'); dirty = true; }
+    else if (e.type === 'battle') { buildScene(); const sec = B.enemies[0] && B.enemies[0].secret; if (sec) { snd('rare'); toast('<b class="rbw">Boss segreto!</b> Sconfiggilo e si unirà a te', '#B07CF0'); } banner(e.result === 'win' ? (sec ? 'BOSS SEGRETO: ' + F.SPECIES[B.enemies[0].species].name.toUpperCase() : S.battle === F.BOSS_BATTLE ? 'BOSS: ' + F.SPECIES[F.ZONES[S.zone].boss].name.toUpperCase() : (S.battle === 1 ? 'ZONA ' + S.zone + ' · ' : '') + 'BATTAGLIA ' + S.battle) : 'SCONFITTA · SI RIPARTE DALLA BATTAGLIA 1'); dirty = true; }
   }
 }
 
@@ -570,7 +570,16 @@ function pBestiario() {
   <div class="bgrid">${pl.species.map(k => { const sp = F.SPECIES[k], m = S.roster[k], rar = F.RARITY[sp.rarity].label, z = F.zoneOf(k);
     const mis = missionHTML(k);
     if (m) return `<div class="card best"><div class="bspr">${sprite(k, 3)}</div><b>${esc(m.name)}</b><span style="color:${CC(sp.cls)}">${sp.cls}</span><em>${rar}</em><small>Zona ${z} · dopo ${fmt(m.waitKills)} incontri</small>${mis}</div>`;
-    return `<div class="card best"><div class="bspr">${sprite(k, 3, { sil: true })}</div><b>???</b><span>&nbsp;</span><em>${rar}</em><small>${z <= S.maxZone ? 'Zona ' + z + ' · incontri ' + fmt(S.hunt[k] || 0) : 'Zona ' + z + ' (bloccata)'}</small>${mis}</div>`; }).join('')}</div>`).join('')}`;
+    return `<div class="card best"><div class="bspr">${sprite(k, 3, { sil: true })}</div><b>???</b><span>&nbsp;</span><em>${rar}</em><small>${z <= S.maxZone ? 'Zona ' + z + ' · incontri ' + fmt(S.hunt[k] || 0) : 'Zona ' + z + ' (bloccata)'}</small>${mis}</div>`; }).join('')}</div>`).join('')}
+  ${secretHTML()}`;
+}
+function secretHTML() {
+  const L = F.SECRET_SPECIES, n = L.filter(k => S.roster[k]).length;
+  return `<div class="ph"><h2 style="font-size:13px" class="rbw">Boss segreti</h2><span>${n}/${L.length}</span></div>
+  <div class="note">Molto di rado, al posto del boss di zona compare la sua versione gigante. Se lo sconfiggi si unisce subito alla squadra, più forte del ${Math.round((F.SECRET_MULT - 1) * 100)}%.</div>
+  <div class="bgrid">${L.map(k => { const sp = F.SPECIES[k], m = S.roster[k], z = F.zoneOf(k);
+    return m ? `<div class="card best sec"><div class="bspr">${sprite(k, 3)}</div><b>${esc(m.name)}</b><span style="color:${CC(sp.cls)}">${sp.cls}</span><em class="rbw">Segreto</em><small>Zona ${z}</small></div>`
+      : `<div class="card best"><div class="bspr">${sprite(k, 3, { sil: true })}</div><b>???</b><span>&nbsp;</span><em>Segreto</em><small>Zona ${z}</small></div>`; }).join('')}</div>`;
 }
 function missionHTML(k) {
   const t = F.missionTier(S, k), kills = (S.kills && S.kills[k]) || 0;
@@ -733,12 +742,12 @@ function showCapture(sp) {
   const m = S.roster[sp], d = F.SPECIES[sp], cls = d.cls, inTeam = S.team.includes(sp);
   const m$ = $('#modal');
   m$.innerHTML = `<div class="mod cap" role="dialog" aria-modal="true" aria-labelledby="capname">
-   <div class="kick">NUOVA CREATURA</div>
+   <div class="kick${d.secret ? ' rbw' : ''}">${d.secret ? 'BOSS SEGRETO CATTURATO' : 'NUOVA CREATURA'}</div>
    <div class="halo"><div class="bob">${sprite(sp, 9)}</div></div>
    <h2 id="capname">${esc(m.name)}</h2>
-   <div class="badges"><span class="rb">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}</span></div>
+   <div class="badges"><span class="rb${d.secret ? ' rbw' : ''}">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}</span></div>
    <p class="quote">«${esc(d.quote)}»</p>
-   <div class="card"><div class="kv"><span>Pianeta</span><b>Prati Stellari</b></div><div class="kv"><span>Incontri prima della cattura</span><b>${fmt(m.waitKills)}</b></div><div class="kv"><span>Abilità</span><b style="color:${CC(cls)}">${F.CLASSES[cls].ability}</b></div></div>
+   <div class="card"><div class="kv"><span>Pianeta</span><b>${F.planetOf(F.zoneOf(sp)).name}</b></div>${d.secret ? `<div class="kv"><span>Bonus</span><b class="rbw">+${Math.round((F.SECRET_MULT - 1) * 100)}% vita, attacco e difesa</b></div>` : `<div class="kv"><span>Incontri prima della cattura</span><b>${fmt(m.waitKills)}</b></div>`}<div class="kv"><span>Abilità</span><b style="color:${CC(cls)}">${F.CLASSES[cls].ability}</b></div></div>
    <form class="rename" data-id="${sp}"><label for="capn">Dai un nome</label><input id="capn" maxlength="16" value="${esc(m.name)}"><button class="sb" type="submit">Salva</button></form>
    ${inTeam ? '<div class="note">È già entrata in squadra.</div>' : `<button class="pb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
    <div class="row2"><button class="discord" data-act="share" data-id="${sp}">Copia per Discord</button><button class="sb" data-act="close">Continua</button></div>

@@ -166,6 +166,9 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .wallet{display:flex;justify-content:space-around;align-items:center;font-size:14px}.wallet div{display:flex;align-items:center;gap:6px}
 .shop{margin-top:8px}.sitem{display:flex;flex-direction:column;gap:3px;margin:0;border-width:1.5px}.sitem span{font-size:11px;color:var(--muted)}.sitem button{margin-top:6px}
 .srow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 10px}.srow .sb{flex:0 0 auto}
+.u.secret .spr{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px #B07CF0);animation:secglow 2s linear infinite}
+@keyframes secglow{0%{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px #ff5f6d)}25%{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px #ffc371)}50%{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px #7CFFB2)}75%{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px #7FE3FF)}100%{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px #ff5f6d)}}
+.best.sec .bspr .spr{filter:drop-shadow(0 0 4px #B07CF0)}
 .rbw{background:linear-gradient(90deg,#ff5f6d,#ffc371,#7CFFB2,#7FE3FF,#B07CF0,#ff5f6d);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent!important;animation:rbw 3s linear infinite}
 @keyframes rbw{to{background-position:300% 0}}
 .it.rbo,.eqt.rbo,.sitem.rbo{border-image:linear-gradient(90deg,#ff5f6d,#ffc371,#7CFFB2,#7FE3FF,#B07CF0) 1}
@@ -383,6 +386,7 @@ const RARITY = {
   noncomune:   { label: 'Non comune',  weight: 1.5, p: 1 / 6000 },
   rara:        { label: 'Rara',        weight: 0.6, p: 1 / 12000 },
   boss:        { label: 'Boss',        weight: 0,   p: 1 / 8000 },
+  segreto:     { label: 'Segreto',     weight: 0,   p: 0 },
 };
 
 const SPECIES = {
@@ -463,9 +467,14 @@ const ZONE_NEW = [null,
 const ZONE_BOSS = [null, 'cometuga', 'sporello', 'astrillo', 'nebulina', 'revuoto', 'geodino', 'lumispettro', 'quarzillo', 'prismella', 'reginaquarzo', 'lavarospo', 'magmolo', 'fiammella', 'draghetto', 'imperatore', 'nullo', 'corvonero', 'tentacula', 'stellanera', 'divoratore'];
 const ZONES = [null]; for (let z = 1; z <= 20; z++) { const first = Math.floor((z - 1) / 5) * 5 + 1, pool = []; for (let k = first; k <= z; k++) pool.push(...ZONE_NEW[k]); ZONES.push({ pool, boss: ZONE_BOSS[z] }); }
 const MAX_ZONE = 20;
+// Boss segreti: versione gigante del boss di zona. Compare di rado al posto del boss e, se lo sconfiggi, si unisce subito.
+let SECRET_P = 0.001; if (typeof process !== 'undefined' && process.env && process.env.SECP) SECRET_P = +process.env.SECP;
+const SECRET_MULT = 1.3; // un boss segreto in squadra è più forte del 30% rispetto alla sua versione normale
+const SECRET_SPECIES = [];
+for (let z = 1; z <= MAX_ZONE; z++) { const k = ZONE_BOSS[z], sk = k + '_s'; if (SPECIES[sk]) continue; SPECIES[sk] = { name: SPECIES[k].name + ' Gigante', cls: SPECIES[k].cls, rarity: 'segreto', secret: true, base: k, quote: 'Pochi mi hanno visto. Nessuno mi aveva mai battuto.' }; SECRET_SPECIES.push(sk); }
 const ALL_SPECIES = PLANETS.flatMap(p => p.species);
 function planetOf(z) { return PLANETS.find(p => z >= p.zones[0] && z <= p.zones[1]); }
-function zoneOf(sp) { for (let z = 1; z <= MAX_ZONE; z++) if (ZONES[z].pool.includes(sp) || ZONES[z].boss === sp) return z; return 1; }
+function zoneOf(sp) { if (SPECIES[sp] && SPECIES[sp].base) sp = SPECIES[sp].base; for (let z = 1; z <= MAX_ZONE; z++) if (ZONES[z].pool.includes(sp) || ZONES[z].boss === sp) return z; return 1; }
 function gIndex(z, n) { return (z - 1) * 30 + n; }
 
 const ITEM_RARITY = [ // chiavi interne invariate per compatibilità dei salvataggi
@@ -746,7 +755,7 @@ function classCounts(s) { const c = { Tank: 0, Guerriero: 0, Arciere: 0, Mago: 0
 
 function memberStats(s, id) {
   const m = s.roster[id], cls = SPECIES[m.species].cls, b = CLASSES[cls];
-  const lm = 1 + 0.35 * (m.lvl - 1);
+  const lm = (1 + 0.35 * (m.lvl - 1)) * (SPECIES[m.species].secret ? SECRET_MULT : 1);
   let hp = b.hp * lm, atk = b.atk * lm, def = b.def * lm, crit = 0.05, critDmg = 1.5;
   let aspd = 0, block = b.block || 0, dodge = 0;
   for (const sl of SLOTS) {
@@ -781,12 +790,13 @@ function makeEnemies(s) {
   const list = [];
   const count = n === BOSS_BATTLE ? 2 : 3;
   for (let i = 0; i < count; i++) list.push(pickWeighted(s, pool, k => RARITY[SPECIES[k].rarity].weight));
-  if (n === BOSS_BATTLE) list.unshift(Z.boss);
+  let secret = false;
+  if (n === BOSS_BATTLE) { const sk = Z.boss + '_s'; secret = !s.roster[sk] && rnd(s) < SECRET_P * (s.settings && s.settings.test ? 50 : 1); list.unshift(secret ? sk : Z.boss); }
   return list.map((sp, i) => {
-    const cls = SPECIES[sp].cls, boss = n === BOSS_BATTLE && i === 0, b = CLASSES[cls];
+    const cls = SPECIES[sp].cls, boss = n === BOSS_BATTLE && i === 0, b = CLASSES[cls], sec = boss && secret;
     const big = s.zone % 5 === 0; // i boss di pianeta (zone 5 e 10) sono più duri
-    const hp = Math.round(b.hp * 0.45 * f * (boss ? (big ? 8 : 4) : 1));
-    return { side: 'e', idx: i, species: sp, cls, boss, hp, maxHp: hp, atk: b.atk * 0.46 * f * (boss ? (big ? 1.6 : 1.3) : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: (0.6 + i * 1.1) / moveSpeed(s), arriveMax: (0.6 + i * 1.1) / moveSpeed(s) };
+    const hp = Math.round(b.hp * 0.45 * f * (boss ? (big ? 8 : 4) : 1) * (sec ? 1.5 : 1));
+    return { side: 'e', idx: i, species: sp, cls, boss, secret: sec, hp, maxHp: hp, atk: b.atk * 0.46 * f * (boss ? (big ? 1.6 : 1.3) : 1) * (sec ? 1.15 : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: (0.6 + i * 1.1) / moveSpeed(s), arriveMax: (0.6 + i * 1.1) / moveSpeed(s) };
   });
 }
 
@@ -927,6 +937,11 @@ function onKill(s, b, e, ev) {
 
 function tryCapture(s, e, ev) {
   const sp = e.species; if (s.roster[sp]) return;
+  if (SPECIES[sp].secret) { // boss segreto: si unisce sempre
+    const m = newMember(sp, 1); m.waitKills = 1; s.roster[sp] = m; if (!teamFull(s)) s.team.push(sp);
+    s.stats.secrets = (s.stats.secrets || 0) + 1;
+    if (ev) ev.push({ type: 'capture', species: sp, secret: true }); return;
+  }
   s.hunt[sp] = (s.hunt[sp] || 0) + 1;
   let p = RARITY[SPECIES[sp].rarity].p * (1 + Math.min(0.5, B(s, 'capture')));
   if (s.settings.test) p *= 200;
@@ -1174,7 +1189,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
@@ -1258,7 +1273,7 @@ function sprite(key, p, opts) {
   opts = opts || {};
   const ck = key + p;
   if (!sprCache[ck]) {
-    const [pal, rows] = SPR[key]; const parts = [];
+    const [pal, rows] = SPR[key] || SPR[F.SPECIES[key].base]; const parts = [];
     rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] !== '.') parts.push(`${(x + 1) * p}px ${(y + 1) * p}px 0 0 ${pal[r[x]]}`); });
     sprCache[ck] = { bs: parts.join(','), w: Math.max(...rows.map(r => r.length)) * p, h: rows.length * p };
   }
@@ -1415,9 +1430,9 @@ function buildScene() {
   // nemici: quelli da mischia si ammassano sul primo bersaglio, quelli a distanza restano indietro
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
-    const bp = u.boss ? 3 : 2, r = isRanged(u.cls);
+    const bp = u.secret ? 4 : u.boss ? 3 : 2, r = isRanged(u.cls);
     const x = r ? 248 + (rk++) * 12 : 190 + (mk++) * 7 - (u.boss ? 6 : 0), y = 26 + ((r ? rk : mk) % 2) * 5;
-    const el = document.createElement('div'); el.className = 'u'; el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
+    const el = document.createElement('div'); el.className = 'u' + (u.secret ? ' secret' : ''); el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
     el.innerHTML = `<div class="hpb"><b style="background:#FF5A6E"></b></div><div class="mk">${icon('dust', '#7ED36F', 10)}</div>${sprite(u.species, bp, { flip: true })}`;
     sc.appendChild(el); eEls[u.idx] = el;
   });
@@ -1504,7 +1519,7 @@ function handle(ev) {
     else if (e.type === 'rune') { const r = F.RUNE[e.rune]; toast(`${icon('rune', r.color, 14)} +${e.n} <b style="color:${r.color}">${r.label}</b>`, r.color); dirty = true; }
     else if (e.type === 'unlock') { toast(e.text, '#F2C14E'); dirty = true; }
     else if (e.type === 'zonetime') { const m = Math.floor(e.t / 60), sec = Math.round(e.t % 60); toast(`Zona ${e.zone} completata in <b>${m}:${String(sec).padStart(2, '0')}</b>${e.best ? ' · nuovo record!' : ''}`, '#F2C14E'); }
-    else if (e.type === 'battle') { buildScene(); banner(e.result === 'win' ? (S.battle === F.BOSS_BATTLE ? 'BOSS: ' + F.SPECIES[F.ZONES[S.zone].boss].name.toUpperCase() : (S.battle === 1 ? 'ZONA ' + S.zone + ' · ' : '') + 'BATTAGLIA ' + S.battle) : 'SCONFITTA · SI RIPARTE DALLA BATTAGLIA 1'); dirty = true; }
+    else if (e.type === 'battle') { buildScene(); const sec = B.enemies[0] && B.enemies[0].secret; if (sec) { snd('rare'); toast('<b class="rbw">Boss segreto!</b> Sconfiggilo e si unirà a te', '#B07CF0'); } banner(e.result === 'win' ? (sec ? 'BOSS SEGRETO: ' + F.SPECIES[B.enemies[0].species].name.toUpperCase() : S.battle === F.BOSS_BATTLE ? 'BOSS: ' + F.SPECIES[F.ZONES[S.zone].boss].name.toUpperCase() : (S.battle === 1 ? 'ZONA ' + S.zone + ' · ' : '') + 'BATTAGLIA ' + S.battle) : 'SCONFITTA · SI RIPARTE DALLA BATTAGLIA 1'); dirty = true; }
   }
 }
 
@@ -1754,7 +1769,16 @@ function pBestiario() {
   <div class="bgrid">${pl.species.map(k => { const sp = F.SPECIES[k], m = S.roster[k], rar = F.RARITY[sp.rarity].label, z = F.zoneOf(k);
     const mis = missionHTML(k);
     if (m) return `<div class="card best"><div class="bspr">${sprite(k, 3)}</div><b>${esc(m.name)}</b><span style="color:${CC(sp.cls)}">${sp.cls}</span><em>${rar}</em><small>Zona ${z} · dopo ${fmt(m.waitKills)} incontri</small>${mis}</div>`;
-    return `<div class="card best"><div class="bspr">${sprite(k, 3, { sil: true })}</div><b>???</b><span>&nbsp;</span><em>${rar}</em><small>${z <= S.maxZone ? 'Zona ' + z + ' · incontri ' + fmt(S.hunt[k] || 0) : 'Zona ' + z + ' (bloccata)'}</small>${mis}</div>`; }).join('')}</div>`).join('')}`;
+    return `<div class="card best"><div class="bspr">${sprite(k, 3, { sil: true })}</div><b>???</b><span>&nbsp;</span><em>${rar}</em><small>${z <= S.maxZone ? 'Zona ' + z + ' · incontri ' + fmt(S.hunt[k] || 0) : 'Zona ' + z + ' (bloccata)'}</small>${mis}</div>`; }).join('')}</div>`).join('')}
+  ${secretHTML()}`;
+}
+function secretHTML() {
+  const L = F.SECRET_SPECIES, n = L.filter(k => S.roster[k]).length;
+  return `<div class="ph"><h2 style="font-size:13px" class="rbw">Boss segreti</h2><span>${n}/${L.length}</span></div>
+  <div class="note">Molto di rado, al posto del boss di zona compare la sua versione gigante. Se lo sconfiggi si unisce subito alla squadra, più forte del ${Math.round((F.SECRET_MULT - 1) * 100)}%.</div>
+  <div class="bgrid">${L.map(k => { const sp = F.SPECIES[k], m = S.roster[k], z = F.zoneOf(k);
+    return m ? `<div class="card best sec"><div class="bspr">${sprite(k, 3)}</div><b>${esc(m.name)}</b><span style="color:${CC(sp.cls)}">${sp.cls}</span><em class="rbw">Segreto</em><small>Zona ${z}</small></div>`
+      : `<div class="card best"><div class="bspr">${sprite(k, 3, { sil: true })}</div><b>???</b><span>&nbsp;</span><em>Segreto</em><small>Zona ${z}</small></div>`; }).join('')}</div>`;
 }
 function missionHTML(k) {
   const t = F.missionTier(S, k), kills = (S.kills && S.kills[k]) || 0;
@@ -1863,7 +1887,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 23:27</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 23:45</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -1917,12 +1941,12 @@ function showCapture(sp) {
   const m = S.roster[sp], d = F.SPECIES[sp], cls = d.cls, inTeam = S.team.includes(sp);
   const m$ = $('#modal');
   m$.innerHTML = `<div class="mod cap" role="dialog" aria-modal="true" aria-labelledby="capname">
-   <div class="kick">NUOVA CREATURA</div>
+   <div class="kick${d.secret ? ' rbw' : ''}">${d.secret ? 'BOSS SEGRETO CATTURATO' : 'NUOVA CREATURA'}</div>
    <div class="halo"><div class="bob">${sprite(sp, 9)}</div></div>
    <h2 id="capname">${esc(m.name)}</h2>
-   <div class="badges"><span class="rb">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}</span></div>
+   <div class="badges"><span class="rb${d.secret ? ' rbw' : ''}">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}</span></div>
    <p class="quote">«${esc(d.quote)}»</p>
-   <div class="card"><div class="kv"><span>Pianeta</span><b>Prati Stellari</b></div><div class="kv"><span>Incontri prima della cattura</span><b>${fmt(m.waitKills)}</b></div><div class="kv"><span>Abilità</span><b style="color:${CC(cls)}">${F.CLASSES[cls].ability}</b></div></div>
+   <div class="card"><div class="kv"><span>Pianeta</span><b>${F.planetOf(F.zoneOf(sp)).name}</b></div>${d.secret ? `<div class="kv"><span>Bonus</span><b class="rbw">+${Math.round((F.SECRET_MULT - 1) * 100)}% vita, attacco e difesa</b></div>` : `<div class="kv"><span>Incontri prima della cattura</span><b>${fmt(m.waitKills)}</b></div>`}<div class="kv"><span>Abilità</span><b style="color:${CC(cls)}">${F.CLASSES[cls].ability}</b></div></div>
    <form class="rename" data-id="${sp}"><label for="capn">Dai un nome</label><input id="capn" maxlength="16" value="${esc(m.name)}"><button class="sb" type="submit">Salva</button></form>
    ${inTeam ? '<div class="note">È già entrata in squadra.</div>' : `<button class="pb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
    <div class="row2"><button class="discord" data-act="share" data-id="${sp}">Copia per Discord</button><button class="sb" data-act="close">Continua</button></div>

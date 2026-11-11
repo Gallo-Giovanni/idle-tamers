@@ -166,6 +166,9 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .wallet{display:flex;justify-content:space-around;align-items:center;font-size:14px}.wallet div{display:flex;align-items:center;gap:6px}
 .shop{margin-top:8px}.sitem{display:flex;flex-direction:column;gap:3px;margin:0;border-width:1.5px}.sitem span{font-size:11px;color:var(--muted)}.sitem button{margin-top:6px}
 .srow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 10px}.srow .sb{flex:0 0 auto}
+.u.secret .spr{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px #B07CF0);animation:secglow 2s linear infinite}
+@keyframes secglow{0%{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px #ff5f6d)}25%{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px #ffc371)}50%{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px #7CFFB2)}75%{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px #7FE3FF)}100%{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px #ff5f6d)}}
+.best.sec .bspr .spr{filter:drop-shadow(0 0 4px #B07CF0)}
 .rbw{background:linear-gradient(90deg,#ff5f6d,#ffc371,#7CFFB2,#7FE3FF,#B07CF0,#ff5f6d);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent!important;animation:rbw 3s linear infinite}
 @keyframes rbw{to{background-position:300% 0}}
 .it.rbo,.eqt.rbo,.sitem.rbo{border-image:linear-gradient(90deg,#ff5f6d,#ffc371,#7CFFB2,#7FE3FF,#B07CF0) 1}
