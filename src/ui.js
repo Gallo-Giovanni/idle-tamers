@@ -366,7 +366,7 @@ function pSquadra() {
   <div class="note">L'ordine conta: chi sta più in alto riceve per primo l'equipaggiamento.</div>
   ${S.team.map((id, i) => memberRow(id, true, i)).join('')}
   ${n < slots ? `<div class="card free">Posto libero: aggiungi una creatura dalla riserva o catturane una nuova.</div>` : ''}
-  ${F.nextSlotZone(S) ? `<div class="lockgrid"><div class="lk">${icon('lock', '#7C84BC', 16)}<span>Nuovo posto: sconfiggi il boss della zona ${F.nextSlotZone(S)}</span></div></div>` : ''}
+  ${F.nextSlotZone(S) ? `<div class="lockgrid"><div class="lk">${icon('lock', '#7C84BC', 16)}<span>Nuovo posto: sconfiggi il boss della zona ${F.nextSlotZone(S)} o accendi la stella Corona</span></div></div>` : ''}
   ${reserve.length ? `<div class="ph"><h2>Riserva</h2><span>${reserve.length}</span></div>${reserve.map(id => memberRow(id, false)).join('')}` : ''}`;
 }
 function rcls(r) { return r.rainbow ? ' rbw' : ''; }
