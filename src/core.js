@@ -95,6 +95,18 @@ const TREE = {
   richiamo: { name: 'Richiamo', desc: 'Probabilità di cattura +5% per livello (max +50%)', max: 10, cost: starCost(2000, 3) },
 };
 
+// Mappa delle costellazioni: posizione sulla mappa (0-100) e stella che va prima fatta crescere
+const STARMAP = {
+  forza:    { x: 50, y: 50, req: null, ic: '⚔' },
+  vita:     { x: 28, y: 34, req: ['forza', 3], ic: '♥' },
+  scudo:    { x: 72, y: 34, req: ['forza', 3], ic: '⛨' },
+  branco:   { x: 16, y: 58, req: ['vita', 5], ic: '❀' },
+  lama:     { x: 84, y: 58, req: ['scudo', 5], ic: '✦' },
+  tesoro:   { x: 50, y: 16, req: ['forza', 8], ic: '◈' },
+  cometa:   { x: 34, y: 82, req: ['branco', 5], ic: '☄' },
+  richiamo: { x: 66, y: 82, req: ['lama', 5], ic: '✧' },
+};
+function starOpen(s, k) { const r = STARMAP[k] && STARMAP[k].req; return !r || s.tree[r[0]] >= r[1]; }
 const ACH = [
   { id: 'k1',    name: 'Primo sangue stellare', desc: 'Sconfiggi il primo nemico', test: s => s.stats.kills >= 1, astri: 2 },
   { id: 'k100',  name: 'Cento stelle spente', desc: 'Sconfiggi 100 nemici', test: s => s.stats.kills >= 100, astri: 5 },
@@ -483,8 +495,8 @@ function raiseRarity(s, it) { const n = nextRarity(it); if (!n || s.runes[n] < 1
 function slotRune(l) { return l < 4 ? 'noncomune' : l < 7 ? 'rara' : l < 9 ? 'epica' : 'leggendaria'; }
 function slotCost(l) { return 1; }
 function upgradeSlot(s, id, sl) { const m = s.roster[id]; if (!m) return false; const l = m.slv[sl] || 0, k = slotRune(l); if (l >= 10 || s.runes[k] < 1) return false; s.runes[k] -= 1; m.slv[sl] = l + 1; return true; }
-// Rune in vendita nello Shop per Astri (5 volte il valore di vendita)
-const RUNE_BUY = { noncomune: 5, rara: 10, epica: 20, leggendaria: 40 };
+// Rune in vendita nello Shop per Astri (10 volte il valore di vendita, provvisorio)
+const RUNE_BUY = { noncomune: 10, rara: 20, epica: 40, leggendaria: 80 };
 function buyRune(s, k) { const c = RUNE_BUY[k]; if (!c || s.astri < c) return false; s.astri -= c; s.runes[k]++; return true; }
 function sellRunes(s, k, n) { n = Math.min(n, s.runes[k]); s.runes[k] -= n; const g = n * RUNE[k].value; s.astri += g; return g; }
 // Negozio: 6 oggetti, rinnovati alle 0, 8 e 16 (ora locale), rarità con le stesse probabilità dei drop
@@ -507,7 +519,7 @@ function rerollShop(s) { if (s.astri < REROLL_COST) return false; s.astri -= RER
 function buyShop(s, idx) { const it = s.shop && s.shop.items[idx]; if (!it || it.sold || s.astri < it.price) return false; s.astri -= it.price; it.sold = true; const copy = Object.assign({}, it); delete copy.price; delete copy.sold; s.inventory.push(copy); if (s.settings.autoEquip) autoEquip(s); return true; }
 // Allenamento della squadra: l'oro diventa forza, così non si resta mai bloccati per sempre
 // Accensione automatica: compra sempre la costellazione più economica disponibile
-function cheapestStar(s) { let best = null, c = Infinity; for (const k in TREE) { const l = s.tree[k] || 0; if (l < TREE[k].max) { const v = TREE[k].cost(l); if (v < c) { c = v; best = k; } } } return { key: best, cost: c }; }
+function cheapestStar(s) { let best = null, c = Infinity; for (const k in TREE) { const l = s.tree[k] || 0; if (l < TREE[k].max && starOpen(s, k)) { const v = TREE[k].cost(l); if (v < c) { c = v; best = k; } } } return { key: best, cost: c }; }
 function autoStars(s) { let n = 0; for (;;) { const b = cheapestStar(s); s._nextStar = b.cost; if (!b.key || s.gold < b.cost || n >= 50) break; s.gold -= b.cost; s.tree[b.key]++; n++; } return n; }
 // Missioni del bestiario: sconfiggi una specie N volte, 3 livelli; soglie e premi scalano con la rarità
 const MISSION_BASE = [500, 3000, 15000];
@@ -555,7 +567,7 @@ function migrate(s) {
   return s;
 }
 
-function buyTree(s, key) { const t = TREE[key], l = s.tree[key]; if (l >= t.max) return false; const c = t.cost(l); if (s.gold < c) return false; s.gold -= c; s.tree[key]++; s._nextStar = 0; return true; }
+function buyTree(s, key) { const t = TREE[key], l = s.tree[key]; if (l >= t.max || !starOpen(s, key)) return false; const c = t.cost(l); if (s.gold < c) return false; s.gold -= c; s.tree[key]++; s._nextStar = 0; return true; }
 function resetTree(s) { let back = 0; for (const k in TREE) { for (let l = 0; l < s.tree[k]; l++) back += TREE[k].cost(l); s.tree[k] = 0; } s.gold += back; s._nextStar = 0; return back; }
 
 function moveMember(s, id, dir) { const i = s.team.indexOf(id), j = i + dir; if (i < 0 || j < 0 || j >= s.team.length) return; [s.team[i], s.team[j]] = [s.team[j], s.team[i]]; }
@@ -594,7 +606,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;

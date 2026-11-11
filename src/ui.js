@@ -406,11 +406,18 @@ function pMappa() {
    <svg class="path" viewBox="0 0 100 500" preserveAspectRatio="none" aria-hidden="true"><path d="M28 40 C 90 90, 90 110, 72 140 S 10 200, 28 240 S 90 300, 72 340 S 10 400, 28 440" fill="none" stroke="#6B7BD1" stroke-width="1.2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/></svg>
    ${Array.from({ length: pl.zones[1] - pl.zones[0] + 1 }, (_, i) => isl(pl.zones[0] + i, i, pi)).join('')}</div>`).join('')}`;
 }
+let selStar = 'forza';
 function pStelle() {
+  const M = F.STARMAP, ok = k => F.starOpen(S, k);
+  const lines = Object.keys(M).filter(k => M[k].req).map(k => { const a = M[k], b = M[a.req[0]]; return `<line x1="${b.x}" y1="${b.y}" x2="${a.x}" y2="${a.y}" class="${ok(k) ? 'lon' : ''}"/>`; }).join('');
+  const nodes = Object.keys(M).map(k => { const p = M[k], t = F.TREE[k], l = S.tree[k], unl = ok(k);
+    return `<button class="snode${unl ? '' : ' slk'}${selStar === k ? ' ssel' : ''}${l >= t.max ? ' smax' : ''}" style="left:${p.x}%;top:${p.y}%;--f:${l / t.max * 360}deg" data-act="selstar" data-k="${k}" aria-label="${t.name} ${l} su ${t.max}"><span class="sic">${unl ? p.ic : icon('lock', '#A9B0D6', 16)}</span><span class="slv">${l}/${t.max}</span><span class="snm">${t.name}</span></button>`; }).join('');
+  const k = selStar, t = F.TREE[k], l = S.tree[k], max = l >= t.max, c = max ? 0 : t.cost(l), unl = ok(k), r = M[k].req;
   return `<div class="ph"><h2>Costellazioni</h2><span>${icon('coin', '#F2C14E', 14)} ${cfmt(S.gold)} oro</span></div>
-  <div class="note">Le costellazioni si accendono con l'oro dei nemici sconfitti. Più alto il livello, più costa la stella successiva.</div>
-  ${Object.keys(F.TREE).map(k => { const t = F.TREE[k], l = S.tree[k], max = l >= t.max, c = max ? 0 : t.cost(l);
-    return `<div class="card trow"><div><b>${t.name}</b> <span class="lvl">${l}/${t.max}</span><div class="msub">${t.desc}</div><div class="bar" style="margin-top:4px;height:3px"><b style="width:${100 * l / t.max}%"></b></div></div><button class="sb" data-act="tree" data-k="${k}" ${max || S.gold < c ? 'disabled' : ''}>${max ? 'Max' : 'Accendi · ' + cfmt(c)}</button></div>`; }).join('')}
+  <div class="skymap"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${lines}</svg>${nodes}<i class="tw" style="left:8%;top:12%"></i><i class="tw" style="left:90%;top:20%;animation-delay:1s"></i><i class="tw" style="left:20%;top:92%;animation-delay:.5s"></i><i class="tw" style="left:82%;top:94%;animation-delay:1.5s"></i></div>
+  <div class="card sdet"><div style="flex:1"><b>${t.name}</b> <span class="lvl">${l}/${t.max}</span><div class="msub">${t.desc}</div>${!unl ? `<div class="msub" style="color:#F2C14E">Si sblocca con ${F.TREE[r[0]].name} a livello ${r[1]}</div>` : ''}</div>
+  <button class="pb" data-act="tree" data-k="${k}" ${max || !unl || S.gold < c ? 'disabled' : ''}>${max ? 'Max' : 'Accendi<br><small>' + cfmt(c) + ' oro</small>'}</button></div>
+  <div class="note">Tocca una stella per vederla. Le stelle più lontane si accendono dopo aver fatto crescere quelle vicine: scegli tu la strada.</div>
   <button class="sb wide" data-act="treereset">${confirmTree > Date.now() ? 'Tocca di nuovo per confermare' : 'Ridistribuisci tutti i punti'}</button>`;
 }
 function pAltro() {
@@ -435,6 +442,10 @@ function pAltro() {
   <div class="ph"><h2>Strumenti di test</h2></div>
   <div class="note">Fa avanzare il gioco come se fosse passato questo tempo (senza il limite di ore offline).</div>
   <div class="skips">${[[1, '1 h'], [6, '6 h'], [12, '12 h'], [24, '1 g'], [168, '7 g']].map(([h, l]) => `<button class="sb" data-act="skip" data-h="${h}">+${l}</button>`).join('')}</div>
+  <div class="note">Aggiungi risorse per provare il gioco.</div>
+  <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
+  <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
+  <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
   <div class="note">Il salvataggio resta in questo browser.</div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
@@ -619,6 +630,9 @@ document.addEventListener('click', e => {
   else if (a === 'bagview') { bagView = t.dataset.v; selItem = null; }
   else if (a === 'tochest') { F.toChest(S, +t.dataset.item); selItem = null; }
   else if (a === 'fromchest') { F.fromChest(S, +t.dataset.item); selItem = null; }
+  else if (a === 'givegold') { S.gold += +t.dataset.v; toast(`+${cfmt(+t.dataset.v)} oro`, '#F2C14E'); }
+  else if (a === 'giveastri') { S.astri += +t.dataset.v; toast(`+${fmt(+t.dataset.v)} Astri`, '#F49AC1'); }
+  else if (a === 'selstar') selStar = t.dataset.k;
   else if (a === 'buyrune') { if (F.buyRune(S, t.dataset.k)) toast(`+1 ${F.RUNE[t.dataset.k].label.toLowerCase()}`, F.RUNE[t.dataset.k].color); }
   else if (a === 'daily') { const g = F.claimDaily(S); if (g) toast(`+${g} ${icon('gem', '#F49AC1', 14)} Astri: regalo del giorno`, '#F49AC1'); }
   else if (a === 'pass') { F.activatePass(S); toast('Pass Astrale attivo per 30 giorni (versione di prova)', '#F2C14E'); }
@@ -643,6 +657,7 @@ document.addEventListener('change', e => {
   save(); render(); hud();
 });
 document.addEventListener('submit', e => {
+  if (e.target.classList.contains('giveform')) { e.preventDefault(); const v = Math.floor(+$('#givev').value || 0); if (v > 0) { const k = e.submitter && e.submitter.dataset.give; if (k === 'astri') S.astri += v; else S.gold += v; toast(`+${cfmt(v)} ${k === 'astri' ? 'Astri' : 'oro'}`); save(); hud(); dirty = true; } return; }
   const f = e.target.closest('form.rename'); if (!f) return; e.preventDefault();
   const v = f.querySelector('input').value.trim(); if (v) { S.roster[f.dataset.id].name = v.slice(0, 16); save(); toast('Nome salvato'); }
   if (!$('#modal').hidden && f.closest('#modal')) { const h = $('#capname'); if (h) h.textContent = v; } else render();

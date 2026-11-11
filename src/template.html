@@ -210,6 +210,19 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .it .plk{position:absolute;top:2px;right:2px;background:none}
 .runes4{grid-template-columns:repeat(4,1fr)!important}.runes4 .sitem{padding:6px 4px}.runes4 .pb{min-height:30px;padding:0 6px}
 .kv.sub{font-size:12px;padding-left:8px;opacity:.95}
+
+.skymap{position:relative;height:330px;margin:4px 0 8px;border-radius:14px;background:radial-gradient(circle at 50% 50%,#26306e 0,#141a46 55%,#0b0e24 100%);overflow:hidden}
+.skymap svg{position:absolute;inset:0;width:100%;height:100%}
+.skymap line{stroke:#3a4382;stroke-width:.6;stroke-dasharray:1.5 1.5}.skymap line.lon{stroke:#F2C14E;stroke-dasharray:none;opacity:.8}
+.snode{position:absolute;transform:translate(-50%,-50%);width:58px;height:58px;border-radius:50%;border:none;cursor:pointer;color:var(--txt);
+ background:radial-gradient(circle,#1b2160 58%,transparent 60%),conic-gradient(#F2C14E var(--f),#2c3470 0);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
+.snode .sic{font-size:18px;line-height:18px;color:#FFE9A8;text-shadow:0 0 8px #F2C14E}.snode .slv{font-size:9.5px;font-weight:700}
+.snode .snm{position:absolute;top:60px;font-size:10.5px;font-weight:700;white-space:nowrap;color:#cfd6ff}
+.snode .sic svg{width:16px!important;height:16px!important;position:static!important;display:block;margin:0 auto}
+.snode.slk{filter:grayscale(1);opacity:.5}.snode.ssel{box-shadow:0 0 0 2px #F2C14E,0 0 18px #F2C14E88}.snode.smax .sic{color:#7FE3FF;text-shadow:0 0 10px #7FE3FF}
+.skymap .tw{position:absolute;width:3px;height:3px;background:#fff;border-radius:50%;animation:twk 2s ease-in-out infinite}@keyframes twk{50%{opacity:.2}}
+.sdet{display:flex;align-items:center;gap:10px}
+.giveform input{flex:1;min-width:0;min-height:36px;background:#10143A;border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:0 10px;font-size:14px}
 </style>
 </head>
 <body>
