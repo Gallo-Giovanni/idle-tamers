@@ -311,6 +311,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .slotgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin:6px 0}
 .sl2{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;min-height:58px;border-radius:8px;border:2px solid var(--line);background:#10143A;color:var(--txt);font-size:9.5px;padding:4px 2px;cursor:pointer;text-align:center}
 .sl2.empty{border-style:dashed;justify-content:center;color:var(--muted)}.sl2.lock{background:repeating-linear-gradient(135deg,#10143A 0 6px,#161b47 6px 12px);justify-content:center;color:#7C84BC;gap:3px}.sl2 small{font-size:8.5px}
+.fstats{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;font-size:12px;margin:4px 0}.fstats div{display:flex;justify-content:space-between;border-bottom:1px solid #1E2350;padding:2px 0}.fstats span{color:var(--muted)}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -1449,6 +1450,11 @@ function statsHTML(it, lv) {
   const bon = (it.bonus || []).map(b => `<div class="srow2 bon"><span><i style="background:${r.color}"></i>${F.STAT_LABEL[b.k]}</span><b>${val(b.k, F.bonusValue(it, b))}</b></div>`).join('');
   return `<div class="stbox">${rows}${bon ? `<div class="sthead">Bonus</div>${bon}` : ''}<div class="srow2 val"><span>${icon('coin', '#F2C14E', 12)} Valore</span><b>${fmt(F.sellValue(it, S))}</b></div>${lv ? `<div class="sthead" style="color:#5BD8E6">Slot +${lv}: +${lv * 10}% agli attributi</div>` : ''}</div>`;
 }
+function fullStats(st) {
+  const pc = v => (v * 100).toFixed(1).replace('.', ',') + '%';
+  const rows = [['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)]];
+  return `<div class="fstats">${rows.map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join('')}</div>`;
+}
 function ptsHTML(id) {
   const m = S.roster[id], p = F.ptsOf(m), free = F.ptsFree(m);
   return `<div class="ptsbox"><div class="ptshead"><b>Punti statistica</b><span class="${free ? 'pfree' : ''}">${free} da assegnare</span><button class="sb" data-act="ptsauto" data-id="${id}" ${free ? '' : 'disabled'}>Auto</button><button class="sb" data-act="ptsreset" data-id="${id}">Azzera</button></div>
@@ -1469,7 +1475,7 @@ function memberRow(id, inTeam, i) {
   html += `</div>`;
   if (open) {
     html += `<div class="card detail">
-    <div class="stats"><span>Vita <b>${fmt(st.hp)}</b></span><span>Attacco <b>${fmt(st.atk)}</b></span><span>Difesa <b>${st.def}</b></span><span>Critico <b>${Math.round(st.crit * 100)}%</b></span></div>
+    ${fullStats(st)}
     <div class="abil"><b style="color:${CC(cls)}">${F.CLASSES[cls].ability}</b> · ${F.CLASSES[cls].desc}</div>
     ${ptsHTML(id)}
     <div class="row2"><label class="tg"><input type="checkbox" data-act="lockm" data-id="${id}" ${m.locked ? 'checked' : ''}> Blocca equipaggiamento</label>${inTeam && !F.isHero(id) ? `<button class="sb" data-act="bench" data-id="${id}">Metti in riserva</button>` : ''}</div>
@@ -1493,7 +1499,7 @@ function eqHTML(id) {
 function showEquip(id) {
   equipOpen = id; const m = S.roster[id], sp = F.SPECIES[m.species], st = F.memberStats(S, id);
   $('#modal').innerHTML = `<div class="mod eqmod" role="dialog" aria-modal="true" aria-labelledby="eqt"><div class="eqhead"><div class="mspr">${sprite(m.species, 3)}</div><div><h2 id="eqt" style="text-align:left;font-size:20px;margin:0">${esc(m.name)}</h2><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · Lv ${m.lvl} · Potere ${fmt(F.memberPower(S, id))}</div></div><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
-  <div class="stats"><span>Vita <b>${fmt(st.hp)}</b></span><span>Attacco <b>${fmt(st.atk)}</b></span><span>Difesa <b>${st.def}</b></span><span>Critico <b>${Math.round(st.crit * 100)}%</b></span></div>
+  ${fullStats(st)}
   ${eqHTML(id)}
   ${bagForMember(id)}</div>`;
   $('#modal').hidden = false;
@@ -1737,7 +1743,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 22:46</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>11/11 22:49</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
