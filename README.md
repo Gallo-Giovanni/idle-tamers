@@ -14,3 +14,8 @@ Da Chrome su Android: menu ⋮ → *Installa app* per averlo come un'app vera.
 - `manifest.webmanifest`, `sw.js`, `icons/` — installazione come app (PWA)
 
 Dopo ogni modifica in `src/`: `python3 tools/build.py`.
+
+## Idee da valutare
+- **Boss segreti**: con una probabilità bassissima compaiono al posto del boss normale della zona (aspetto e drop speciali, catturabili).
+- **Aumento del guadagno offline**: oggi 4 ore (8 col Pass); decidere come e quando farlo crescere.
+- **Classifica globale** del potere squadra e **sfondi diversi** per ogni pianeta.
