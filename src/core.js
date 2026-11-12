@@ -407,19 +407,23 @@ function memberPower(s, id) { const st = memberStats(s, id); return Math.round(s
 // Ogni zona: prime battaglie facili, poi accelera verso il boss. Ogni zona nuova parte un po' sotto il boss della precedente.
 // Dentro una zona i nemici crescono poco (gli oggetti hanno il livello della zona): il salto vero è tra una zona e l'altra
 let WZ = 1.03; if (typeof process !== 'undefined' && process.env && process.env.WZ) WZ = +process.env.WZ;
-function withinZone(n) { return Math.pow(WZ, n - 1); }
+let WZ1 = 1.015; if (typeof process !== 'undefined' && process.env && process.env.WZ1) WZ1 = +process.env.WZ1;
+function withinZone(n, z) { return Math.pow(z && z <= 5 ? WZ1 : WZ, n - 1); } // sul primo pianeta la zona cresce più piano: le prime 5 zone si fanno nel primo giorno
 // Passo tra le zone: sul primo pianeta più dolce, sul secondo più ripido (la squadra è già grande)
-let ZONE_K = [0, 0, 2.0, 2.0, 2.0, 2.0, 1.71, 1.71, 1.71, 1.71, 1.59, 1.43, 1.43, 1.43, 1.43, 1.43, 1.32, 1.32, 1.32, 1.32, 1.32]; // tarato: 20 zone in circa 30-35 giorni (giocatore che controlla ogni 4 ore)
+let ZONE_K = [0, 0, 1.3, 1.3, 1.3, 1.3, 3.8, 2.8, 2.8, 2.8, 2.3, 1.72, 1.72, 1.72, 1.72, 1.72, 1.55, 1.55, 1.55, 1.55, 1.55]; // tarato: zone 1-5 nel primo giorno, zona 10 in circa 3 giorni, zona 20 in circa 34 giorni (giocatore che controlla ogni 4 ore)
 if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JSON.parse(process.env.ZK);
-const ZONE_BASE = [0, 1]; for (let z = 2; z <= MAX_ZONE; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
-function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n); }
+const ZONE_BASE = [0, 1]; for (let z = 2; z <= MAX_ZONE; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30, z - 1) * ZONE_K[z]; // passo base tra zone (fisso), indipendente dalla crescita dentro la zona
+function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n, z); }
 
 const MELEE_STEP = 2; // velocità con cui la mischia raggiunge chi sta dietro (unità di gittata al secondo)
+// Nemici per battaglia: si parte da 3 e si sale verso l'ultima battaglia della zona (5 nella zona 1, 15 nella zona 20)
+function enemyCount(z, n) { const top = 5 + (z - 1) * 10 / (MAX_ZONE - 1); return Math.round(3 + (top - 3) * (n - 1) / (BOSS_BATTLE - 1)); }
+function enemiesLeft(z, n) { let t = 0; for (let k = n + 1; k <= BOSS_BATTLE; k++) t += enemyCount(z, k); return t; }
 const ENEMY_WALK = 2.6; // secondi per entrare in scena: i nemici arrivano insieme, in gruppo, alla stessa velocità
 function makeEnemies(s) {
   const n = s.battle, Z = ZONES[s.zone], f = enemyScale(s.zone, n), pool = Z.pool;
   const list = [];
-  const count = n === BOSS_BATTLE ? 2 : 3;
+  const count = enemyCount(s.zone, n) - (n === BOSS_BATTLE ? 1 : 0);
   for (let i = 0; i < count; i++) list.push(pickWeighted(s, pool, k => RARITY[SPECIES[k].rarity].weight));
   let secret = false;
   if (n === BOSS_BATTLE) { const sk = Z.boss + '_s'; secret = !s.roster[sk] && rnd(s) < SECRET_P * (s.settings && s.settings.test ? 50 : 1); list.unshift(secret ? sk : Z.boss); }
@@ -827,7 +831,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
