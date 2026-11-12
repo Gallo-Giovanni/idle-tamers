@@ -429,10 +429,10 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
  <button class="tab" data-tab="zaino"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l1 12H5zM9 8V6a3 3 0 0 1 6 0v2"/></svg>Zaino</button>
  <button class="tab" data-tab="mappa"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>Mappa</button>
  <button class="tab" data-tab="negozio"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9l1.5-5h13L20 9M4 9h16v11H4zM4 9c0 1.7 1.8 3 4 3s4-1.3 4-3c0 1.7 1.8 3 4 3s4-1.3 4-3"/></svg>Mercante</button>
- <button class="tab" data-tab="shop"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M12 9v12"/></svg>Shop</button>
  <button class="tab" data-tab="bestiario"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M9 7h6"/></svg>Bestiario</button>
  <button class="tab" data-tab="stelle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="17" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="19" cy="14" r="1.6"/><path d="M6.3 16l4.5-8.6M13.4 6.8l4.6 6.2"/></svg>Stelle</button>
  <button class="tab" data-tab="altro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Stats</button>
+ <button class="tab" data-tab="shop"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M12 9v12"/></svg>Shop</button>
 </nav>
 <div id="modal" hidden></div>
 </div>
@@ -2037,7 +2037,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 12:23</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 12:32</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
