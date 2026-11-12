@@ -1821,12 +1821,12 @@ function pBestiario() {
   const n = F.capturedCount(S), tot = F.ALL_SPECIES.length, ready = F.missionsReady(S);
   return `<div class="ph"><h2>Bestiario</h2><span>${n}/${tot}${ready ? ` · <b style="color:var(--gold)">${ready} missioni da riscuotere</b>` : ''}</span></div>
   <div class="bar"><b style="width:${100 * n / tot}%"></b></div>
-  <div class="note">Ogni creatura si cattura una sola volta. Torna nella zona indicata per cercare quelle che mancano.</div>
+  <div class="note">Ogni creatura si cattura una sola volta. Quelle già sconfitte si vedono a colori, il nome si scopre con la cattura. Torna nella zona indicata per cercare quelle che mancano.</div>
   ${F.PLANETS.map(pl => `<div class="ph"><h2 style="font-size:13px">${pl.name}</h2><span>${pl.species.filter(k => S.roster[k]).length}/${pl.species.length} · zone ${pl.zones[0]}-${pl.zones[1]}</span></div>
   <div class="bgrid">${pl.species.map(k => { const sp = F.SPECIES[k], m = S.roster[k], rar = F.RARITY[sp.rarity].label, z = F.zoneOf(k);
     const mis = missionHTML(k);
     if (m) return `<div class="card best"><div class="bspr">${sprite(k, 3)}</div><b>${esc(m.name)}</b><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span><em>${rar}</em><small>Zona ${z} · dopo ${fmt(m.waitKills)} incontri</small>${mis}</div>`;
-    return `<div class="card best"><div class="bspr">${sprite(k, 3, { sil: true })}</div><b>???</b><span>&nbsp;</span><em>${rar}</em><small>${z <= S.maxZone ? 'Zona ' + z + ' · incontri ' + fmt(S.hunt[k] || 0) : 'Zona ' + z + ' (bloccata)'}</small>${mis}</div>`; }).join('')}</div>`).join('')}
+    return `<div class="card best"><div class="bspr">${sprite(k, 3, (S.kills && S.kills[k]) ? undefined : { sil: true })}</div><b>???</b><span>&nbsp;</span><em>${rar}</em><small>${z <= S.maxZone ? 'Zona ' + z + ' · incontri ' + fmt(S.hunt[k] || 0) : 'Zona ' + z + ' (bloccata)'}</small>${mis}</div>`; }).join('')}</div>`).join('')}
   ${secretHTML()}`;
 }
 function secretHTML() {
@@ -1835,7 +1835,7 @@ function secretHTML() {
   <div class="note">Molto di rado, al posto del boss di zona compare la sua versione gigante. Se lo sconfiggi si unisce subito alla squadra, più forte del ${Math.round((F.SECRET_MULT - 1) * 100)}%.</div>
   <div class="bgrid">${L.map(k => { const sp = F.SPECIES[k], m = S.roster[k], z = F.zoneOf(k);
     return m ? `<div class="card best sec"><div class="bspr">${sprite(k, 3)}</div><b>${esc(m.name)}</b><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span><em class="rbw">Segreto</em><small>Zona ${z}</small></div>`
-      : `<div class="card best"><div class="bspr">${sprite(k, 3, { sil: true })}</div><b>???</b><span>&nbsp;</span><em>Segreto</em><small>Zona ${z}</small></div>`; }).join('')}</div>`;
+      : `<div class="card best"><div class="bspr">${sprite(k, 3, (S.kills && S.kills[k]) ? undefined : { sil: true })}</div><b>???</b><span>&nbsp;</span><em>Segreto</em><small>Zona ${z}</small></div>`; }).join('')}</div>`;
 }
 function missionHTML(k) {
   const t = F.missionTier(S, k), kills = (S.kills && S.kills[k]) || 0;
@@ -1942,7 +1942,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 07:53</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 08:12</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
