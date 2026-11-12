@@ -232,7 +232,7 @@ function buildScene() {
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
     const bp = u.secret ? 4 : u.boss ? 3 : 2, r = isRanged(u.cls);
-    const x = r ? 248 + (rk++) * 12 : 190 + (mk++) * 7 - (u.boss ? 6 : 0), y = 26 + ((r ? rk : mk) % 2) * 5;
+    const x = r ? 236 + (F.CLASSES[u.cls].range - 3) * 16 + (rk++) * 8 : 190 + (mk++) * 7 - (u.boss ? 6 : 0), y = 26 + ((r ? rk : mk) % 2) * 5;
     const el = document.createElement('div'); el.className = 'u' + (u.secret ? ' secret' : ''); el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
     el.innerHTML = `<div class="hpb"><b style="background:#FF5A6E"></b></div><div class="mk">${icon('dust', '#7ED36F', 10)}</div>${sprite(u.species, bp, { flip: true })}`;
     sc.appendChild(el); eEls[u.idx] = el;

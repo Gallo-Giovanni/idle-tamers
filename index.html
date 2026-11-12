@@ -807,7 +807,7 @@ function memberPower(s, id) { const st = memberStats(s, id); return Math.round(s
 let WZ = 1.03; if (typeof process !== 'undefined' && process.env && process.env.WZ) WZ = +process.env.WZ;
 function withinZone(n) { return Math.pow(WZ, n - 1); }
 // Passo tra le zone: sul primo pianeta più dolce, sul secondo più ripido (la squadra è già grande)
-let ZONE_K = [0, 0, 2.0, 2.0, 2.0, 2.0, 1.74, 1.74, 1.74, 1.74, 1.62, 1.46, 1.46, 1.46, 1.46, 1.46, 1.35, 1.35, 1.35, 1.35, 1.35]; // tarato: 20 zone in circa 30-35 giorni (giocatore che controlla ogni 4 ore)
+let ZONE_K = [0, 0, 2.0, 2.0, 2.0, 2.0, 1.72, 1.72, 1.72, 1.72, 1.6, 1.44, 1.44, 1.44, 1.44, 1.44, 1.33, 1.33, 1.33, 1.33, 1.33]; // tarato: 20 zone in circa 30-35 giorni (giocatore che controlla ogni 4 ore)
 if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JSON.parse(process.env.ZK);
 const ZONE_BASE = [0, 1]; for (let z = 2; z <= MAX_ZONE; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n); }
@@ -840,8 +840,7 @@ function alive(list) { return list.filter(u => u.hp > 0); }
 function ready(list) { return list.filter(u => u.hp > 0 && !(u.arrive > 0)); }
 function frontTarget(s, list) {
   const a = ready(list); if (!a.length) return null;
-  if (a[0].side !== 'p') return a[0];
-  // i nemici colpiscono solo il personaggio più vicino: gittata più bassa, poi chi sta più avanti nella fila
+  // si colpisce solo il personaggio più vicino: gittata più bassa, poi chi sta più avanti nella fila
   let best = a[0]; for (const u of a) { const g = CLASSES[u.cls].range, gb = CLASSES[best.cls].range; if (g < gb || (g === gb && u.idx < best.idx)) best = u; } return best;
 }
 
@@ -863,7 +862,7 @@ function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
 
 function attack(s, b, u, ev) {
   const foes = u.side === 'p' ? b.enemies : b.party;
-  const tgt = u.side === 'e' ? frontTarget(s, foes) : ready(foes)[0];
+  const tgt = frontTarget(s, foes); // entrambe le parti colpiscono chi è più vicino
   if (!tgt) return;
   u.hits++;
   if (ev) ev.push({ type: 'atk', side: u.side, idx: u.idx });
@@ -898,7 +897,7 @@ function step(s, b, dt, ev) {
     }
     if (u.side === 'p' && u.cls === 'Mago') {
       u.ab += dt;
-      const tg = ready(b.enemies)[0];
+      const tg = frontTarget(s, b.enemies);
       if (u.ab >= 5 && tg) { u.ab = 0; if (ev) ev.push({ type: 'skill', side: 'p', idx: u.idx, name: 'Fulmine arcano!' }); dealDamage(s, b, u, tg, 2.5, true, ev); }
     }
     u.t -= dt;
@@ -1462,7 +1461,7 @@ function buildScene() {
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
     const bp = u.secret ? 4 : u.boss ? 3 : 2, r = isRanged(u.cls);
-    const x = r ? 248 + (rk++) * 12 : 190 + (mk++) * 7 - (u.boss ? 6 : 0), y = 26 + ((r ? rk : mk) % 2) * 5;
+    const x = r ? 236 + (F.CLASSES[u.cls].range - 3) * 16 + (rk++) * 8 : 190 + (mk++) * 7 - (u.boss ? 6 : 0), y = 26 + ((r ? rk : mk) % 2) * 5;
     const el = document.createElement('div'); el.className = 'u' + (u.secret ? ' secret' : ''); el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
     el.innerHTML = `<div class="hpb"><b style="background:#FF5A6E"></b></div><div class="mk">${icon('dust', '#7ED36F', 10)}</div>${sprite(u.species, bp, { flip: true })}`;
     sc.appendChild(el); eEls[u.idx] = el;
@@ -1925,7 +1924,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 07:32</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 07:40</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {

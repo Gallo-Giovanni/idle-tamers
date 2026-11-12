@@ -409,7 +409,7 @@ function memberPower(s, id) { const st = memberStats(s, id); return Math.round(s
 let WZ = 1.03; if (typeof process !== 'undefined' && process.env && process.env.WZ) WZ = +process.env.WZ;
 function withinZone(n) { return Math.pow(WZ, n - 1); }
 // Passo tra le zone: sul primo pianeta più dolce, sul secondo più ripido (la squadra è già grande)
-let ZONE_K = [0, 0, 2.0, 2.0, 2.0, 2.0, 1.74, 1.74, 1.74, 1.74, 1.62, 1.46, 1.46, 1.46, 1.46, 1.46, 1.35, 1.35, 1.35, 1.35, 1.35]; // tarato: 20 zone in circa 30-35 giorni (giocatore che controlla ogni 4 ore)
+let ZONE_K = [0, 0, 2.0, 2.0, 2.0, 2.0, 1.72, 1.72, 1.72, 1.72, 1.6, 1.44, 1.44, 1.44, 1.44, 1.44, 1.33, 1.33, 1.33, 1.33, 1.33]; // tarato: 20 zone in circa 30-35 giorni (giocatore che controlla ogni 4 ore)
 if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JSON.parse(process.env.ZK);
 const ZONE_BASE = [0, 1]; for (let z = 2; z <= MAX_ZONE; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n); }
@@ -442,8 +442,7 @@ function alive(list) { return list.filter(u => u.hp > 0); }
 function ready(list) { return list.filter(u => u.hp > 0 && !(u.arrive > 0)); }
 function frontTarget(s, list) {
   const a = ready(list); if (!a.length) return null;
-  if (a[0].side !== 'p') return a[0];
-  // i nemici colpiscono solo il personaggio più vicino: gittata più bassa, poi chi sta più avanti nella fila
+  // si colpisce solo il personaggio più vicino: gittata più bassa, poi chi sta più avanti nella fila
   let best = a[0]; for (const u of a) { const g = CLASSES[u.cls].range, gb = CLASSES[best.cls].range; if (g < gb || (g === gb && u.idx < best.idx)) best = u; } return best;
 }
 
@@ -465,7 +464,7 @@ function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
 
 function attack(s, b, u, ev) {
   const foes = u.side === 'p' ? b.enemies : b.party;
-  const tgt = u.side === 'e' ? frontTarget(s, foes) : ready(foes)[0];
+  const tgt = frontTarget(s, foes); // entrambe le parti colpiscono chi è più vicino
   if (!tgt) return;
   u.hits++;
   if (ev) ev.push({ type: 'atk', side: u.side, idx: u.idx });
@@ -500,7 +499,7 @@ function step(s, b, dt, ev) {
     }
     if (u.side === 'p' && u.cls === 'Mago') {
       u.ab += dt;
-      const tg = ready(b.enemies)[0];
+      const tg = frontTarget(s, b.enemies);
       if (u.ab >= 5 && tg) { u.ab = 0; if (ev) ev.push({ type: 'skill', side: 'p', idx: u.idx, name: 'Fulmine arcano!' }); dealDamage(s, b, u, tg, 2.5, true, ev); }
     }
     u.t -= dt;
