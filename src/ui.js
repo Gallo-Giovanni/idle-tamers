@@ -350,6 +350,7 @@ function handle(ev) {
 // ---------- HUD ----------
 const SHOP_VER = 4; // aumentalo quando nello Shop arriva qualcosa di nuovo: compare il pallino
 // le finestre si aprono sotto la scena: la battaglia resta sempre in vista
+function applyBig() { document.body.classList.toggle('bigscene', !!S.settings.bigScene); const b = $('#bigbtn'); if (b) b.setAttribute('aria-label', S.settings.bigScene ? 'Torna alla vista normale' : 'Battaglia a schermo intero'); if (S.settings.bigScene) { const sc = $('#scene'); if (sc) sc.style.setProperty('--zk', Math.max(1.4, Math.min(2.2, sc.clientHeight / 118 * 0.62)).toFixed(2)); } }
 function sceneEdge() { const sc = $('#scene'), md = $('#modal'); if (!sc || !md || !md.offsetParent) return; const v = Math.round(sc.getBoundingClientRect().bottom - md.offsetParent.getBoundingClientRect().top); if (v > 0 && v !== sceneEdge.v) { sceneEdge.v = v; md.style.setProperty('--sb', v + 'px'); } }
 window.addEventListener('resize', sceneEdge);
 function hud() {
@@ -1057,7 +1058,7 @@ setInterval(shareDrops, 60000); setInterval(chatPeek, 20000); setInterval(shareS
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act],[data-tab]');
   if (!t) { if (!e.target.closest('.pop') && (selItem || selRune || selShop !== null) && e.target.closest('#panel')) { selItem = null; selRune = null; selShop = null; render(); } return; }
-  if (t.dataset.tab) { tab = t.dataset.tab; selItem = null; selRune = null; selShop = null; render(); $('#panel').scrollTop = 0; return; }
+  if (t.dataset.tab) { if (S.settings.bigScene) { S.settings.bigScene = false; applyBig(); save(); } tab = t.dataset.tab; selItem = null; selRune = null; selShop = null; render(); $('#panel').scrollTop = 0; return; }
   const a = t.dataset.act, id = t.dataset.id, item = +t.dataset.item;
   const rebuild = () => { B = F.startBattle(S); buildScene(); };
   if (a === 'openm') openMember = openMember === id ? null : id;
@@ -1077,6 +1078,7 @@ document.addEventListener('click', e => {
     else S.settings.minRarity = k >= 2 ? 'noncomune' : 'rara';
     if (F.minKeep(S) > k) { const r = F.sellBelow(S); if (r.n) toast(`Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro`); }
   }
+  else if (a === 'bigscene') { S.settings.bigScene = !S.settings.bigScene; applyBig(); save(); }
   else if (a === 'goshop') { closeModal(); tab = 'shop'; selItem = null; selRune = null; selShop = null; render(); const v = t.dataset.v, pn = $('#panel'); pn.scrollTop = 0; if (v) { const go = () => { const el = document.getElementById('shop-' + v); if (el) pn.scrollTop += el.getBoundingClientRect().top - pn.getBoundingClientRect().top - 6; }; go(); requestAnimationFrame(go); } return; }
   else if (a === 'setkeep') { S.settings.minRarity = t.dataset.k; dirty = true; showAutoSell(); return; }
   else if (a === 'pts') { F.addPts(S, id, t.dataset.k, +t.dataset.n); rebuild(); }
@@ -1196,6 +1198,7 @@ if (!S.settings) S.settings = { autoEquip: true, test: false };
 if (had) catchUp(); else { B = F.startBattle(S); buildScene(); }
 if (!S.net) showWelcome(); else if (!had && !S.tutorial) showTutorial(0);
 banner('BATTAGLIA ' + S.battle);
-setScroll(); render(); hud();
+setScroll(); applyBig(); render(); hud();
+addEventListener('resize', applyBig);
 requestAnimationFrame(t => { last = t; frame(t); });
 })();

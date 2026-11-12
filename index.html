@@ -453,6 +453,15 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 #scene.p1.march .mount,#scene.p1.march .hills,#scene.p1.march .tufts,#scene.p1.march .ground{animation-play-state:running!important}
 @keyframes bgmove{to{background-position-x:-512px}}@keyframes bgmove2{to{background-position-x:-512px,-512px}}
 #units{z-index:2}
+
+/* Battaglia a schermo intero: la scena occupa lo spazio del pannello e viene ingrandita */
+#stage{position:absolute;left:0;right:0;bottom:0;height:118px;transform-origin:50% 100%;transition:transform .25s}
+#bigbtn{position:absolute;right:5px;top:4px;z-index:7;width:26px;height:26px;border-radius:7px;border:1px solid rgba(255,255,255,.35);background:rgba(11,14,36,.55) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'/%3E%3C/svg%3E") center/16px no-repeat;padding:0;cursor:pointer}
+body.bigscene #bigbtn{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5'/%3E%3C/svg%3E")}
+body.bigscene #panel{display:none}
+body.bigscene #scene{flex:1;height:auto}
+body.bigscene #stage{transform:scale(var(--zk,2))}
+body.bigscene #log{max-height:40vh}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -476,9 +485,10 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
  <div class="pbar"><b id="prog"></b></div>
 </header>
 <div id="scene" aria-label="Battaglia in corso">
- <div class="planet" aria-hidden="true"></div><div class="bgl cloud" aria-hidden="true"></div><div class="ring" aria-hidden="true"></div>
+ <div id="stage"><div class="planet" aria-hidden="true"></div><div class="bgl cloud" aria-hidden="true"></div><div class="ring" aria-hidden="true"></div>
  <div class="bgl mount" aria-hidden="true"></div><div class="hills" aria-hidden="true"></div><div class="ground" aria-hidden="true"></div>
- <div class="bgl tufts" aria-hidden="true"></div><div id="foes" aria-live="off"></div><div id="units"></div><div id="bossbar" hidden aria-label="Vita del boss"><i></i><span></span></div><div id="fx"></div><div id="banner" aria-live="polite"></div>
+ <div class="bgl tufts" aria-hidden="true"></div><div id="units"></div></div><div id="foes" aria-live="off"></div><div id="bossbar" hidden aria-label="Vita del boss"><i></i><span></span></div><div id="fx"></div><div id="banner" aria-live="polite"></div>
+ <button id="bigbtn" data-act="bigscene" aria-label="Battaglia a schermo intero"></button>
 </div>
 <div id="log" aria-label="Vita del gruppo e danni"></div>
 <div id="toasts" aria-live="polite"></div>
@@ -1730,6 +1740,7 @@ function handle(ev) {
 // ---------- HUD ----------
 const SHOP_VER = 4; // aumentalo quando nello Shop arriva qualcosa di nuovo: compare il pallino
 // le finestre si aprono sotto la scena: la battaglia resta sempre in vista
+function applyBig() { document.body.classList.toggle('bigscene', !!S.settings.bigScene); const b = $('#bigbtn'); if (b) b.setAttribute('aria-label', S.settings.bigScene ? 'Torna alla vista normale' : 'Battaglia a schermo intero'); if (S.settings.bigScene) { const sc = $('#scene'); if (sc) sc.style.setProperty('--zk', Math.max(1.4, Math.min(2.2, sc.clientHeight / 118 * 0.62)).toFixed(2)); } }
 function sceneEdge() { const sc = $('#scene'), md = $('#modal'); if (!sc || !md || !md.offsetParent) return; const v = Math.round(sc.getBoundingClientRect().bottom - md.offsetParent.getBoundingClientRect().top); if (v > 0 && v !== sceneEdge.v) { sceneEdge.v = v; md.style.setProperty('--sb', v + 'px'); } }
 window.addEventListener('resize', sceneEdge);
 function hud() {
@@ -2149,7 +2160,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 19:50</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 19:55</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -2437,7 +2448,7 @@ setInterval(shareDrops, 60000); setInterval(chatPeek, 20000); setInterval(shareS
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act],[data-tab]');
   if (!t) { if (!e.target.closest('.pop') && (selItem || selRune || selShop !== null) && e.target.closest('#panel')) { selItem = null; selRune = null; selShop = null; render(); } return; }
-  if (t.dataset.tab) { tab = t.dataset.tab; selItem = null; selRune = null; selShop = null; render(); $('#panel').scrollTop = 0; return; }
+  if (t.dataset.tab) { if (S.settings.bigScene) { S.settings.bigScene = false; applyBig(); save(); } tab = t.dataset.tab; selItem = null; selRune = null; selShop = null; render(); $('#panel').scrollTop = 0; return; }
   const a = t.dataset.act, id = t.dataset.id, item = +t.dataset.item;
   const rebuild = () => { B = F.startBattle(S); buildScene(); };
   if (a === 'openm') openMember = openMember === id ? null : id;
@@ -2457,6 +2468,7 @@ document.addEventListener('click', e => {
     else S.settings.minRarity = k >= 2 ? 'noncomune' : 'rara';
     if (F.minKeep(S) > k) { const r = F.sellBelow(S); if (r.n) toast(`Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro`); }
   }
+  else if (a === 'bigscene') { S.settings.bigScene = !S.settings.bigScene; applyBig(); save(); }
   else if (a === 'goshop') { closeModal(); tab = 'shop'; selItem = null; selRune = null; selShop = null; render(); const v = t.dataset.v, pn = $('#panel'); pn.scrollTop = 0; if (v) { const go = () => { const el = document.getElementById('shop-' + v); if (el) pn.scrollTop += el.getBoundingClientRect().top - pn.getBoundingClientRect().top - 6; }; go(); requestAnimationFrame(go); } return; }
   else if (a === 'setkeep') { S.settings.minRarity = t.dataset.k; dirty = true; showAutoSell(); return; }
   else if (a === 'pts') { F.addPts(S, id, t.dataset.k, +t.dataset.n); rebuild(); }
@@ -2576,7 +2588,8 @@ if (!S.settings) S.settings = { autoEquip: true, test: false };
 if (had) catchUp(); else { B = F.startBattle(S); buildScene(); }
 if (!S.net) showWelcome(); else if (!had && !S.tutorial) showTutorial(0);
 banner('BATTAGLIA ' + S.battle);
-setScroll(); render(); hud();
+setScroll(); applyBig(); render(); hud();
+addEventListener('resize', applyBig);
 requestAnimationFrame(t => { last = t; frame(t); });
 })();
 
