@@ -312,7 +312,7 @@ function knAnim(el, k, ms) { const kn = el && el.querySelector('.kn, .an'); if (
 function lunge(el, dir) { if (!el) return; el.style.setProperty('--dx', dir + 'px'); el.classList.remove('lg'); void el.offsetWidth; el.classList.add('lg'); }
 function banner(text) { const b = $('#banner'); b.textContent = text; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
 
-function setScroll() { const g = document.querySelector('.ground'); if (g) g.style.animationDuration = (1.4 / F.moveSpeed(S)) + 's'; }
+function setScroll() { const g = document.querySelector('.ground'); if (g) g.style.animationDuration = (1.4 / F.moveSpeed(S)) + 's'; scene().style.setProperty('--ms', F.moveSpeed(S)); }
 // ---------- notifiche ----------
 function toast(html, color) {
   const box = $('#toasts'); while (box.children.length >= 3) box.firstChild.remove();
