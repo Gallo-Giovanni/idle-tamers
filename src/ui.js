@@ -277,7 +277,7 @@ function updateScene() {
   const m = B.over === 'win' || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); });
-  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (u.arrive > 0 ? tx + Math.min(420 - tx, u.arrive * 170 * F.moveSpeed(S)) : tx) + 'px'; // tutti alla stessa velocità, uno dopo l'altro el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
+  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (u.arrive > 0 ? tx + Math.min(420 - tx, u.arrive * 170 * F.moveSpeed(S)) : tx) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
   updateLog();
 }
 let floats = 0;
