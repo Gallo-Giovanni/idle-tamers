@@ -474,6 +474,9 @@ body.bigscene #scene{height:50vh}
 #scene.march .u:not(.dead) .ar,.u.revive .ar{animation:arwalk .72s steps(6) infinite}
 .u .ar.atk,.u .ar.atk2,.u .ar.sk{animation:aratk .6s steps(8) 1 forwards}
 @keyframes arwalk{from{background-position-x:-80px}to{background-position-x:-560px}}@keyframes aratk{from{background-position-x:-560px}to{background-position-x:-1200px}}
+
+/* Prati Stellari (sfondi a livelli): personaggi appoggiati sul sentiero */
+#scene.p1.bg1 #units,#scene.p1.bg2 #units,#scene.p1.bg3 #units{transform:translateY(6px)}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -2178,7 +2181,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 21:38</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 21:43</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
