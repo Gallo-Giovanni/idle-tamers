@@ -439,20 +439,21 @@ const MELEE_STEP = 2; // velocità con cui la mischia raggiunge chi sta dietro (
 function enemyCount(z, n) { const top = 5 + (z - 1) * 10 / (MAX_ZONE - 1); return Math.round(3 + (top - 3) * (n - 1) / (BOSS_BATTLE - 1)); }
 function enemiesLeft(z, n) { let t = 0; for (let k = n + 1; k <= BOSS_BATTLE; k++) t += enemyCount(z, k); return t; }
 // I nemici entrano uno alla volta da fuori schermo, ognuno con il suo passo: i Guerrieri corrono, arcieri e maghi arrivano dopo
-const ENEMY_START = 14, ENEMY_GAP = 0.5, ENEMY_V = { Guerriero: 6, Arciere: 4.5, Mago: 4.5, Curatore: 4 };
-function arriveTime(i, cls) { return i * ENEMY_GAP + (ENEMY_START - CLASSES[cls].range) / ENEMY_V[cls]; } // secondi per entrare in scena: i nemici arrivano insieme, in gruppo, alla stessa velocità
+const ENEMY_START = 14, ENEMY_SPACING = 1.5, ENEMY_GAP = 0.5, ENEMY_V = { Guerriero: 6, Arciere: 4.5, Mago: 4.5, Curatore: 4 };
+// i nemici aspettano in fila fuori schermo, uno dietro l'altro: ognuno parte verso la squadra dalla sua posizione col suo passo
+function arriveTime(i, cls) { return (ENEMY_START + i * ENEMY_SPACING - CLASSES[cls].range) / ENEMY_V[cls]; } // secondi per entrare in scena: i nemici arrivano insieme, in gruppo, alla stessa velocità
 function makeEnemies(s) {
   const n = s.battle, Z = ZONES[s.zone], f = enemyScale(s.zone, n), pool = Z.pool;
   const list = [];
   const count = enemyCount(s.zone, n) - (n === BOSS_BATTLE ? 1 : 0);
   for (let i = 0; i < count; i++) list.push(pickWeighted(s, pool, k => RARITY[SPECIES[k].rarity].weight));
   let secret = false; s.seen = s.seen || {}; for (const sp of list) s.seen[sp] = 1;
-  if (n === BOSS_BATTLE) { const sk = Z.boss + '_s'; secret = !s.roster[sk] && rnd(s) < SECRET_P * (s.settings && s.settings.test ? 50 : 1); list.unshift(secret ? sk : Z.boss); s.seen[list[0]] = 1; }
+  if (n === BOSS_BATTLE) { const sk = Z.boss + '_s'; secret = !s.roster[sk] && rnd(s) < SECRET_P * (s.settings && s.settings.test ? 50 : 1); list.push(secret ? sk : Z.boss); s.seen[list[list.length - 1]] = 1; } // il boss aspetta in fondo alla fila
   return list.map((sp, i) => {
-    const cls = SPECIES[sp].cls, boss = n === BOSS_BATTLE && i === 0, b = CLASSES[cls], sec = boss && secret;
+    const cls = SPECIES[sp].cls, boss = n === BOSS_BATTLE && i === list.length - 1, b = CLASSES[cls], sec = boss && secret;
     const big = s.zone % 5 === 0; // i boss di pianeta (zone 5 e 10) sono più duri
     const hp = Math.round(b.hp * 0.45 * f * (boss ? (big ? 8 : 4) : 1) * (sec ? 1.5 : 1));
-    return { side: 'e', idx: i, species: sp, cls, boss, secret: sec, hp, maxHp: hp, atk: b.atk * 0.46 * f * (boss ? (big ? 1.6 : 1.3) : 1) * (sec ? 1.15 : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: arriveTime(i, cls) / moveSpeed(s), pos: ENEMY_START };
+    return { side: 'e', idx: i, species: sp, cls, boss, secret: sec, hp, maxHp: hp, atk: b.atk * 0.46 * f * (boss ? (big ? 1.6 : 1.3) : 1) * (sec ? 1.15 : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: arriveTime(i, cls) / moveSpeed(s), pos: ENEMY_START + i * ENEMY_SPACING, pos0: ENEMY_START + i * ENEMY_SPACING };
   });
 }
 
@@ -513,7 +514,7 @@ function step(s, b, dt, ev) {
   b.time += dt;
   for (const u of b.party.concat(b.enemies)) {
     if (u.hp <= 0) continue;
-    if (u.arrive > 0) { u.arrive -= dt; if (u.side === 'e') { const g = CLASSES[u.cls].range; u.pos = g + Math.min(ENEMY_START - g, Math.max(0, u.arrive) * ENEMY_V[u.cls] * moveSpeed(s)); } continue; }
+    if (u.arrive > 0) { u.arrive -= dt; if (u.side === 'e') { const g = CLASSES[u.cls].range; u.pos = g + Math.min((u.pos0 || ENEMY_START) - g, Math.max(0, u.arrive) * ENEMY_V[u.cls] * moveSpeed(s)); } continue; }
     if (u.mark > 0) u.mark -= dt;
     if (u.side === 'p' && u.cls === 'Curatore') {
       u.ab += dt;
@@ -639,14 +640,16 @@ function dropItem(s, boss, ev) {
 }
 
 // Equipaggia tutto: dal più forte, al primo membro (in ordine di squadra) che può usarlo e migliora
-function autoEquip(s) {
+function autoEquip(s, withReserve) {
+  if (withReserve === undefined) withReserve = !!(s.settings && s.settings.eqReserve);
+  const who = withReserve ? s.team.concat(Object.keys(s.roster).filter(id => !s.team.includes(id))) : s.team;
   let changed = 0, guard = 0;
   let again = true;
   while (again && guard++ < 200) {
     again = false;
     const inv = s.inventory.slice().sort((a, b) => itemPower(b) - itemPower(a));
     for (const it of inv) {
-      for (const id of s.team) {
+      for (const id of who) {
         const m = s.roster[id]; if (m.locked || !canUse(m, it)) continue;
         const sl = targetSlot(m, it), cur = m.eq[sl];
         if (!cur || itemPower(it) > itemPower(cur)) {
@@ -692,7 +695,7 @@ function toggleProtect(s, k) { const p = protectSet(s); if (p[k]) delete p[k]; e
 function protectIdx(s) { const p = protectSet(s); const i = ITEM_RARITY.findIndex(r => p[r.key]); return i < 0 ? ITEM_RARITY.length : i; }
 function isProtected(s, it) { return !!it.locked || !!protectSet(s)[it.rarity]; }
 // l'oggetto migliorerebbe qualcuno? (un personaggio che può usarlo ha in quel posto un oggetto più debole o niente)
-function isUpgrade(s, it) { const p = itemPower(it); for (const id in s.roster) { const m = s.roster[id]; if (!canUse(m, it)) continue; const sl = targetSlot(m, it); if (!sl) continue; const c = m.eq[sl]; if (!c || itemPower(c) < p) return true; } return false; }
+function isUpgrade(s, it) { const p = itemPower(it), who = s.settings && s.settings.eqReserve ? Object.keys(s.roster) : s.team; for (const id of who) { const m = s.roster[id]; if (!canUse(m, it)) continue; const sl = targetSlot(m, it); if (!sl) continue; const c = m.eq[sl]; if (!c || itemPower(c) < p) return true; } return false; }
 function toggleLock(s, id) { const it = s.inventory.find(x => x.id === id) || s.chest.find(x => x.id === id); if (!it) return false; it.locked = !it.locked; return it.locked; }
 function sellBelow(s) { const min = minKeep(s); let gold = 0, n = 0; s.inventory = s.inventory.filter(it => { if (rarityIndex(it.rarity) < min && !isProtected(s, it)) { const g = sellValue(it, s); gold += g; n++; logSold(s, it, g); return false; } return true; }); s.gold += gold; return { gold, n }; }
 function sellRest(s) {

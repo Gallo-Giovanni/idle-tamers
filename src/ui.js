@@ -339,7 +339,7 @@ function handle(ev) {
     else if (e.type === 'rune') { const r = F.RUNE[e.rune]; toast(`${icon('rune', r.color, 14)} +${e.n} <b style="color:${r.color}">${r.label}</b>`, r.color); dirty = true; }
     else if (e.type === 'unlock') { toast(e.text, '#F2C14E'); dirty = true; }
     else if (e.type === 'zonetime') { const m = Math.floor(e.t / 60), sec = Math.round(e.t % 60); toast(`Zona ${e.zone} completata in <b>${m}:${String(sec).padStart(2, '0')}</b>${e.best ? ' · nuovo record!' : ''}`, '#F2C14E'); }
-    else if (e.type === 'battle') { buildScene(); const sec = B.enemies[0] && B.enemies[0].secret; if (sec) { snd('rare'); toast('<b class="rbw">Boss segreto!</b> Sconfiggilo e si unirà a te', '#B07CF0'); } banner(e.result === 'win' ? (sec ? 'BOSS SEGRETO: ' + F.SPECIES[B.enemies[0].species].name.toUpperCase() : S.battle === F.BOSS_BATTLE ? 'BOSS: ' + F.SPECIES[F.ZONES[S.zone].boss].name.toUpperCase() : (S.battle === 1 ? 'ZONA ' + S.zone + ' · ' : '') + 'BATTAGLIA ' + S.battle) : 'SCONFITTA · SI RIPARTE DALLA BATTAGLIA 1'); dirty = true; }
+    else if (e.type === 'battle') { buildScene(); const bo = B.enemies.find(u => u.boss), sec = bo && bo.secret; if (sec) { snd('rare'); toast('<b class="rbw">Boss segreto!</b> Sconfiggilo e si unirà a te', '#B07CF0'); } banner(e.result === 'win' ? (sec ? 'BOSS SEGRETO: ' + F.SPECIES[bo.species].name.toUpperCase() : S.battle === F.BOSS_BATTLE ? 'BOSS: ' + F.SPECIES[F.ZONES[S.zone].boss].name.toUpperCase() : (S.battle === 1 ? 'ZONA ' + S.zone + ' · ' : '') + 'BATTAGLIA ' + S.battle) : 'SCONFITTA · SI RIPARTE DALLA BATTAGLIA 1'); dirty = true; }
   }
 }
 
@@ -347,7 +347,8 @@ function handle(ev) {
 const SHOP_VER = 4; // aumentalo quando nello Shop arriva qualcosa di nuovo: compare il pallino
 function hud() {
   if (!S.dmgLog || S.dmgLog.zone !== S.zone) S.dmgLog = { since: S.clock || 0, by: {}, zone: S.zone }; // i danni per membro ripartono a ogni zona
-  const mr = F.missionsReady(S), bt = document.querySelector('[data-tab=bestiario]'); if (bt) bt.classList.toggle('dot', mr > 0); const shb = document.querySelector('[data-tab=shop]'); if (tab === 'shop') S.shopSeen = SHOP_VER; if (shb) shb.classList.toggle('dot', F.dailyReady(S) || S.shopSeen !== SHOP_VER);
+  const mr = F.missionsReady(S), bt = document.querySelector('[data-tab=bestiario]'); if (bt) bt.classList.toggle('dot', mr > 0); if (tab === 'altro') S.achNew = 0; const stb = document.querySelector('[data-tab=altro]'); if (stb) stb.classList.toggle('dot', (S.achNew || 0) > 0);
+  const shb = document.querySelector('[data-tab=shop]'); if (tab === 'shop') S.shopSeen = SHOP_VER; if (shb) shb.classList.toggle('dot', F.dailyReady(S) || S.shopSeen !== SHOP_VER);
   const maxId = S.inventory.reduce((x, it) => Math.max(x, it.id), 0); if (tab === 'zaino') S.bagSeen = Math.max(S.bagSeen || 0, maxId); const zb = document.querySelector('[data-tab=zaino]'); if (zb) zb.classList.toggle('dot', maxId > (S.bagSeen || 0));
   $('#gold').textContent = cfmt(S.gold); $('#astri').textContent = cfmt(S.astri);
   const pl = F.planetOf(S.zone); $('#ptitle').textContent = pl.name; $('#where').textContent = `Zona ${S.zone} · Battaglia ${S.battle}/30`;
@@ -469,13 +470,12 @@ function pSquadra() {
   return `<div class="ph"><h2>Squadra</h2><span>creature ${n}/${slots} (max ${F.CREATURE_SLOTS}) · eroi esclusi</span></div>
   <button class="sb" data-act="dmgtoggle" style="width:100%;margin-bottom:6px">${showDmg ? 'Nascondi i danni per membro' : 'Mostra i danni per membro'}</button>
   ${showDmg ? dmgHTML() : ''}
-  <div class="slotgrid">${Array.from({ length: F.CREATURE_SLOTS }, (_, i) => { const crea = S.team.filter(id => !F.isHero(id)), id = crea[i];
-    if (i < F.slotCount(S)) return id ? `<button class="sl2" style="border-color:${CC(F.SPECIES[S.roster[id].species].cls)}" data-act="openm" data-id="${id}">${sprite(S.roster[id].species, 2)}<span>Lv ${S.roster[id].lvl}</span></button>` : `<div class="sl2 empty"><span>Libero</span></div>`;
-    const z = F.SLOT_UNLOCKS[i - F.BASE_SLOTS]; return `<div class="sl2 lock">${icon('lock', '#7C84BC', 14)}<span>Zona ${z}${z > F.MAX_ZONE ? '<br><small>presto</small>' : ''}</span></div>`; }).join('')}</div>
   <div class="note">8 posti di base, +1 in automatico ogni 5 zone completate: massimo 12 alleati. Gli eroi non occupano posti.</div>
   ${synergyHTML()}
   <div class="note">L'ordine conta: chi sta più in alto riceve per primo l'equipaggiamento.</div>
   ${S.team.map((id, i) => memberRow(id, true, i)).join('')}
+  ${Array.from({ length: Math.max(0, slots - n) }, () => `<div class="card mrow freeslot">${icon('team', '#7C84BC', 18)}<span>Posto libero</span><small>aggiungi una creatura dalla riserva</small></div>`).join('')}
+  ${slots < F.CREATURE_SLOTS ? `<div class="card mrow freeslot lock">${icon('lock', '#7C84BC', 16)}<span>Prossimo posto</span><small>alla zona ${F.nextSlotZone ? F.nextSlotZone(S) : ''}</small></div>` : ''}
 
   ${reserve.length ? `<div class="ph"><h2>Riserva</h2><span>${reserve.length}</span></div>${reserve.map(id => memberRow(id, false)).join('')}` : ''}`;
 }
@@ -520,7 +520,7 @@ function runeDetail(k) {
   if (k === 'stone') return `<div class="card idet" style="border-color:#5BD8E6"><div class="iname" style="color:#5BD8E6;display:flex;align-items:center;gap:6px">${ipx('pietra', 26)}Pietra del rimescolo × ${fmt(S.stones || 0)}</div><div class="msub">Cambia a caso i bonus di un oggetto: tocca l'oggetto e usa "Rimescola i bonus". Costa 1 pietra, il doppio per ogni bonus che blocchi. È rara: cade dai nemici circa una volta ogni 3 giorni.</div></div>`;
   const r = F.RUNE[k], n = S.runes[k], nr = F.ITEM_RARITY.find(x => x.key === k);
   return `<div class="card idet" style="border-color:${r.color}"><div class="iname" style="color:${r.color};display:flex;align-items:center;gap:6px">${icon('rune', r.color, 26)}${r.label} × ${fmt(n)}</div>
-    <div class="msub">Porta un oggetto a <b style="color:${nr.color}">${nr.label}</b> e potenzia di 1 livello uno slot.</div>
+    <div class="msub">Porta un oggetto a <b style="color:${nr.color}">${nr.label}</b>. Gli slot ora si potenziano con gli Astri.</div>
     <div class="stbox"><div class="srow2"><span>Valore di una runa</span><b>${r.value} ${icon('gem', '#F49AC1', 11)}</b></div><div class="srow2"><span>Valore di tutte (${fmt(n)})</span><b>${fmt(n * r.value)} ${icon('gem', '#F49AC1', 11)}</b></div></div>
     <div class="row2"><button class="sb" data-act="sellrune1" data-k="${k}" ${n < 1 ? 'disabled' : ''}>Vendi 1 · ${r.value} Astri</button><button class="sb" data-act="sellruneall" data-k="${k}" ${n < 1 ? 'disabled' : ''}>Vendi tutte · ${fmt(n * r.value)} Astri</button></div></div>`;
 }
@@ -542,7 +542,7 @@ function showFuse() {
 function pZaino() {
   const inBag = selItem && S.inventory.find(x => x.id === selItem), inChest = selItem && S.chest.find(x => x.id === selItem);
   const det = inBag ? itemDetail(inBag, 'bag') : inChest ? itemDetail(inChest, 'chest') : '';
-  return `<div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><button class="sb" data-act="sellrest">Vendi il resto</button><button class="sb" data-act="fuseopen">Fusione</button></div>
+  return `<div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><label class="tg eqres"><input type="checkbox" data-act="eqres" ${S.settings.eqReserve ? 'checked' : ''}> anche la riserva</label><button class="sb" data-act="sellrest">Vendi il resto</button><button class="sb" data-act="fuseopen">Fusione</button></div>
   <div class="card autos3"><span class="autol">Scarta in automatico</span>${(() => { const k = F.minKeep(S); return [['comune', 1], ['noncomune', 2]].map(([key, lvl]) => { const r = F.ITEM_RARITY.find(x => x.key === key), on = k >= lvl, needPass = lvl > 1 && !F.hasPass(S), needZone = lvl === 1 && !F.hasPass(S) && S.maxZone < F.FREE_FILTER_ZONE; return `<button class="atog${on ? ' on' : ''}" style="--c:${r.color}" data-act="atog" data-k="${key}"><span>${r.label}</span>${needPass ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : needZone ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} zona ${F.FREE_FILTER_ZONE}</b>` : ''}</button>`; }).join(''); })()}</div>
   <div class="note" style="margin-top:-2px">Tocca per scartare: gli oggetti barrati si vendono in oro appena cadono. Rune, oggetti bloccati e rarità protette non si vendono mai.</div>
   <div class="card protc"><span class="autol">Non vendere mai</span><div class="protg">${(() => { const ps = F.protectSet(S); return F.ITEM_RARITY.map(r => `<button class="pchip${ps[r.key] ? ' on' : ''}${r.rainbow ? ' rb' : ''}" style="--c:${r.color}" data-act="protk" data-k="${r.key}" aria-pressed="${!!ps[r.key]}" aria-label="${r.label}" title="${r.label}"><i>${ps[r.key] ? '✓' : ''}</i><span>${r.label.slice(0, 3)}</span></button>`).join(''); })()}</div></div>
@@ -772,9 +772,9 @@ function placePop() {
   const top = ar.bottom - pr.top + p.scrollTop + 6, ax = ar.left + ar.width / 2 - pr.left;
   d.style.top = top + 'px'; d.style.setProperty('--ax', Math.max(14, Math.min(pr.width - 14, ax)) + 'px');
   // se esce dal fondo, la apre sopra l'oggetto
-  if (top + d.offsetHeight > p.scrollTop + p.clientHeight && ar.top - pr.top > d.offsetHeight + 10) { d.style.top = (ar.top - pr.top + p.scrollTop - d.offsetHeight - 6) + 'px'; d.classList.add('up'); }
+  if ((selRune && pc[1].includes('selrune') && ar.top - pr.top + p.scrollTop > d.offsetHeight + 10) || (top + d.offsetHeight > p.scrollTop + p.clientHeight && ar.top - pr.top > d.offsetHeight + 10)) { d.style.top = (ar.top - pr.top + p.scrollTop - d.offsetHeight - 6) + 'px'; d.classList.add('up'); }
   // appena aperta, scorre quanto basta per mostrarla tutta
-  if (popKey !== pc[1]) { popKey = pc[1]; const b = d.offsetTop + d.offsetHeight + 8 - (p.scrollTop + p.clientHeight); if (b > 0) p.scrollTop += b; }
+  if (popKey !== pc[1]) { popKey = pc[1]; const b = d.offsetTop + d.offsetHeight + 8 - (p.scrollTop + p.clientHeight); if (b > 0) p.scrollTop += b; if (d.offsetTop < p.scrollTop) p.scrollTop = d.offsetTop - 8; }
 }
 let popKey = null, scrollAt = 0, touching = false; // non ridisegnare mentre si scorre o si tocca il pannello
 setTimeout(() => { const p = $('#panel'); if (!p) return; p.addEventListener('scroll', () => { scrollAt = performance.now(); }, { passive: true }); p.addEventListener('touchstart', () => { touching = true; }, { passive: true }); p.addEventListener('touchend', () => { touching = false; scrollAt = performance.now(); }, { passive: true }); }, 0);
@@ -1100,7 +1100,7 @@ document.addEventListener('click', e => {
   else if (a === 'tutnext') { const i = +t.dataset.i + 1; if (i < TUT.length) { showTutorial(i); return; } S.tutorial = 1; tutOn = false; save(); closeModal(); }
   else if (a === 'tutskip') { S.tutorial = 1; tutOn = false; save(); closeModal(); }
   else if (a === 'tutshow') { showTutorial(0); return; }
-  else if (a === 'lockm' || a === 'autoeq' || a === 'test' || a === 'minr' || a === 'prot' || a === 'sound' || a === 'vol') return; // gestiti da change
+  else if (a === 'eqres' || a === 'lockm' || a === 'autoeq' || a === 'test' || a === 'minr' || a === 'prot' || a === 'sound' || a === 'vol') return; // gestiti da change
   if (a === 'tree' || a === 'treereset') { /* stelle cambiano le statistiche */ B.party.forEach(() => {}); }
   save(); render(); if (equipOpen && !$('#modal').hidden) { const y = $('#modal .mod') ? $('#modal .mod').scrollTop : 0; showEquip(equipOpen); if ($('#modal .mod')) $('#modal .mod').scrollTop = y; }
 });
@@ -1112,6 +1112,7 @@ document.addEventListener('change', e => {
   if (a === 'minr') S.settings.minRarity = t.value;
   if (a === 'sound') { S.settings.sound = t.checked; if (t.checked) snd('coin'); }
   if (a === 'vol') { S.settings.volume = +t.value; snd('coin'); }
+  if (a === 'eqres') { S.settings.eqReserve = t.checked; dirty = true; }
   if (a === 'prot') { S.settings.protect = t.value; dirty = true; }
   save(); render(); hud();
 });
@@ -1131,7 +1132,7 @@ function frame(now) {
   const ev = [];
   while (left > 0) { const d = Math.min(0.05, left); F.step(S, B, d, ev); left -= d; }
   handle(ev); updateScene(); hud();
-  if (now - achAt > 1500) { achAt = now; for (const a of F.checkAch(S)) { toast(`Achievement: <b>${esc(a.name)}</b> · +${a.astri} Astri`, '#F2C14E'); dirty = true; } }
+  if (now - achAt > 1500) { achAt = now; for (const a of F.checkAch(S)) { S.achNew = (S.achNew || 0) + 1; dirty = true; } } // niente avvisi a schermo: solo il pallino su Stats
   if ($('#modal').hidden && capQueue.length) showCapture(capQueue.shift());
   if (dirty && !skyDrag && now - renderAt > 700 && now - scrollAt > 1500 && !touching && !document.activeElement.matches('input,select')) { renderAt = now; render(); }
   if (now - saveAt > 10000) { saveAt = now; if (F.ensureShop(S, Date.now())) toast('Il mercante ha nuovi oggetti', '#F49AC1'); save(); }
