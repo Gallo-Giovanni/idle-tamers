@@ -399,6 +399,13 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .cpheads{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;padding-left:96px}.cphead{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;font-size:12px}
 .cmpt{width:100%;border-collapse:collapse;font-size:12.5px}.cmpt th{text-align:left;font-weight:600;color:var(--muted);width:96px;padding:3px 0}.cmpt td{text-align:center;padding:3px 0;border-top:1px solid var(--line)}
 .cmpt td.win{color:#7ED36F;font-weight:700}.cmpt td.lose{color:#FF8A96}
+.protc{display:flex;align-items:center;gap:8px;padding:6px 8px}.protc .autol{font-size:11px;white-space:nowrap}
+.protg{display:flex;gap:3px;flex:1;justify-content:space-between}
+.pchip{display:flex;flex-direction:column;align-items:center;gap:1px;background:none;border:none;padding:0;color:var(--c);font-size:8.5px;font-weight:700;cursor:pointer;opacity:.6;min-width:0}
+.pchip i{font-style:normal;width:16px;height:16px;border:1.5px solid var(--c);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1}
+.pchip.on{opacity:1}.pchip.on i{background:var(--c);color:#10143A}.pchip.rb i{border-color:#fff}.pchip.rb.on i{background:linear-gradient(135deg,#ff5f6d,#ffc371,#7CFFB2,#7FE3FF,#B07CF0)}
+.it{position:relative}.it .upg{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#2fbf5b;color:#fff;font-size:10px;font-style:normal;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg),0 0 8px #2fbf5b;animation:upg 1.4s ease-in-out infinite;z-index:2}
+@keyframes upg{50%{transform:translateY(-2px);box-shadow:0 0 0 2px var(--bg),0 0 14px #5dff8a}}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -1130,8 +1137,13 @@ const FREE_FILTER_ZONE = 10; // lo scarto gratuito dei comuni si sblocca raggiun
 function maxFilter(s) { return hasPass(s) ? PASS_MAX_FILTER : (s.maxZone >= FREE_FILTER_ZONE ? FREE_MAX_FILTER : 0); }
 function minKeep(s) { return Math.min(rarityIndex(s.settings.minRarity || 'comune'), maxFilter(s), protectIdx(s)); }
 // "Tieni sempre da ... in su": queste rarità non si vendono mai (né a mano né in automatico)
-function protectIdx(s) { const k = s.settings.protect || 'segreto'; return k === 'none' ? ITEM_RARITY.length : rarityIndex(k); }
-function isProtected(s, it) { return !!it.locked || rarityIndex(it.rarity) >= protectIdx(s); }
+// Rarità da non vendere mai: spunte una per una (di base solo il Segreto)
+function protectSet(s) { if (!s.settings.protectSet) { const k = s.settings.protect || 'segreto', th = k === 'none' ? ITEM_RARITY.length : rarityIndex(k); s.settings.protectSet = {}; ITEM_RARITY.forEach((r, i) => { if (i >= th) s.settings.protectSet[r.key] = 1; }); } return s.settings.protectSet; }
+function toggleProtect(s, k) { const p = protectSet(s); if (p[k]) delete p[k]; else p[k] = 1; }
+function protectIdx(s) { const p = protectSet(s); const i = ITEM_RARITY.findIndex(r => p[r.key]); return i < 0 ? ITEM_RARITY.length : i; }
+function isProtected(s, it) { return !!it.locked || !!protectSet(s)[it.rarity]; }
+// l'oggetto migliorerebbe qualcuno? (un personaggio che può usarlo ha in quel posto un oggetto più debole o niente)
+function isUpgrade(s, it) { const p = itemPower(it); for (const id in s.roster) { const m = s.roster[id]; if (!canUse(m, it)) continue; const sl = targetSlot(m, it); if (!sl) continue; const c = m.eq[sl]; if (!c || itemPower(c) < p) return true; } return false; }
 function toggleLock(s, id) { const it = s.inventory.find(x => x.id === id) || s.chest.find(x => x.id === id); if (!it) return false; it.locked = !it.locked; return it.locked; }
 function sellBelow(s) { const min = minKeep(s); let gold = 0, n = 0; s.inventory = s.inventory.filter(it => { if (rarityIndex(it.rarity) < min && !isProtected(s, it)) { const g = sellValue(it, s); gold += g; n++; logSold(s, it, g); return false; } return true; }); s.gold += gold; return { gold, n }; }
 function sellRest(s) {
@@ -1303,7 +1315,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
@@ -1794,7 +1806,7 @@ function pSquadra() {
 }
 function rcls(r) { return r.rainbow ? ' rbw' : ''; }
 function itemGrid(list, empty, sellMode) {
-  return `<div class="igrid">${list.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it); return `<button class="it${selItem === it.id ? ' sel' : ''}${F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selit" data-item="${it.id}" aria-label="${esc(F.itemName(it))}, ${r.label}, potere ${F.itemPower(it)}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b><em>${sellMode ? (prot ? 'protetto' : cfmt(F.sellValue(it, S)) + ' oro') : it.cls ? it.cls : F.SLOT_LABEL[it.slot]}</em><i class="ilv">${F.itemLevel(it)}</i>${it.isNew ? '<i>nuovo</i>' : ''}${(it.locked || (prot && sellMode)) ? `<i class="plk">${icon('lock', '#F2C14E', 10)}</i>` : ''}</button>`; }).join('') || `<div class="note" style="grid-column:1/-1">${empty}</div>`}</div>`;
+  return `<div class="igrid">${list.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), prot = F.isProtected(S, it); return `<button class="it${selItem === it.id ? ' sel' : ''}${F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selit" data-item="${it.id}" aria-label="${esc(F.itemName(it))}, ${r.label}, potere ${F.itemPower(it)}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b><em>${sellMode ? (prot ? 'protetto' : cfmt(F.sellValue(it, S)) + ' oro') : it.cls ? it.cls : F.SLOT_LABEL[it.slot]}</em><i class="ilv">${F.itemLevel(it)}</i>${it.isNew ? '<i>nuovo</i>' : ''}${F.isUpgrade(S, it) ? '<i class="upg" title="Migliora qualcuno">▲</i>' : ''}${(it.locked || (prot && sellMode)) ? `<i class="plk">${icon('lock', '#F2C14E', 10)}</i>` : ''}</button>`; }).join('') || `<div class="note" style="grid-column:1/-1">${empty}</div>`}</div>`;
 }
 const byPower = l => l.slice().sort((a, b) => F.itemPower(b) - F.itemPower(a));
 function wareDetail() { const it = selShop !== null && S.shop.items[selShop]; if (!it) return ''; const r = F.ITEM_RARITY.find(x => x.key === it.rarity);
@@ -1858,6 +1870,7 @@ function pZaino() {
   return `<div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><button class="sb" data-act="sellrest">Vendi il resto</button><button class="sb" data-act="fuseopen">Fusione</button></div>
   <div class="card autos3"><span class="autol">Scarta in automatico</span>${(() => { const k = F.minKeep(S); return [['comune', 1], ['noncomune', 2]].map(([key, lvl]) => { const r = F.ITEM_RARITY.find(x => x.key === key), on = k >= lvl, needPass = lvl > 1 && !F.hasPass(S), needZone = lvl === 1 && !F.hasPass(S) && S.maxZone < F.FREE_FILTER_ZONE; return `<button class="atog${on ? ' on' : ''}" style="--c:${r.color}" data-act="atog" data-k="${key}"><span>${r.label}</span>${needPass ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : needZone ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} zona ${F.FREE_FILTER_ZONE}</b>` : ''}</button>`; }).join(''); })()}</div>
   <div class="note" style="margin-top:-2px">Tocca per scartare: gli oggetti barrati si vendono in oro appena cadono. Rune, oggetti bloccati e rarità protette non si vendono mai.</div>
+  <div class="card protc"><span class="autol">Non vendere mai</span><div class="protg">${(() => { const ps = F.protectSet(S); return F.ITEM_RARITY.map(r => `<button class="pchip${ps[r.key] ? ' on' : ''}${r.rainbow ? ' rb' : ''}" style="--c:${r.color}" data-act="protk" data-k="${r.key}" aria-pressed="${!!ps[r.key]}" aria-label="${r.label}" title="${r.label}"><i>${ps[r.key] ? '✓' : ''}</i><span>${r.label.slice(0, 3)}</span></button>`).join(''); })()}</div></div>
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio</span></div>
   ${runeTiles()}
   <div class="ph"><h2 style="font-size:13px">Zaino</h2><span${S.inventory.length >= F.bagCap(S) ? ' style="color:#FF8A96"' : ''}>${S.inventory.length}/${F.bagCap(S)}</span></div>
@@ -1914,17 +1927,15 @@ function pNegozio() {
   return `<div class="ph"><h2>Mercante</h2><span>merce nuova tra ${h} h ${mi} min</span></div>
   <div class="row2"><div class="card wallet" style="flex:1;margin:0">${icon('gem', '#F49AC1', 16)} <b>${fmt(S.astri)}</b> Astri</div><button class="sb" data-act="reroll" ${S.astri < F.REROLL_COST ? 'disabled' : ''}>Rinnova · ${F.REROLL_COST} Astri</button></div>
 
+  <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio · tocca per vendere</span></div>
+  ${runeTiles()}
+  <div class="ph"><h2 style="font-size:13px">In vendita</h2><span>▲ = migliora uno dei tuoi personaggi</span></div>
   <div class="igrid shopg">${S.shop.items.map((it, i) => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity);
-    return `<button class="it${selShop === i ? ' sel' : ''}${it.sold ? ' sold' : F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${it.sold ? 'var(--line)' : r.color};--c:${r.color}" data-act="selshop" data-i="${i}" aria-label="${esc(F.itemName(it))}, ${r.label}, ${it.price} Astri">${itemIcon(it.slot, it.cls, r.color, 24)}<b>${cfmt(F.itemPower(it))}</b><em>${it.sold ? 'venduto' : it.price + ' Astri'}</em></button>`; }).join('')}</div>
+    return `<button class="it${selShop === i ? ' sel' : ''}${it.sold ? ' sold' : F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${it.sold ? 'var(--line)' : r.color};--c:${r.color}" data-act="selshop" data-i="${i}" aria-label="${esc(F.itemName(it))}, ${r.label}, ${it.price} Astri">${itemIcon(it.slot, it.cls, r.color, 24)}<b>${cfmt(F.itemPower(it))}</b><em>${it.sold ? 'venduto' : it.price + ' Astri'}</em>${!it.sold && F.isUpgrade(S, it) ? '<i class="upg" title="Migliora qualcuno">▲</i>' : ''}</button>`; }).join('')}</div>
   <div class="note">Tocca un oggetto per vedere i bonus. Cambia merce alle 0, alle 8 e alle 16, con le stesse probabilità dei drop.</div>
-  <div class="ph"><h2>Il tuo zaino</h2><span>${S.inventory.length}/${F.bagCap(S)} · tocca per vendere</span></div>
-  <div class="row2"><label for="prot">Tieni sempre</label><select id="prot" data-act="prot">${F.ITEM_RARITY.slice(1).map((r, k) => `<option value="${r.key}" ${pi === k + 1 ? 'selected' : ''}>da ${r.label} in su</option>`).join('')}<option value="none" ${pi >= F.ITEM_RARITY.length ? 'selected' : ''}>Nessuna protezione</option></select></div>
-  <button class="sb wide" data-act="sellrest">Vendi tutto ciò che non migliora nessuno</button>
-  ${itemGrid(byPower(S.inventory), 'Zaino vuoto.', true)}
   ${(S.sold || []).length ? `<div class="ph"><h2 style="font-size:13px">Riacquista</h2><span>ultimi 10 venduti, allo stesso prezzo</span></div>
   ${S.sold.map((e, i) => { const r = F.ITEM_RARITY.find(x => x.key === e.it.rarity); return `<div class="card srow"><div style="display:flex;align-items:center;gap:8px">${itemIcon(e.it.slot, e.it.cls, r.color, 22)}<div><b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${esc(F.itemName(e.it))}</b><div class="msub">${r.label} · Lv ${F.itemLevel(e.it)}</div></div></div><button class="sb" data-act="buyback" data-i="${i}" ${S.gold < e.g || S.inventory.length >= F.bagCap(S) ? 'disabled' : ''}>${cfmt(e.g)} oro</button></div>`; }).join('')}` : ''}
-  <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio · tocca per vendere</span></div>
-  ${runeTiles()}`;
+`;
 }
 function pBestiario() {
   const n = F.capturedCount(S), tot = F.ALL_SPECIES.length, ready = F.missionsReady(S);
@@ -2052,7 +2063,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 13:44</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 13:58</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -2367,6 +2378,7 @@ document.addEventListener('click', e => {
   else if (a === 'sellrest') { const r = F.sellRest(S); toast(r.n ? `Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro` : 'Niente da vendere'); }
   else if (a === 'eqto') { F.equipTo(S, item, id || $('#eqsel').value); selItem = null; eqSel = null; }
   else if (a === 'eqpick') { eqSel = eqSel === item ? null : item; }
+  else if (a === 'protk') { F.toggleProtect(S, t.dataset.k); }
   else if (a === 'sell') { F.sellItem(S, item); selItem = null; }
   else if (a === 'equip') { selSlot = null; eqSel = null; showEquip(id); return; }
   else if (a === 'selslot') { const v = id + ':' + t.dataset.slot; selSlot = selSlot === v ? null : v; }
