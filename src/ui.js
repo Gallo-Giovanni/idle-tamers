@@ -438,14 +438,37 @@ function eqHTML(id) {
       <div class="row2">${it ? `<button class="sb" data-act="uneq" data-id="${id}" data-slot="${sl}">Togli</button>` : ''}<button class="sb" data-act="slotup" data-id="${id}" data-slot="${sl}" ${lv >= 10 || S.astri < c ? 'disabled' : ''}>${lv >= 10 ? 'Slot al massimo' : `Potenzia slot a +${lv + 1} · ${c} ${icon('gem', '#F49AC1', 12)}`}</button></div></div>`; })()}
   <div class="note">Il livello dello slot resta anche se cambi oggetto: +2% alle statistiche dell'oggetto per livello, fino a +20% a +10. Si paga in Astri (5, 10, 15… fino a 50).</div>`;
 }
+function slotTile(id, sl) { const m = S.roster[id], cls = F.SPECIES[m.species].cls; const it = m.eq[sl], lv = m.slv[sl] || 0, k = F.kindOf(sl), sel = selSlot === id + ':' + sl;
+      const r = it ? F.ITEM_RARITY.find(x => x.key === it.rarity) : null, col = r ? r.color : '#4A5088';
+      return `<button class="eqt${sel ? ' sel' : ''}${it ? '' : ' empty'}${it && F.rarityIndex(it.rarity) >= 4 ? ' fx fx-' + it.rarity : ''}" style="border-color:${col};--c:${col}" data-act="selslot" data-id="${id}" data-slot="${sl}" aria-label="${F.SLOT_LABEL[sl]}${it ? ': ' + esc(F.itemName(it)) : ' vuoto'}">${itemIcon(k, it ? it.cls : cls, col, 22)}<span>${it ? cfmt(Math.round(F.itemPower(it) * (1 + F.SLOT_STEP * lv))) : F.SLOT_LABEL[sl]}</span>${lv ? `<i>+${lv}</i>` : ''}</button>`; }
+function slotDetail(id) { const m = S.roster[id], cls = F.SPECIES[m.species].cls; return `${(() => { if (!selSlot || selSlot.split(':')[0] !== id) return '<div class="note">Tocca un posto per vederlo, togliere l\'oggetto o potenziare lo slot.</div>';
+      const sl = selSlot.split(':')[1], it = m.eq[sl], lv = m.slv[sl] || 0, c = F.slotCost(lv), rk = F.slotRune(lv), rr = F.RUNE[rk];
+      const r = it ? F.ITEM_RARITY.find(x => x.key === it.rarity) : null;
+      return `<div class="card eqdet" style="border-color:${r ? r.color : 'var(--line)'}"><div><b style="color:${r ? r.color : 'var(--muted)'}">${it ? esc(F.itemName(it)) : F.SLOT_LABEL[sl] + ' vuoto'}</b><div class="msub">${it ? r.label + ' · ' + F.SLOT_LABEL[F.kindOf(sl)] + ' · ' : ''}slot +${lv}</div>${it ? statsHTML(it, lv) : ''}</div>
+      <div class="row2">${it ? `<button class="sb" data-act="uneq" data-id="${id}" data-slot="${sl}">Togli</button>` : ''}<button class="sb" data-act="slotup" data-id="${id}" data-slot="${sl}" ${lv >= 10 || S.astri < c ? 'disabled' : ''}>${lv >= 10 ? 'Slot al massimo' : `Potenzia slot a +${lv + 1} · ${c} ${icon('gem', '#F49AC1', 12)}`}</button></div></div>`; })()}`; }
+// scheda a colpo d'occhio: slot intorno al personaggio, statistiche compatte, zaino che scorre di lato; si passa da un personaggio all'altro scorrendo
+const DOLL_L = ['elmo', 'collana', 'orecchini', 'corazza', 'guanti', 'gambe'], DOLL_R = ['arma', 'secondaria', 'anello1', 'anello2', 'stivali'];
+function eqOrder() { return S.team.concat(Object.keys(S.roster).filter(x => !S.team.includes(x))); }
 function showEquip(id) {
-  equipOpen = id; const m = S.roster[id], sp = F.SPECIES[m.species], st = F.memberStats(S, id);
-  $('#modal').innerHTML = `<div class="mod eqmod" role="dialog" aria-modal="true" aria-labelledby="eqt"><div class="eqhead"><div class="mspr">${sprite(m.species, 3)}</div><div><h2 id="eqt" style="text-align:left;font-size:20px;margin:0">${esc(m.name)}</h2><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · Lv ${m.lvl} · Potere ${fmt(F.memberPower(S, id))}</div></div><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
-  ${fullStats(st)}
-  ${eqHTML(id)}
-  ${bagForMember(id)}</div>`;
+  equipOpen = id; const m = S.roster[id], sp = F.SPECIES[m.species], st = F.memberStats(S, id), ord = eqOrder(), at = ord.indexOf(id);
+  const pc = v => (v * 100).toFixed(0) + '%';
+  const mini = [['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(Math.round(st.def * 10) / 10).replace('.', ',')], ['Critico', pc(st.crit)], ['Danni crit.', pc(st.critDmg)], ['Vel. att.', '+' + pc(st.aspd)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)]];
+  $('#modal').innerHTML = `<div class="mod eqmod doll" role="dialog" aria-modal="true" aria-labelledby="eqt" id="dollmod">
+   <div class="dhead"><button class="ib" data-act="eqnav" data-d="-1" aria-label="Precedente" ${at <= 0 ? 'disabled' : ''}>◀</button>
+    <div class="dtitle"><h2 id="eqt">${esc(m.name)}</h2><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · Lv ${m.lvl} · Potere <b style="color:var(--gold)">${fmt(F.memberPower(S, id))}</b> ${rarTag(m.species)}</div></div>
+    <button class="ib" data-act="eqnav" data-d="1" aria-label="Successivo" ${at >= ord.length - 1 ? 'disabled' : ''}>▶</button><button class="ib" data-act="close" aria-label="Chiudi">✕</button></div>
+   <div class="dgrid"><div class="dcol">${DOLL_L.map(sl => slotTile(id, sl)).join('')}</div>
+    <div class="dmid"><div class="dspr">${m.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : sprite(m.species, 4)}</div><div class="dpos">${at + 1}/${ord.length}${S.team.includes(id) ? '' : ' · riserva'}</div></div>
+    <div class="dcol">${DOLL_R.map(sl => slotTile(id, sl)).join('')}</div></div>
+   <div class="dstats">${mini.map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join('')}</div>
+   ${slotDetail(id)}
+   ${bagForMember(id)}</div>`;
   $('#modal').hidden = false;
+  const md = $('#dollmod'); let x0 = null, y0 = null;
+  md.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  md.addEventListener('touchend', e => { if (x0 === null || e.target.closest('.hscroll')) { x0 = null; return; } const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) eqNav(dx < 0 ? 1 : -1); }, { passive: true });
 }
+function eqNav(d) { const ord = eqOrder(), i = ord.indexOf(equipOpen) + d; if (i < 0 || i >= ord.length) return; selSlot = null; eqSel = null; showEquip(ord[i]); }
 function bagForMember(id) {
   const m = S.roster[id], inv = S.inventory.filter(it => F.canUse(m, it)).sort((a, b) => F.itemPower(b) - F.itemPower(a));
   let det = '';
@@ -458,8 +481,8 @@ function bagForMember(id) {
       ${statsHTML(it, lv)}
       <div class="row2"><button class="pb" data-act="eqto" data-item="${it.id}" data-id="${id}">Equipaggia</button><button class="sb" data-act="sell" data-item="${it.id}">Vendi · ${cfmt(F.sellValue(it, S))}</button></div></div>`;
   }
-  return `<div class="ph"><h2 style="font-size:13px">Zaino</h2><span>${inv.length} oggetti adatti</span></div>${det}
-  <div class="igrid">${inv.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), cur = m.eq[F.targetSlot(m, it)], up = !cur || F.itemPower(it) > F.itemPower(cur); return `<button class="it${eqSel === it.id ? ' sel' : ''}${F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${r.color};--c:${r.color}" data-act="eqpick" data-item="${it.id}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b>${up ? '<i class="upar">▲</i>' : ''}</button>`; }).join('') || '<div class="note" style="grid-column:1/-1">Nessun oggetto adatto nello zaino.</div>'}</div>`;
+  return `<div class="ph"><h2 style="font-size:13px">Zaino</h2><span>${inv.length} oggetti adatti · scorri →</span></div>
+  <div class="igrid hscroll">${inv.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), cur = m.eq[F.targetSlot(m, it)], up = !cur || F.itemPower(it) > F.itemPower(cur); return `<button class="it${eqSel === it.id ? ' sel' : ''}${F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${r.color};--c:${r.color}" data-act="eqpick" data-item="${it.id}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b>${up ? '<i class="upar">▲</i>' : ''}</button>`; }).join('') || '<div class="note" style="grid-column:1/-1">Nessun oggetto adatto nello zaino.</div>'}</div>${det}`;
 }
 function dmgHTML() { const d = S.dmgLog || { by: {}, since: S.clock || 0 }, ids = Object.keys(d.by).filter(id => S.roster[id]).sort((a, b) => d.by[b] - d.by[a]), tot = ids.reduce((x, id) => x + d.by[id], 0), secs = Math.max(1, (S.clock || 0) - d.since);
     return `<div class="ph"><h2>Danni per membro</h2><button class="sb" data-act="dmgreset" style="min-height:28px;font-size:11px">Azzera</button></div>
@@ -1058,6 +1081,7 @@ document.addEventListener('click', e => {
   else if (a === 'protk') { F.toggleProtect(S, t.dataset.k); }
   else if (a === 'sell') { F.sellItem(S, item); selItem = null; }
   else if (a === 'equip') { selSlot = null; eqSel = null; showEquip(id); return; }
+  else if (a === 'eqnav') { eqNav(+t.dataset.d); return; }
   else if (a === 'selslot') { const v = id + ':' + t.dataset.slot; selSlot = selSlot === v ? null : v; }
   else if (a === 'slotup') { if (confirmRune !== 'slot' + id + t.dataset.slot) { confirmRune = 'slot' + id + t.dataset.slot; toast('Tocca di nuovo per spendere gli Astri', '#F49AC1'); setTimeout(() => { confirmRune = null; }, 3000); return; } confirmRune = null; if (F.upgradeSlot(S, id, t.dataset.slot)) { snd('coin'); rebuild(); } }
   else if (a === 'sellrune1') { F.sellRunes(S, t.dataset.k, 1); }
