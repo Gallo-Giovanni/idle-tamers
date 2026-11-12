@@ -110,13 +110,13 @@ const ITEM_RARITY = [ // chiavi interne invariate per compatibilità dei salvata
   { key: 'comune',      label: 'Comune',      mult: 1,   weight: 60,    color: '#AEB4CF' },
   { key: 'noncomune',   label: 'Non comune',  mult: 1.4, weight: 25,    color: '#6CCB5F' },
   { key: 'rara',        label: 'Raro',        mult: 2,   weight: 10,    color: '#5B9BFF' },
-  { key: 'epica',       label: 'Epico',       mult: 3,   weight: 4,     color: '#B07CF0' },
-  { key: 'leggendaria', label: 'Leggendario', mult: 5,   weight: 0.75,  color: '#F2994A' },
-  { key: 'mitico',      label: 'Mitico',      mult: 6,   weight: 0.25,  color: '#FFD34D' },
-  { key: 'astrale',     label: 'Astrale',     mult: 7,   weight: 0.1,   color: '#FF7AD9' },
-  { key: 'arcano',      label: 'Arcano',      mult: 10,  weight: 0.01,  color: '#E8334F' },
-  { key: 'eterno',      label: 'Eterno',      mult: 12,  weight: 0.004, color: '#1FE0D0' },
-  { key: 'segreto',     label: 'Segreto',     mult: 15,  weight: 0.002, color: '#FFFFFF', rainbow: true },
+  { key: 'epica',       label: 'Epico',       mult: 3,   weight: 5,     color: '#B07CF0' },
+  { key: 'leggendaria', label: 'Leggendario', mult: 5,   weight: 1.2,   color: '#F2994A' },
+  { key: 'mitico',      label: 'Mitico',      mult: 6,   weight: 0.45,  color: '#FFD34D' },
+  { key: 'astrale',     label: 'Astrale',     mult: 7,   weight: 0.18,  color: '#FF7AD9' },
+  { key: 'arcano',      label: 'Arcano',      mult: 10,  weight: 0.02,  color: '#E8334F' },
+  { key: 'eterno',      label: 'Eterno',      mult: 12,  weight: 0.007, color: '#1FE0D0' },
+  { key: 'segreto',     label: 'Segreto',     mult: 15,  weight: 0.0035, color: '#FFFFFF', rainbow: true },
 ];
 const RARE_FEED = ['astrale', 'arcano', 'eterno', 'segreto']; // drop annunciati nella sezione dei drop rari
 // 11 posti di equipaggiamento; gli oggetti hanno 10 tipi (l'anello va in due posti)
@@ -425,7 +425,7 @@ function makeEnemies(s) {
     const cls = SPECIES[sp].cls, boss = n === BOSS_BATTLE && i === 0, b = CLASSES[cls], sec = boss && secret;
     const big = s.zone % 5 === 0; // i boss di pianeta (zone 5 e 10) sono più duri
     const hp = Math.round(b.hp * 0.45 * f * (boss ? (big ? 8 : 4) : 1) * (sec ? 1.5 : 1));
-    return { side: 'e', idx: i, species: sp, cls, boss, secret: sec, hp, maxHp: hp, atk: b.atk * 0.46 * f * (boss ? (big ? 1.6 : 1.3) : 1) * (sec ? 1.15 : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: (0.6 + i * 1.1) / moveSpeed(s), arriveMax: (0.6 + i * 1.1) / moveSpeed(s) };
+    return { side: 'e', idx: i, species: sp, cls, boss, secret: sec, hp, maxHp: hp, atk: b.atk * 0.46 * f * (boss ? (big ? 1.6 : 1.3) : 1) * (sec ? 1.15 : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: (1.4 + i * 0.9) / moveSpeed(s), arriveMax: (1.4 + i * 0.9) / moveSpeed(s) };
   });
 }
 

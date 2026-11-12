@@ -277,7 +277,7 @@ function updateScene() {
   const m = B.over === 'win' || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); });
-  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (u.arrive > 0 ? tx + (420 - tx) * (u.arrive / u.arriveMax) : tx) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
+  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (u.arrive > 0 ? tx + Math.min(420 - tx, u.arrive * 170 * F.moveSpeed(S)) : tx) + 'px'; // tutti alla stessa velocità, uno dopo l'altro el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
   updateLog();
 }
 let floats = 0;
@@ -435,10 +435,16 @@ function bagForMember(id) {
   return `<div class="ph"><h2 style="font-size:13px">Zaino</h2><span>${inv.length} oggetti adatti</span></div>${det}
   <div class="igrid">${inv.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), cur = m.eq[F.targetSlot(m, it)], up = !cur || F.itemPower(it) > F.itemPower(cur); return `<button class="it${eqSel === it.id ? ' sel' : ''}${F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${r.color};--c:${r.color}" data-act="eqpick" data-item="${it.id}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b>${up ? '<i class="upar">▲</i>' : ''}</button>`; }).join('') || '<div class="note" style="grid-column:1/-1">Nessun oggetto adatto nello zaino.</div>'}</div>`;
 }
+function dmgHTML() { const d = S.dmgLog || { by: {}, since: S.clock || 0 }, ids = Object.keys(d.by).filter(id => S.roster[id]).sort((a, b) => d.by[b] - d.by[a]), tot = ids.reduce((x, id) => x + d.by[id], 0), secs = Math.max(1, (S.clock || 0) - d.since);
+    return `<div class="ph"><h2>Danni per membro</h2><button class="sb" data-act="dmgreset" style="min-height:28px;font-size:11px">Azzera</button></div>
+    <div class="card">${ids.length ? ids.map(id => { const m = S.roster[id], c = CC(F.SPECIES[m.species].cls); return `<div class="dmrow"><span class="dmn">${esc(m.name)}</span><div class="dmbar"><b style="width:${100 * d.by[id] / d.by[ids[0]]}%;background:${c}"></b></div><span class="dmv">${cfmt(d.by[id] / secs)}/s · ${Math.round(100 * d.by[id] / tot)}%</span></div>`; }).join('') : '<div class="note">Nessun dato ancora.</div>'}<div class="msub" style="margin-top:4px">Danni medi al secondo e quota sul totale, da ${dur(secs)} di battaglie.</div></div>`; }
+let showDmg = false;
 function pSquadra() {
   const slots = F.slotCount(S), n = F.creaturesInTeam(S);
   const reserve = Object.keys(S.roster).filter(id => !S.team.includes(id));
   return `<div class="ph"><h2>Squadra</h2><span>creature ${n}/${slots} (max ${F.CREATURE_SLOTS}) · eroi esclusi</span></div>
+  <button class="sb" data-act="dmgtoggle" style="width:100%;margin-bottom:6px">${showDmg ? 'Nascondi i danni per membro' : 'Mostra i danni per membro'}</button>
+  ${showDmg ? dmgHTML() : ''}
   <div class="slotgrid">${Array.from({ length: F.CREATURE_SLOTS }, (_, i) => { const crea = S.team.filter(id => !F.isHero(id)), id = crea[i];
     if (i < F.slotCount(S)) return id ? `<button class="sl2" style="border-color:${CC(F.SPECIES[S.roster[id].species].cls)}" data-act="openm" data-id="${id}">${sprite(S.roster[id].species, 2)}<span>Lv ${S.roster[id].lvl}</span></button>` : `<div class="sl2 empty"><span>Libero</span></div>`;
     const z = F.SLOT_UNLOCKS[i - F.BASE_SLOTS]; return `<div class="sl2 lock">${icon('lock', '#7C84BC', 14)}<span>Zona ${z}${z > F.MAX_ZONE ? '<br><small>presto</small>' : ''}</span></div>`; }).join('')}</div>
@@ -670,9 +676,7 @@ function pAltro() {
    <div><span>Catture</span><b>${F.capturedCount(S)}/${F.ALL_SPECIES.length}</b></div><div><span>Tempo con il gioco aperto</span><b>${h} h ${mi} min</b></div>
    <div><span>Tempo offline</span><b>${dur(st.offline || 0)}</b></div><div><span>Tempo totale di gioco</span><b>${dur(st.played + (st.offline || 0))}</b></div>
   </div>
-  ${(() => { const d = S.dmgLog || { by: {}, since: S.clock || 0 }, ids = Object.keys(d.by).filter(id => S.roster[id]).sort((a, b) => d.by[b] - d.by[a]), tot = ids.reduce((x, id) => x + d.by[id], 0), secs = Math.max(1, (S.clock || 0) - d.since);
-    return `<div class="ph"><h2>Danni per membro</h2><button class="sb" data-act="dmgreset" style="min-height:28px;font-size:11px">Azzera</button></div>
-    <div class="card">${ids.length ? ids.map(id => { const m = S.roster[id], c = CC(F.SPECIES[m.species].cls); return `<div class="dmrow"><span class="dmn">${esc(m.name)}</span><div class="dmbar"><b style="width:${100 * d.by[id] / d.by[ids[0]]}%;background:${c}"></b></div><span class="dmv">${cfmt(d.by[id] / secs)}/s · ${Math.round(100 * d.by[id] / tot)}%</span></div>`; }).join('') : '<div class="note">Nessun dato ancora.</div>'}<div class="msub" style="margin-top:4px">Danni medi al secondo e quota sul totale, da ${dur(secs)} di battaglie.</div></div>`; })()}
+  ${dmgHTML()}
   ${rare}
   <div class="card"><div class="msub">Nemici sconfitti al minuto, ultimi 30 minuti</div><canvas id="chart" width="680" height="220" role="img" aria-label="Grafico dei nemici sconfitti al minuto"></canvas></div>
   <div class="ph"><h2>Achievement</h2><span>${Object.keys(S.ach).length}/${F.ACH.length}</span></div>
@@ -903,6 +907,7 @@ document.addEventListener('click', e => {
   else if (a === 'reroll2') { if (F.rerollBonus(S, item, rrLocks)) { snd('coin'); toast('Bonus rimescolati', '#F49AC1'); } }
   else if (a === 'fuseopen') { showFuse(); return; }
   else if (a === 'fuse') { const it = F.fuse(S, t.dataset.k); if (it) { const r = F.ITEM_RARITY.find(x => x.key === it.rarity); snd('rare'); toast(`Fusione riuscita: <b style="color:${r.color}">${esc(F.itemName(it))}</b>`, r.color); } showFuse(); dirty = true; return; }
+  else if (a === 'dmgtoggle') { showDmg = !showDmg; }
   else if (a === 'dmgreset') { S.dmgLog = { since: S.clock || 0, by: {} }; }
   else if (a === 'selrune') { selRune = selRune === t.dataset.k ? null : t.dataset.k; selItem = null; }
   else if (a === 'selshop') selShop = selShop === +t.dataset.i ? null : +t.dataset.i;
