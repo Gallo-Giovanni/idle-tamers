@@ -209,7 +209,17 @@ function skyBuy(s, id) { const c = skyCost(s, id); if (!skyCanBuy(s, id) || s.go
 function skyReset(s) { let back = s.skySpent; if (back === undefined) { back = 0; for (const id of skyOwned(s)) back += SKY[id].cost; } s.sky = [0]; s.skySpent = 0; s.gold += back; s._tb = null; return back; }
 // somma dei bonus delle stelle accese (in cache)
 function tb(s) { if (s._tb && s._tbn === skyOwned(s).length) return s._tb; const t = {}; for (const id of skyOwned(s)) { const o = SKY[id]; if (o.kind) t[o.kind] = (t[o.kind] || 0) + o.v; } s._tb = t; s._tbn = s.sky.length; return t; }
-const B = (s, k) => tb(s)[k] || 0;
+// Pet: si comprano una volta e i bonus di tutti quelli posseduti si sommano
+const PETS = {
+  micio:     { name: 'Micio Cometa',       price: '2,99 €', bonus: { gold: 0.05, bag: 1, chest: 1 } },
+  volpe:     { name: 'Volpe Lunare',       price: '2,99 €', bonus: { xp: 0.05, bag: 1, chest: 1 } },
+  gufo:      { name: 'Gufo Astrale',       price: '2,99 €', bonus: { drop: 0.05, bag: 1, chest: 1 } },
+  draghetto: { name: 'Draghetto di Brace', astri: 5000,     bonus: { capture: 0.10, bag: 1, chest: 1 } },
+};
+function petB(s, k) { let t = 0; for (const id in (s.pets || {})) { const b = PETS[id] && PETS[id].bonus[k]; if (b) t += b; } return t; }
+function buyPet(s, id) { const p = PETS[id]; if (!p || (s.pets && s.pets[id])) return false; if (p.astri) { if (s.astri < p.astri) return false; s.astri -= p.astri; } s.pets = s.pets || {}; s.pets[id] = 1; return true; } // in euro: versione di prova, gratis
+function buyWelcome(s, id) { const p = PETS[id]; if (s.welcomePack || !p || p.astri || (s.pets && s.pets[id])) return false; s.welcomePack = 1; s.pets = s.pets || {}; s.pets[id] = 1; s.astri += 500; return true; } // 500 Astri + un pet a scelta (tra quelli in euro)
+const B = (s, k) => (tb(s)[k] || 0) + petB(s, k);
 // per la simulazione: compra sempre la stella raggiungibile più economica
 function autoSky(s) { let n = 0; for (;;) { let best = null; for (const o of SKY) if (skyCanBuy(s, o.id) && (!best || (o.special ? 0 : 1) > (best.special ? 0 : 1))) best = o; if (!best || s.gold < skyCost(s, best.id) || n > 300) break; skyBuy(s, best.id); n++; } return n; }
 
@@ -592,8 +602,7 @@ function tryCapture(s, e, ev) {
   let p = RARITY[SPECIES[sp].rarity].p * (1 + Math.min(0.5, B(s, 'capture')));
   if (s.settings.test) p *= 200;
   const tutorial = capturedCount(s) === 0 && sp === 'glimmo' && gIndex(s.zone, s.battle) >= 3;
-  const pity = s.hunt[sp] >= 3 / RARITY[SPECIES[sp].rarity].p; // rete di sicurezza a 3 volte il tempo medio
-  if (tutorial || pity || rnd(s) < p) {
+  if (tutorial || rnd(s) < p) { // nessuna cattura garantita: solo fortuna (tranne la prima del tutorial)
     const m = newMember(sp, 1); m.waitKills = s.hunt[sp]; s.roster[sp] = m; // chi si unisce parte dal livello 1
     delete s.hunt[sp];
     if (!teamFull(s)) s.team.push(sp);
@@ -843,7 +852,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;

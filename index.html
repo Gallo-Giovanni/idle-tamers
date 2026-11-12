@@ -387,6 +387,13 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .plus{width:17px;height:17px;margin-left:3px;border-radius:50%;border:none;background:var(--gold);color:#1B1F3B;font-weight:800;font-size:13px;line-height:17px;padding:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .sgrid.astri4{grid-template-columns:repeat(2,1fr)}
 .x2{display:inline-block;background:#1f6b3a;color:#9BFFB8;border:1px solid #3fcf74;border-radius:6px;padding:0 6px;font-size:10.5px;font-weight:700;margin:2px auto}
+.petcard{display:flex;align-items:center;gap:10px}.petcard .pspr{width:76px;display:flex;justify-content:center}
+.petcard.own{border-color:#3fcf74}.pown{color:#9BFFB8;font-size:12px;font-weight:700}
+.wpick{display:flex;gap:6px;margin-top:8px}.wpick button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;font-size:11px}
+.welcome{border-color:var(--gold);background:linear-gradient(135deg,#2a2350,#141a46)}
+.petcard.welcome{border-color:var(--gold);background:linear-gradient(135deg,#2a2350,#141a46)}
+.u.pet .spr{animation:petbob .5s steps(2) infinite}.u.pet{z-index:4}@keyframes petbob{50%{transform:translateY(-2px)}}
+.owned{display:flex;flex-direction:column;gap:8px}.orow{display:flex;align-items:center;gap:10px}.oic{width:40px;display:flex;justify-content:center}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -641,7 +648,17 @@ function skyBuy(s, id) { const c = skyCost(s, id); if (!skyCanBuy(s, id) || s.go
 function skyReset(s) { let back = s.skySpent; if (back === undefined) { back = 0; for (const id of skyOwned(s)) back += SKY[id].cost; } s.sky = [0]; s.skySpent = 0; s.gold += back; s._tb = null; return back; }
 // somma dei bonus delle stelle accese (in cache)
 function tb(s) { if (s._tb && s._tbn === skyOwned(s).length) return s._tb; const t = {}; for (const id of skyOwned(s)) { const o = SKY[id]; if (o.kind) t[o.kind] = (t[o.kind] || 0) + o.v; } s._tb = t; s._tbn = s.sky.length; return t; }
-const B = (s, k) => tb(s)[k] || 0;
+// Pet: si comprano una volta e i bonus di tutti quelli posseduti si sommano
+const PETS = {
+  micio:     { name: 'Micio Cometa',       price: '2,99 €', bonus: { gold: 0.05, bag: 1, chest: 1 } },
+  volpe:     { name: 'Volpe Lunare',       price: '2,99 €', bonus: { xp: 0.05, bag: 1, chest: 1 } },
+  gufo:      { name: 'Gufo Astrale',       price: '2,99 €', bonus: { drop: 0.05, bag: 1, chest: 1 } },
+  draghetto: { name: 'Draghetto di Brace', astri: 5000,     bonus: { capture: 0.10, bag: 1, chest: 1 } },
+};
+function petB(s, k) { let t = 0; for (const id in (s.pets || {})) { const b = PETS[id] && PETS[id].bonus[k]; if (b) t += b; } return t; }
+function buyPet(s, id) { const p = PETS[id]; if (!p || (s.pets && s.pets[id])) return false; if (p.astri) { if (s.astri < p.astri) return false; s.astri -= p.astri; } s.pets = s.pets || {}; s.pets[id] = 1; return true; } // in euro: versione di prova, gratis
+function buyWelcome(s, id) { const p = PETS[id]; if (s.welcomePack || !p || p.astri || (s.pets && s.pets[id])) return false; s.welcomePack = 1; s.pets = s.pets || {}; s.pets[id] = 1; s.astri += 500; return true; } // 500 Astri + un pet a scelta (tra quelli in euro)
+const B = (s, k) => (tb(s)[k] || 0) + petB(s, k);
 // per la simulazione: compra sempre la stella raggiungibile più economica
 function autoSky(s) { let n = 0; for (;;) { let best = null; for (const o of SKY) if (skyCanBuy(s, o.id) && (!best || (o.special ? 0 : 1) > (best.special ? 0 : 1))) best = o; if (!best || s.gold < skyCost(s, best.id) || n > 300) break; skyBuy(s, best.id); n++; } return n; }
 
@@ -1024,8 +1041,7 @@ function tryCapture(s, e, ev) {
   let p = RARITY[SPECIES[sp].rarity].p * (1 + Math.min(0.5, B(s, 'capture')));
   if (s.settings.test) p *= 200;
   const tutorial = capturedCount(s) === 0 && sp === 'glimmo' && gIndex(s.zone, s.battle) >= 3;
-  const pity = s.hunt[sp] >= 3 / RARITY[SPECIES[sp].rarity].p; // rete di sicurezza a 3 volte il tempo medio
-  if (tutorial || pity || rnd(s) < p) {
+  if (tutorial || rnd(s) < p) { // nessuna cattura garantita: solo fortuna (tranne la prima del tutorial)
     const m = newMember(sp, 1); m.waitKills = s.hunt[sp]; s.roster[sp] = m; // chi si unisce parte dal livello 1
     delete s.hunt[sp];
     if (!teamFull(s)) s.team.push(sp);
@@ -1275,7 +1291,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
@@ -1354,6 +1370,12 @@ const SPR = {
   prismella: [{ R: '#FF8A96', B: '#7FB8FF', Y: '#FFE9C9', K: '#1B1F3B', P: '#F49AC1', G: '#C9A4FF' }, ['.R........B.', '.RR..YY..BB.', '.RRRYYYYBBB.', '..RYKYYKYB..', '...YYYYYY...', '...YPYYPY...', '....YYYY....', '...GGGGGG...', '..GGGGGGGG..', '....G..G....']],
   reginaquarzo: [{ W: '#E6FBFF', Q: '#F1E3FF', K: '#1B1F3B', P: '#FF8A96', C: '#7FD6F0', A: '#F2C14E' }, ['..W.W.W.W.W...', '..WWWWWWWWW...', '...QQQQQQQ....', '..QQQQQQQQQ...', '..QKQQQQQKQ...', '..QQQQQQQQQ...', '...QQPPPQQ...A', '..CCCCCCCCC.A.', '.CCCCCCCCCCCA.', 'CC.CCCCCCC.AA.', '...CCCCCCC.A..', '...CC...CC....', '..KKK...KKK...']],
 };
+Object.assign(SPR, {
+  pet_micio: [{"D": "#3A3F70", "G": "#8A93C8", "W": "#E9ECFF", "Y": "#FFE15A", "P": "#FF9BB5", "K": "#1B1F3B", "L": "#B9C0EE"}, ["Y..........D...D.", "YYY.......DGD.DGD", ".Y.......DGGGGGGD", ".D.......DGKGGKGD", ".D.......DGGGPGGD", "..D......DLWWWLD.", "..DGGGGGGGGGGGD..", "..DGLGGGGGGLGGD..", "..DGGGGGGGGGGD...", "...DGD....DGD....", "...DD.....DD....."]],
+  pet_gufo: [{"D": "#3B2470", "P": "#8E6BE0", "L": "#B79BF5", "W": "#F4E9FF", "Y": "#FFD34D", "K": "#1B1F3B", "O": "#F2994A", "S": "#FFE15A"}, ["..D.....S.D..", "..DD.....DD..", "..DPPPPPPPD..", ".DPWWPPPWWPD.", ".DWYKWPWYKWD.", ".DPWWPOPWWPD.", ".DPPPPOPPPPD.", "DPLPLPPPLPLPD", "DPPLPLPLPLPPD", ".DPPPPPPPPPD.", "..DPPPPPPPD..", "...O.....O..."]],
+  pet_draghetto: [{"D": "#7A1F1C", "R": "#E2504A", "L": "#FF8A6E", "O": "#F2994A", "Y": "#FFE15A", "K": "#1B1F3B", "W": "#FFF3D6"}, ["..........DD...", ".O.......DRRD..", "OOO.....DRRRRD.", "OYOO....DRKRRRD", ".OOOD...DRRRWWD", "..ODRD.DRRRRDD.", "...DRRDRRRRD...", "..DRRRRRYYRD...", ".DRRLRRYYYRRD..", "DRD.DRRRRRRD...", "D...DRD..DRD...", "....DD...DD...."]],
+  pet_volpe: [{"D": "#4A5488", "G": "#B8C0E8", "W": "#F2F4FF", "B": "#7FE3FF", "K": "#1B1F3B", "N": "#2A2F55", "M": "#FFE15A"}, ["............D.D..", "...........DGDGD.", "..BB.......DWWWWD", ".BBBB......DWKWWWN", "BBWWBB.....DWWWWWN", ".BWWWBB...DWWWWD..", "..BWWWGGGGWWMWD...", "...DGGGGGGGGGD....", "...DGWGGGGGWD.....", "....DGD...DGD.....", "....DD.....DD....."]],
+});
 const sprCache = {};
 function sprite(key, p, opts) {
   opts = opts || {};
@@ -1513,6 +1535,8 @@ function buildScene() {
     sc.appendChild(el); pEls[u.idx] = el;
   });
   place(order);
+  // pet: camminano dietro alla squadra
+  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (168 - order.length * 10 - 30 - i * 26) + 'px'; el.style.bottom = (k === 'gufo' ? 44 : 26) + 'px'; el.innerHTML = sprite('pet_' + k, 2); sc.appendChild(el); });
   // nemici: quelli da mischia si ammassano sul primo bersaglio, quelli a distanza restano indietro
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
@@ -1827,6 +1851,18 @@ function pZaino() {
   <div class="note">${F.hasPass(S) ? 'Spazio raddoppiato dal Pass Astrale.' : `Col Pass Astrale zaino e forziere raddoppiano (${F.bagCap(S) * 2} posti).`} Le rune non occupano spazio. A zaino pieno i nuovi oggetti vanno persi: libera spazio o attiva la vendita automatica.</div>`;
 }
 function runeBar() { return `<div class="runebar">${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<span title="${r.label}">${icon('rune', r.color, 16, r.label)}<b>${fmt(S.runes[k])}</b></span>`; }).join('')}</div>`; }
+// riepilogo di quello che hai comprato e cosa ti dà
+function ownedHTML() {
+  const rows = [], lab = { gold: 'oro', xp: 'esperienza', drop: 'drop', capture: 'soggiogamento' };
+  for (const k of Object.keys(S.pets || {})) { const p = F.PETS[k]; if (!p) continue; const b = p.bonus; rows.push([sprite('pet_' + k, 2), p.name, Object.keys(b).filter(x => x !== 'bag' && x !== 'chest').map(x => `+${Math.round(b[x] * 100)}% ${lab[x]}`).concat(`+${b.bag} zaino`, `+${b.chest} forziere`).join(' · ')]); }
+  for (const h of F.HERO_SHOP) if (S.roster[h.id]) { const sp = F.SPECIES[h.id]; rows.push([sprite(h.id, 2), sp.name, `${sp.cls} in squadra, senza occupare posti`]); }
+  if (F.hasPass(S)) rows.push([ipx('collana', 22), 'Pass Astrale', `×2 oro ed esperienza, zaino e forziere doppi · scade il ${new Date(S.pass).toLocaleDateString('it-IT')}`]);
+  if (S.extraBag || S.extraChest) rows.push([icon('bag', '#F2C14E', 20), 'Spazio extra', `+${S.extraBag || 0} zaino · +${S.extraChest || 0} forziere`]);
+  if (S.welcomePack) rows.push([icon('gem', '#F49AC1', 20), 'Pacchetto Benvenuto', '500 Astri + un pet']);
+  const nb = Object.keys(S.astriBought || {}).length; if (nb) rows.push([icon('gem', '#F49AC1', 20), 'Pacchetti di Astri', `${nb} tipi già comprati (non più doppi)`]);
+  return `<div class="ph"><h2 style="font-size:13px">I tuoi acquisti</h2><span>${rows.length}</span></div>
+  ${rows.length ? `<div class="card owned">${rows.map(([ic, n, d]) => `<div class="orow"><div class="oic">${ic}</div><div><b>${n}</b><div class="msub">${d}</div></div></div>`).join('')}</div>` : '<div class="note">Non hai ancora comprato nulla.</div>'}`;
+}
 function pShop() {
   const left = Math.max(0, F.nextMidnight(Date.now()) - Date.now()), h = Math.floor(left / 3600000), mi = Math.floor(left % 3600000 / 60000), ready = F.dailyReady(S);
   return `<div class="ph"><h2>Shop</h2><span>${icon('gem', '#F49AC1', 14)} ${fmt(S.astri)} Astri</span></div>
@@ -1839,12 +1875,19 @@ function pShop() {
   <div class="sgrid runes4">${Object.keys(F.RUNE_BUY).map(k => { const r = F.RUNE[k]; return `<div class="card sitem" style="border-color:${r.color}">${icon('rune', r.color, 24)}<b style="color:${r.color}">${r.label.replace('Runa ', '')}</b><span>→ ${F.ITEM_RARITY.find(x => x.key === k).label}</span><span>hai ${fmt(S.runes[k])}</span><button class="pb" data-act="buyrune" data-k="${k}" ${S.astri < F.RUNE_BUY[k] ? 'disabled' : ''}>${F.RUNE_BUY[k]} ${icon('gem', '#1B1F3B', 11)}</button></div>`; }).join('')}</div>
   <div class="ph"><h2 style="font-size:13px">Spazio</h2><span>+${F.SPACE_PACK.n} posti per sempre · max ${F.SPACE_PACK.perMonth} al mese</span></div>
   <div class="sgrid">${[['bag', 'Zaino', 'Posti zaino', F.bagCap(S)], ['chest', 'Forziere', 'Posti forziere', F.chestCap(S)]].map(([k, n, l, cap]) => { const left = F.spaceLeft(S, k); return `<div class="card sitem"><b>+${F.SPACE_PACK.n} ${l.toLowerCase()}</b><span>${n} ora: ${cap} posti</span><span>Questo mese: ancora ${left}</span><button class="pb" data-act="buyspace" data-k="${k}" ${left < 1 || S.astri < F.SPACE_PACK.cost ? 'disabled' : ''}>${left < 1 ? 'Finiti per questo mese' : F.SPACE_PACK.cost + ' Astri'}</button></div>`; }).join('')}</div>
+  <div class="ph" id="shop-pet"><h2 style="font-size:13px">Pet</h2><span>non combattono · i bonus si sommano</span></div>
+  ${S.welcomePack || !Object.keys(F.PETS).some(k => !F.PETS[k].astri && !(S.pets && S.pets[k])) ? '' : `<div class="card welcome"><b>Pacchetto Benvenuto · 4,99 €</b><div class="msub">500 ${icon('gem', '#F49AC1', 11)} + un pet a scelta · una sola volta (prova gratis)</div>
+   <div class="wpick">${Object.keys(F.PETS).filter(k => !F.PETS[k].astri && !(S.pets && S.pets[k])).map(k => `<button class="sb" data-act="welcome" data-k="${k}">${sprite('pet_' + k, 2)}<span>${F.PETS[k].name}</span></button>`).join('')}</div></div>`}
+  ${Object.keys(F.PETS).map(k => { const p = F.PETS[k], own = S.pets && S.pets[k], b = p.bonus, lab = { gold: 'oro', xp: 'esperienza', drop: 'drop', capture: 'soggiogamento' };
+    const main = Object.keys(b).filter(x => x !== 'bag' && x !== 'chest').map(x => `+${Math.round(b[x] * 100)}% ${lab[x]}`).join(' · ');
+    return `<div class="card petcard${own ? ' own' : ''}"><div class="pspr">${sprite('pet_' + k, 4)}</div><div style="flex:1"><b>${p.name}</b><div class="msub">${main}<br>+${b.bag} zaino · +${b.chest} forziere</div></div>${own ? '<span class="pown">Posseduto</span>' : `<button class="pb" data-act="buypet" data-k="${k}" ${p.astri && S.astri < p.astri ? 'disabled' : ''}>${p.astri ? fmt(p.astri) + ' ' + icon('gem', '#1B1F3B', 11) : p.price + ' · prova gratis'}</button>`}</div>`; }).join('')}
   <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
   ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr">${sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}<br><small>prova gratis</small></button>`}</div>`; }).join('')}
   <div class="ph"><h2 style="font-size:13px">Abbonamento</h2></div>
   <div class="card passbig${F.hasPass(S) ? ' on' : ''}"><div class="pbhead"><div class="pbic">${ipx('collana', 44)}</div><div style="flex:1"><b class="pbt">Pass Astrale</b><div class="pbp">${F.PASS_PRICE}</div>${F.hasPass(S) ? `<div class="msub" style="color:#7ED36F">Attivo fino al ${new Date(S.pass).toLocaleDateString('it-IT')}</div>` : ''}</div></div>
    <ul class="pbl"><li><b>×2 oro</b> da ogni nemico</li><li><b>×2 esperienza</b> per tutta la squadra</li><li>Zaino e forziere <b>doppi</b> (${F.bagCap(S) + (F.hasPass(S) ? 0 : 20)} posti)</li><li>Vendita automatica anche dei <b>non comuni</b></li></ul>
    <button class="pb wide" data-act="pass">${F.hasPass(S) ? 'Rinnova' : 'Attiva'} · prova gratis</button>${F.hasPass(S) ? '<button class="sb wide" data-act="passoff" style="margin-top:6px;width:100%">Togli il Pass (prova)</button>' : ''}</div>
+  ${ownedHTML()}
   <div class="note">Versione di prova: gli acquisti si sbloccano gratis, nessun pagamento reale.</div>`;
 }
 function pNegozio() {
@@ -1992,7 +2035,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 12:08</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 12:19</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -2302,6 +2345,8 @@ document.addEventListener('click', e => {
   else if (a === 'skycenter') { skyView = { x: 0, y: 0, k: 34 }; }
   else if (a === 'buyback') { if (F.buyBack(S, +t.dataset.i)) toast('Oggetto riacquistato', '#7ED36F'); }
   else if (a === 'buyslot') { if (F.buySlot(S)) { toast('Nuovo posto in squadra!', '#F2C14E'); rebuild(); } }
+  else if (a === 'buypet') { if (F.buyPet(S, t.dataset.k)) { snd('rare'); toast(`${F.PETS[t.dataset.k].name} si unisce a te!`, '#F2C14E'); buildScene(); } }
+  else if (a === 'welcome') { if (F.buyWelcome(S, t.dataset.k)) { snd('rare'); toast(`Pacchetto Benvenuto: ${F.PETS[t.dataset.k].name} + 500 Astri`, '#F2C14E'); buildScene(); } }
   else if (a === 'buyastri') { const n = F.buyAstri(S, +t.dataset.i); if (n) { snd('coin'); toast(`+${fmt(n)} Astri`, '#F49AC1'); } }
   else if (a === 'goshop') { tab = 'shop'; selItem = null; selRune = null; selShop = null; render(); const el = document.getElementById('shop-' + t.dataset.v); if (el) el.scrollIntoView({ block: 'start' }); return; }
   else if (a === 'buygold') { const g = F.buyGold(S, +t.dataset.i); if (g) toast(`+${cfmt(g)} oro`, '#F2C14E'); }
