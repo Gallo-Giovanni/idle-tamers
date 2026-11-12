@@ -234,8 +234,9 @@ function buildScene() {
     sc.appendChild(el); pEls[u.idx] = el;
   });
   place(order);
-  // pet: camminano dietro alla squadra
-  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (168 - order.length * 10 - 30 - i * 26) + 'px'; el.style.bottom = (50 + (i % 2) * 8) + 'px'; el.innerHTML = sprite('pet_' + k, 2); sc.appendChild(el); });
+  // pet: volano sopra l'eroe, così restano sempre in vista
+  const hu = B.party.find(u => u.id === 'hero'), heroEl = hu && pEls[hu.idx], hx = heroEl ? +heroEl.dataset.x : 168;
+  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (hx - 34 + i * 28) + 'px'; el.style.bottom = (66 + (i % 2) * 10) + 'px'; el.innerHTML = sprite('pet_' + k, 2); sc.appendChild(el); });
   // nemici: quelli da mischia si ammassano sul primo bersaglio, quelli a distanza restano indietro
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
