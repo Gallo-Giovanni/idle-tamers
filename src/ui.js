@@ -837,6 +837,14 @@ function passSaved(r) {
   const used = cand(keep) - r.lost, lostPass = Math.max(0, cand(Math.max(keep, F.PASS_MAX_FILTER)) - (used + 20));
   return Math.max(0, r.lost - lostPass);
 }
+// lista degli oggetti arrivati nello zaino mentre eri via (i migliori in alto)
+function foundListHTML(r) {
+  if (r.since === undefined) return '';
+  const list = S.inventory.concat(S.chest).filter(it => it.id >= r.since).sort((a, b) => F.rarityIndex(b.rarity) - F.rarityIndex(a.rarity) || F.itemPower(b) - F.itemPower(a));
+  if (!list.length) return '';
+  return `<div class="flhead">${list.length} oggetti raccolti</div><div class="flist">${list.slice(0, 40).map(it => { const ra = F.ITEM_RARITY.find(x => x.key === it.rarity);
+    return `<div class="frow" style="--c:${ra.color}">${itemIcon(it.slot, it.cls, ra.color, 24)}<div class="fmid"><b class="${ra.rainbow ? 'rbw' : ''}" style="color:${ra.color}">${esc(F.itemName(it))}</b><span>Lv ${F.itemLevel(it)} · ${F.SLOT_LABEL[it.slot]}${it.cls ? ' · ' + it.cls : ''}</span></div>${F.isUpgrade(S, it) ? '<i class="upgs">▲</i>' : ''}<em style="color:${ra.color}">${ra.label}</em></div>`; }).join('')}</div>`;
+}
 function showOffline(r) {
   const h = Math.floor(r.seconds / 3600), mi = Math.floor(r.seconds % 3600 / 60);
   const caps = r.events.filter(e => e.type === 'capture').map(e => S.roster[e.species] ? S.roster[e.species].name : e.species);
@@ -847,6 +855,7 @@ function showOffline(r) {
    ${r.levels.map(l => `<div class="kv"><span>${esc(S.roster[l.id].name)}</span><b>Lv ${l.from} → ${l.to}</b></div>`).join('')}</div>
    ${r.lost ? `<div class="card" style="border-color:#FF8A96"><b style="color:#FF8A96">Zaino pieno:</b> ${fmt(r.lost)} oggetti persi. Libera spazio, usa il forziere o attiva la vendita automatica.${passSaved(r) > 0 ? `<div style="margin-top:6px">Col <b style="color:#F2C14E">Pass Astrale</b> (scarto anche dei non comuni e zaino doppio) ne avresti salvati circa <b>${fmt(passSaved(r))}</b>. <button class="sb" data-act="goshop" style="margin-top:4px">Vai allo Shop</button></div>` : ''}</div>` : ''}
    ${caps.length ? `<div class="card" style="border-color:#F2C14E"><b style="color:#F2C14E">Catture:</b> ${caps.map(esc).join(', ')}</div>` : ''}
+   ${foundListHTML(r)}
    <button class="pb wide" data-act="close">Raccogli</button></div>`;
   $('#modal').hidden = false;
   r.events.filter(e => e.type === 'capture').forEach(e => capQueue.push(e.species));
@@ -1165,7 +1174,7 @@ function frame(now) {
 }
 function catchUp() {
   const away = (Date.now() - (S.lastSeen || Date.now())) / 1000;
-  if (away > 30) { const r = F.simulateOffline(S, away); F.checkAch(S); save(); showOffline(r); }
+  if (away > 30) { const id0 = S.nextId; const r = F.simulateOffline(S, away); r.since = id0; F.checkAch(S); save(); showOffline(r); }
   B = F.startBattle(S); buildScene();
 }
 document.addEventListener('visibilitychange', () => {
