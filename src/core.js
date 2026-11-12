@@ -710,13 +710,13 @@ function sellItem(s, itemId) { const i = s.inventory.findIndex(x => x.id === ite
 // Rune: ognuna porta un oggetto alla sua rarità (dalla rarità precedente), si vendono per Astri e potenziano gli slot
 const RUNE_KEYS = ['arcano', 'astrale', 'mitico', 'leggendaria', 'epica', 'rara', 'noncomune']; // dal più raro, per il tiro del drop
 const RUNE = {
-  noncomune:   { label: 'Runa verde',     color: '#6CCB5F', from: 'comune',    value: 2 },
-  rara:        { label: 'Runa blu',       color: '#5B9BFF', from: 'noncomune', value: 5 },
-  epica:       { label: 'Runa viola',     color: '#B07CF0', from: 'rara',      value: 10 },
-  leggendaria: { label: 'Runa arancione', color: '#F2994A', from: 'epica',     value: 15 },
-  mitico:      { label: 'Runa dorata',    color: '#FFD34D', from: 'leggendaria', value: 30 },
-  astrale:     { label: 'Runa rosa',      color: '#FF7AD9', from: 'mitico',    value: 60 },
-  arcano:      { label: 'Runa cremisi',   color: '#E8334F', from: 'astrale',   value: 120 },
+  noncomune:   { label: 'Runa verde',     color: '#6CCB5F', from: 'comune',    value: 1 },
+  rara:        { label: 'Runa blu',       color: '#5B9BFF', from: 'noncomune', value: 3 },
+  epica:       { label: 'Runa viola',     color: '#B07CF0', from: 'rara',      value: 5 },
+  leggendaria: { label: 'Runa arancione', color: '#F2994A', from: 'epica',     value: 8 },
+  mitico:      { label: 'Runa dorata',    color: '#FFD34D', from: 'leggendaria', value: 15 },
+  astrale:     { label: 'Runa rosa',      color: '#FF7AD9', from: 'mitico',    value: 30 },
+  arcano:      { label: 'Runa cremisi',   color: '#E8334F', from: 'astrale',   value: 60 },
 };
 // probabilità per nemico (provvisorie, da tarare sui dati reali)
 const RUNE_DROP = { noncomune: 0.0004, rara: 0.00015, epica: 0.00005, leggendaria: 0.00001, mitico: 0.000003, astrale: 0.000001, arcano: 0.0000003 };
@@ -727,7 +727,7 @@ function canRaise(s, it) { const n = nextRarity(it); return !!n && s.runes[n] > 
 function raiseRarity(s, it) { const n = nextRarity(it); if (!n || s.runes[n] < 1) return false; s.runes[n]--; it.rarity = n; rollBonus(s, it); if (n === 'leggendaria') s.stats.legendary++; return true; }
 function slotRune(l) { return l < 4 ? 'noncomune' : l < 7 ? 'rara' : l < 9 ? 'epica' : 'leggendaria'; }
 const SLOT_STEP = 0.02; // +2% per livello dello slot: +20% a +10
-function slotCost(l) { return 10 * (l + 1); } // in Astri: 10, 20, ... 100 (550 per arrivare a +10)
+function slotCost(l) { return 5 * (l + 1); } // in Astri: 10, 20, ... 100 (550 per arrivare a +10)
 function upgradeSlot(s, id, sl) { const m = s.roster[id]; if (!m) return false; const l = m.slv[sl] || 0, c = slotCost(l); if (l >= 10 || s.astri < c) return false; s.astri -= c; m.slv[sl] = l + 1; return true; }
 // Rune in vendita nello Shop per Astri (provvisorio)
 const RUNE_BUY = { epica: 100, leggendaria: 250, mitico: 500, astrale: 1000, arcano: 2000 }; // verde e blu non si vendono: si trovano spesso
