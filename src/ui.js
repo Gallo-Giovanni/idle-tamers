@@ -229,9 +229,10 @@ function buildScene() { setScroll();
   // ognuno si mette alla distanza della sua gittata: prima i Guerrieri, poi Arcieri, Maghi e Curatori
   const order = orderFront(B.party);
   const place = (list) => list.forEach(({ u }, k) => {
-    const x = 168 - k * 10 - (F.CLASSES[u.cls].range - 1) * 4, y = 26; // tutti sul pavimento
+    const step = list.length <= 6 ? 17 : list.length <= 9 ? 13 : 10; // più spazio quando la squadra è piccola, così si riconosce ognuno
+    const x = 168 - k * step - (F.CLASSES[u.cls].range - 1) * 4, y = 26; // tutti sul pavimento
     const el = document.createElement('div'); el.className = 'u'; el.dataset.x = x; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 20 - (k % 2) * 5;
-    el.innerHTML = `<div class="hpb"><b style="background:#7ED36F"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : u.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
+    el.innerHTML = `<div class="hpb"><b style="background:#7ED36F"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : u.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : u.species === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
     sc.appendChild(el); pEls[u.idx] = el;
   });
   place(order);
@@ -312,9 +313,9 @@ function floatText(el, text, cls) {
 }
 const ANIM = { divoratore: 'an-rp' }; // creature con animazione completa
 function animHTML(u) { const k = ANIM[F.SPECIES[u.species].base || u.species]; return k ? `<div class="an ${k}" aria-hidden="true"></div>` : ''; }
-function knAnim(el, k, ms) { const kn = el && el.querySelector('.kn, .an, .mg'); if (!kn) return;
+function knAnim(el, k, ms) { const kn = el && el.querySelector('.kn, .an, .mg, .ar'); if (!kn) return;
   if (kn.classList.contains('mg')) { if (k === 'dg') return; k = 'atk'; ms = 700; }
-  else if (kn.classList.contains('kn')) { if (k === 'dg') return; k = 'atk'; ms = 600; } kn.classList.remove('atk', 'atk2', 'sk', 'dg'); void kn.offsetWidth; kn.classList.add(k); clearTimeout(kn._t); kn._t = setTimeout(() => kn.classList.remove(k), ms); }
+  else if (kn.classList.contains('kn') || kn.classList.contains('ar')) { if (k === 'dg') return; k = 'atk'; ms = 600; } kn.classList.remove('atk', 'atk2', 'sk', 'dg'); void kn.offsetWidth; kn.classList.add(k); clearTimeout(kn._t); kn._t = setTimeout(() => kn.classList.remove(k), ms); }
 function lunge(el, dir) { if (!el) return; el.style.setProperty('--dx', dir + 'px'); el.classList.remove('lg'); void el.offsetWidth; el.classList.add('lg'); }
 function banner(text) { const b = $('#banner'); b.textContent = text; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
 
@@ -470,7 +471,7 @@ function showEquip(id) {
     <div class="dtitle"><h2 id="eqt">${esc(m.name)}</h2><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · Lv ${m.lvl} · Potere <b style="color:var(--gold)">${fmt(F.memberPower(S, id))}</b> ${rarTag(m.species)}</div></div>
     <button class="ib" data-act="eqnav" data-d="1" aria-label="Successivo" ${at >= ord.length - 1 ? 'disabled' : ''}>▶</button><button class="ib" data-act="close" aria-label="Chiudi">✕</button></div>
    <div class="dgrid"><div class="dcol">${DOLL_L.map(sl => slotTile(id, sl)).join('')}</div>
-    <div class="dmid"><div class="dspr">${m.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : m.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : sprite(m.species, 4)}</div><div class="dpos">${at + 1}/${ord.length}${S.team.includes(id) ? '' : ' · riserva'}</div></div>
+    <div class="dmid"><div class="dspr">${m.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : m.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : m.species === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(m.species, 4)}</div><div class="dpos">${at + 1}/${ord.length}${S.team.includes(id) ? '' : ' · riserva'}</div></div>
     <div class="dcol">${DOLL_R.map(sl => slotTile(id, sl)).join('')}</div></div>
    <div class="dstats">${mini.map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join('')}</div>
    ${slotDetail(id)}
