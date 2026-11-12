@@ -543,7 +543,7 @@ function pZaino() {
   const inBag = selItem && S.inventory.find(x => x.id === selItem), inChest = selItem && S.chest.find(x => x.id === selItem);
   const det = inBag ? itemDetail(inBag, 'bag') : inChest ? itemDetail(inChest, 'chest') : '';
   return `<div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><button class="sb" data-act="sellrest">Vendi il resto</button><button class="sb" data-act="fuseopen">Fusione</button></div>
-  <div class="card autos3"><span class="autol">Scarta in automatico</span>${(() => { const k = F.minKeep(S); return [['comune', 1], ['noncomune', 2]].map(([key, lvl]) => { const r = F.ITEM_RARITY.find(x => x.key === key), on = k >= lvl, needPass = lvl > 1 && !F.hasPass(S); return `<button class="atog${on ? ' on' : ''}" style="--c:${r.color}" data-act="atog" data-k="${key}"><span>${r.label}</span>${needPass ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : ''}</button>`; }).join(''); })()}</div>
+  <div class="card autos3"><span class="autol">Scarta in automatico</span>${(() => { const k = F.minKeep(S); return [['comune', 1], ['noncomune', 2]].map(([key, lvl]) => { const r = F.ITEM_RARITY.find(x => x.key === key), on = k >= lvl, needPass = lvl > 1 && !F.hasPass(S), needZone = lvl === 1 && !F.hasPass(S) && S.maxZone < F.FREE_FILTER_ZONE; return `<button class="atog${on ? ' on' : ''}" style="--c:${r.color}" data-act="atog" data-k="${key}"><span>${r.label}</span>${needPass ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : needZone ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} zona ${F.FREE_FILTER_ZONE}</b>` : ''}</button>`; }).join(''); })()}</div>
   <div class="note" style="margin-top:-2px">Tocca per scartare: gli oggetti barrati si vendono in oro appena cadono. Rune, oggetti bloccati e rarità protette non si vendono mai.</div>
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio</span></div>
   ${runeTiles()}
@@ -1032,6 +1032,7 @@ document.addEventListener('click', e => {
   else if (a === 'atog') {
     const k = F.minKeep(S), key = t.dataset.k;
     if (key === 'noncomune' && !F.hasPass(S)) { $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true"><h2>Serve il Pass Astrale</h2><p class="msub">Scartare in automatico anche i non comuni è incluso nel Pass Astrale. Vuoi aprire lo Shop?</p><div class="row2"><button class="sb" data-act="close">No, grazie</button><button class="pb" data-act="goshop">Vai allo Shop</button></div></div>`; $('#modal').hidden = false; return; }
+    if (key === 'comune' && !F.hasPass(S) && S.maxZone < F.FREE_FILTER_ZONE) { toast(`Lo scarto dei comuni si sblocca alla zona ${F.FREE_FILTER_ZONE} (subito col Pass Astrale)`, '#F2C14E'); return; }
     if (key === 'comune') S.settings.minRarity = k >= 1 ? 'comune' : 'noncomune';
     else S.settings.minRarity = k >= 2 ? 'noncomune' : 'rara';
     if (F.minKeep(S) > k) { const r = F.sellBelow(S); if (r.n) toast(`Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro`); }
