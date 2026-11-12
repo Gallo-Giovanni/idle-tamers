@@ -427,9 +427,10 @@ function memberPower(s, id) { const st = memberStats(s, id); return Math.round(s
 // Dentro una zona i nemici crescono poco (gli oggetti hanno il livello della zona): il salto vero è tra una zona e l'altra
 let WZ = 1.03; if (typeof process !== 'undefined' && process.env && process.env.WZ) WZ = +process.env.WZ;
 let WZ1 = 1.015; if (typeof process !== 'undefined' && process.env && process.env.WZ1) WZ1 = +process.env.WZ1;
-function withinZone(n, z) { return Math.pow(z && z <= 5 ? WZ1 : WZ, n - 1); } // sul primo pianeta la zona cresce più piano: le prime 5 zone si fanno nel primo giorno
+let WZ2 = 1.056; if (typeof process !== 'undefined' && process.env && process.env.WZ2) WZ2 = +process.env.WZ2;
+function withinZone(n, z) { return Math.pow(z && z <= 5 ? WZ1 : z && z <= 10 ? WZ2 : WZ, n - 1); } // dentro la zona si sale piano; il salto tra zone resta piccolo (niente muro alla prima battaglia) // sul primo pianeta la zona cresce più piano: le prime 5 zone si fanno nel primo giorno
 // Passo tra le zone: sul primo pianeta più dolce, sul secondo più ripido (la squadra è già grande)
-let ZONE_K = [0, 0, 1.3, 1.3, 1.3, 1.3, 3.8, 2.8, 2.8, 2.8, 2.3, 1.85, 1.85, 1.85, 1.85, 1.85, 1.65, 1.65, 1.65, 1.65, 1.65]; // tarato: zone 1-5 nel primo giorno, zona 10 in circa 3 giorni, zona 20 in circa 34 giorni (giocatore che controlla ogni 4 ore)
+let ZONE_K = [0, 0, 1.3, 1.3, 1.3, 1.3, 1.45, 1.45, 1.45, 1.45, 1.45, 1.85, 1.85, 1.85, 1.85, 1.85, 1.65, 1.65, 1.65, 1.65, 1.65]; // tarato: zone 1-5 nel primo giorno, zona 10 in circa 3 giorni, zona 20 in circa 34 giorni (giocatore che controlla ogni 4 ore)
 if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JSON.parse(process.env.ZK);
 const ZONE_BASE = [0, 1]; for (let z = 2; z <= MAX_ZONE; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30, z - 1) * ZONE_K[z]; // passo base tra zone (fisso), indipendente dalla crescita dentro la zona
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n, z); }
@@ -439,7 +440,7 @@ const MELEE_STEP = 2; // velocità con cui la mischia raggiunge chi sta dietro (
 function enemyCount(z, n) { const top = 5 + (z - 1) * 10 / (MAX_ZONE - 1); return Math.round(3 + (top - 3) * (n - 1) / (BOSS_BATTLE - 1)); }
 function enemiesLeft(z, n) { let t = 0; for (let k = n + 1; k <= BOSS_BATTLE; k++) t += enemyCount(z, k); return t; }
 // I nemici entrano uno alla volta da fuori schermo, ognuno con il suo passo: i Guerrieri corrono, arcieri e maghi arrivano dopo
-const ENEMY_START = 14, ENEMY_SPACING = 1.5, ENEMY_GAP = 0.5, ENEMY_V = { Guerriero: 6, Arciere: 4.5, Mago: 4.5, Curatore: 4 };
+const ENEMY_START = 14, ENEMY_SPACING = 4, ENEMY_GAP = 0.5, ENEMY_V = { Guerriero: 6, Arciere: 4.5, Mago: 4.5, Curatore: 4 };
 // i nemici aspettano in fila fuori schermo, uno dietro l'altro: ognuno parte verso la squadra dalla sua posizione col suo passo
 function arriveTime(i, cls) { return (ENEMY_START + i * ENEMY_SPACING - CLASSES[cls].range) / ENEMY_V[cls]; } // secondi per entrare in scena: i nemici arrivano insieme, in gruppo, alla stessa velocità
 function makeEnemies(s) {
