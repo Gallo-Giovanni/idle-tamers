@@ -119,7 +119,7 @@ select{min-height:40px;background:#10143A;border:1px solid var(--line);border-ra
 .sgrid div{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 8px}.sgrid span{display:block;font-size:10px;color:var(--muted)}.sgrid b{font-size:14px}
 canvas{width:100%;height:auto;display:block;margin-top:6px}
 .arow{display:flex;gap:10px;align-items:center;opacity:.6}.arow.done{opacity:1;border-color:#3B6E45}
-#modal{position:absolute;inset:0;background:rgba(5,6,18,.86);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
+#modal{position:absolute;inset:0;top:var(--sb,0px);background:rgba(5,6,18,.86);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
 #modal[hidden]{display:none}
 .mod{width:100%;max-width:400px;max-height:100%;overflow-y:auto;background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:18px}
 .mod h2{font-family:'Pixelify Sans',sans-serif;font-size:28px;margin:6px 0;text-align:center}
@@ -1698,7 +1698,11 @@ function handle(ev) {
 
 // ---------- HUD ----------
 const SHOP_VER = 4; // aumentalo quando nello Shop arriva qualcosa di nuovo: compare il pallino
+// le finestre si aprono sotto la scena: la battaglia resta sempre in vista
+function sceneEdge() { const sc = $('#scene'), md = $('#modal'); if (!sc || !md || !md.offsetParent) return; const v = Math.round(sc.getBoundingClientRect().bottom - md.offsetParent.getBoundingClientRect().top); if (v > 0 && v !== sceneEdge.v) { sceneEdge.v = v; md.style.setProperty('--sb', v + 'px'); } }
+window.addEventListener('resize', sceneEdge);
 function hud() {
+  sceneEdge();
   if (!S.dmgLog || S.dmgLog.zone !== S.zone) S.dmgLog = { since: S.clock || 0, by: {}, zone: S.zone }; // i danni per membro ripartono a ogni zona
   const mr = F.missionsReady(S), bt = document.querySelector('[data-tab=bestiario]'); if (bt) bt.classList.toggle('dot', mr > 0); if (tab === 'altro') S.achNew = 0; const stb = document.querySelector('[data-tab=altro]'); if (stb) stb.classList.toggle('dot', (S.achNew || 0) > 0);
   const shb = document.querySelector('[data-tab=shop]'); if (tab === 'shop') S.shopSeen = SHOP_VER; if (shb) shb.classList.toggle('dot', F.dailyReady(S) || S.shopSeen !== SHOP_VER);
@@ -2114,7 +2118,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 18:29</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 18:32</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {

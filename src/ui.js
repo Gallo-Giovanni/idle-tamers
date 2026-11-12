@@ -347,7 +347,11 @@ function handle(ev) {
 
 // ---------- HUD ----------
 const SHOP_VER = 4; // aumentalo quando nello Shop arriva qualcosa di nuovo: compare il pallino
+// le finestre si aprono sotto la scena: la battaglia resta sempre in vista
+function sceneEdge() { const sc = $('#scene'), md = $('#modal'); if (!sc || !md || !md.offsetParent) return; const v = Math.round(sc.getBoundingClientRect().bottom - md.offsetParent.getBoundingClientRect().top); if (v > 0 && v !== sceneEdge.v) { sceneEdge.v = v; md.style.setProperty('--sb', v + 'px'); } }
+window.addEventListener('resize', sceneEdge);
 function hud() {
+  sceneEdge();
   if (!S.dmgLog || S.dmgLog.zone !== S.zone) S.dmgLog = { since: S.clock || 0, by: {}, zone: S.zone }; // i danni per membro ripartono a ogni zona
   const mr = F.missionsReady(S), bt = document.querySelector('[data-tab=bestiario]'); if (bt) bt.classList.toggle('dot', mr > 0); if (tab === 'altro') S.achNew = 0; const stb = document.querySelector('[data-tab=altro]'); if (stb) stb.classList.toggle('dot', (S.achNew || 0) > 0);
   const shb = document.querySelector('[data-tab=shop]'); if (tab === 'shop') S.shopSeen = SHOP_VER; if (shb) shb.classList.toggle('dot', F.dailyReady(S) || S.shopSeen !== SHOP_VER);
