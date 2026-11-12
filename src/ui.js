@@ -329,7 +329,7 @@ function hud() {
   const mr = F.missionsReady(S), bt = document.querySelector('[data-tab=bestiario]'); if (bt) bt.classList.toggle('dot', mr > 0); const shb = document.querySelector('[data-tab=shop]'); if (shb) shb.classList.toggle('dot', F.dailyReady(S));
   $('#gold').textContent = cfmt(S.gold); $('#astri').textContent = cfmt(S.astri);
   const pl = F.planetOf(S.zone); $('#ptitle').textContent = pl.name; $('#where').textContent = `Zona ${S.zone} · Battaglia ${S.battle}/30`;
-  scene().classList.toggle('p2', pl === F.PLANETS[1]); scene().classList.toggle('p3', pl === F.PLANETS[2]); scene().classList.toggle('p4', pl === F.PLANETS[3]);
+  scene().classList.toggle('p1', pl === F.PLANETS[0]); scene().classList.toggle('p2', pl === F.PLANETS[1]); scene().classList.toggle('p3', pl === F.PLANETS[2]); scene().classList.toggle('p4', pl === F.PLANETS[3]);
   $('#prog').style.width = (100 * S.battle / 30) + '%';
   $('#testbadge').hidden = !S.settings.test;
 }
