@@ -497,7 +497,7 @@ function attack(s, b, u, ev) {
   const tgt = frontTarget(s, foes); // entrambe le parti colpiscono chi è più vicino
   if (!tgt) return;
   u.hits++;
-  if (ev) ev.push({ type: 'atk', side: u.side, idx: u.idx });
+  if (ev) ev.push({ type: 'atk', side: u.side, idx: u.idx, tgt: tgt.idx });
   if (u.side === 'p' && u.cls === 'Guerriero' && u.hits % 3 === 0) {
     if (ev) ev.push({ type: 'skill', side: 'p', idx: u.idx, name: 'Fendente!' });
     dealDamage(s, b, u, tgt, 2.2, false, ev);
