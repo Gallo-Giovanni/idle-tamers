@@ -375,7 +375,7 @@ function fullStats(st) {
 }
 function ptsHTML(id) {
   const m = S.roster[id], p = F.ptsOf(m), free = F.ptsFree(m);
-  return `<div class="ptsbox"><div class="ptshead"><b>Punti statistica</b><span class="${free ? 'pfree' : ''}">${free} da assegnare</span><button class="sb" data-act="ptsauto" data-id="${id}" ${free ? '' : 'disabled'}>Auto</button><button class="sb" data-act="ptsreset" data-id="${id}">Azzera</button></div>
+  return `<div class="ptsbox"><div class="ptshead"><b>Punti statistica</b><span class="${free ? 'pfree' : ''}">${free} da assegnare</span><button class="sb" data-act="ptsreset" data-id="${id}">Azzera</button></div>
   ${Object.keys(F.ATTRS).map(k => { const a = F.ATTRS[k]; return `<div class="ptsrow"><span class="pn2" style="color:${a.color}">${a.ic} ${a.name} <b>${p[k]}</b></span><span class="pd">${a.desc}</span><span class="pb2">${[-10, -1].map(n => `<button class="ib" data-act="pts" data-id="${id}" data-k="${k}" data-n="${n}" ${p[k] ? '' : 'disabled'}>${n}</button>`).join('')}${[1, 10].map(n => `<button class="ib" data-act="pts" data-id="${id}" data-k="${k}" data-n="${n}" ${free ? '' : 'disabled'}>+${n}</button>`).join('')}<button class="ib" data-act="pts" data-id="${id}" data-k="${k}" data-n="999" ${free ? '' : 'disabled'}>Max</button></span></div>`; }).join('')}
   <div class="note">${F.PTS_PER_LEVEL} punti a ogni livello. Puoi azzerarli gratis quando vuoi.</div></div>`;
 }
