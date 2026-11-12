@@ -361,6 +361,12 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .u.secret .an{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px #B07CF0)}
 @keyframes rpidle{from{background-position-x:-0px}to{background-position-x:-768px}}@keyframes rpatk{from{background-position-x:-768px}to{background-position-x:-1536px}}@keyframes rpdeath{from{background-position-x:-1728px}to{background-position-x:-2880px}}
 
+/* Barra della vita del boss finale (HUD del pacchetto del mietitore) */
+#bossbar{position:absolute;left:50%;top:2px;width:160px;height:34px;margin-left:-80px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAAARCAYAAABKFStkAAABfUlEQVR4Xu2WIU8DQRBG70gNkKoCFRgESUXB4qsrsGgECjSS8BtahajGVmCLx0JFk4ZgEKWtIhRDcuSbzRy7ly3ZS2jvC+lLNu2l6d3c25mdiSNS1je2El9on7NJTBoyD5DXu6wn4+koXc+dhnyfJ7Yo6HYTgu4uqo6PvdqOc10/f6TJxLWidu6/QCuw2RrJAi+DN8k6LDZoBWbLGPTbh2z+OAU+PBlPtkRGeaBEt6UZtIz7bdNIUM5M0HVhgE581ahGRwdGlXZhyINQplkwzUC2+QqglFWiylPBRWehbqII9M1eNsgAvICdCfZs5iur7Oz2G77/I9OQheY8/ClbX3PJgy+u8vGt3OK9eyKfem2jv2mszVaUQGKs8s46X3niWAqvH1PnObublaU8N4Sb05JsstNEhuMB5ZmoDGeTkHdbOPvbtfQIkTlQx4YV4agzJwNtsyvCkJLVsSEv6JB2p/QRkt3aaf8CjScbV0gcebi+N+NUeuYxjjHM6BjzDYoBmjpxCCGiAAAAAElFTkSuQmCC) 0 0/160px 34px no-repeat;image-rendering:pixelated;z-index:6;pointer-events:none}
+#bossbar[hidden]{display:none}
+#bossbar i{position:absolute;left:6px;top:24px;height:4px;width:148px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEoAAAACCAYAAAD/20pwAAAAKElEQVR4XmMsVbH4b8Dzg2EU4AZa6jwMLGd+/mRgYOAYDSd84OYXBgCfJwf6IJzxqQAAAABJRU5ErkJggg==) 0 0/148px 4px no-repeat;image-rendering:pixelated;transition:width .2s}
+#bossbar span{position:absolute;left:0;right:0;top:33px;text-align:center;font-family:'Pixelify Sans',sans-serif;font-size:11px;font-weight:700;color:#F2C14E;text-shadow:1px 1px 0 #000,-1px 1px 0 #000,1px -1px 0 #000,-1px -1px 0 #000}
+
 </style>
 </head>
 <body>
@@ -380,7 +386,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 <div id="scene" aria-label="Battaglia in corso">
  <div class="planet" aria-hidden="true"></div><div class="bgl cloud" aria-hidden="true"></div><div class="ring" aria-hidden="true"></div>
  <div class="bgl mount" aria-hidden="true"></div><div class="hills" aria-hidden="true"></div><div class="ground" aria-hidden="true"></div>
- <div class="bgl tufts" aria-hidden="true"></div><div id="units"></div><div id="fx"></div><div id="banner" aria-live="polite"></div>
+ <div class="bgl tufts" aria-hidden="true"></div><div id="units"></div><div id="bossbar" hidden aria-label="Vita del boss"><i></i><span></span></div><div id="fx"></div><div id="banner" aria-live="polite"></div>
 </div>
 <div id="log" aria-label="Vita del gruppo e danni"></div>
 <div id="toasts" aria-live="polite"></div>
