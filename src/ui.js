@@ -220,6 +220,7 @@ function orderFront(list) {
   const rank = { Guerriero: 1, Arciere: 2, Mago: 3, Curatore: 4 };
   return list.map((u, i) => ({ u, i })).sort((a, b) => rank[a.u.cls] - rank[b.u.cls] || a.i - b.i);
 }
+const deadSeen = new Set(); // membri che hanno già fatto l'animazione di morte
 function buildScene() { setScroll();
   const sc = $('#units'); sc.innerHTML = '';
   pEls = []; eEls = [];
@@ -234,6 +235,8 @@ function buildScene() { setScroll();
     sc.appendChild(el); pEls[u.idx] = el;
   });
   place(order);
+  // chi era caduto: se è tornato in vita rientra correndo da dietro, se è ancora a terra resta nascosto
+  B.party.forEach(u => { const el = pEls[u.idx]; if (!el || !deadSeen.has(u.id)) return; if (u.hp > 0) { deadSeen.delete(u.id); el.classList.add('revive'); setTimeout(() => el.classList.remove('revive'), 1300); } else { el._gone = 1; el.classList.add('dead', 'gone'); } });
   // pet: volano sopra l'eroe, così restano sempre in vista
   const hu = B.party.find(u => u.id === 'hero'), heroEl = hu && pEls[hu.idx], hx = heroEl ? +heroEl.dataset.x : 168;
   Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (hx - 18 - i * 28) + 'px'; el.style.bottom = (66 + (i % 2) * 10) + 'px'; el.innerHTML = sprite('pet_' + k, 2); sc.appendChild(el); });
@@ -290,7 +293,8 @@ function updateScene() {
   const m = B.over === 'win' || moving || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
   { const left = en.length, fc = $('#foes'); if (fc && fc.dataset.n !== String(left)) { fc.dataset.n = left; fc.textContent = 'Nemici rimasti ' + left; } }
-  B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); });
+  B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0);
+    if (u.hp <= 0 && !el._gone) { el._gone = 1; const again = deadSeen.has(u.id); deadSeen.add(u.id); if (again) el.classList.add('gone'); else setTimeout(() => el.classList.add('gone'), 2500); } });
   B.party.forEach(u => { const el = pEls[u.idx]; if (el) el.style.left = (+el.dataset.x + (F.CLASSES[u.cls].range === 1 && u.hp > 0 ? (adv(u) - cam) * 15 : 0)) + 'px'; });
   { const bb = $('#bossbar'), fb = B.enemies.find(u => u.boss && (F.SPECIES[u.species].base || u.species) === 'divoratore'); // barra grande solo per il boss finale
     if (bb) { const on = !!fb && fb.hp > 0 && !(fb.arrive > 0); bb.hidden = !on; if (on) { bb.firstChild.style.width = (148 * fb.hp / fb.maxHp) + 'px'; const nm = F.SPECIES[fb.species].name; if (bb.lastChild.textContent !== nm) bb.lastChild.textContent = nm; } } }

@@ -460,6 +460,12 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 #bigbtn{position:absolute;right:5px;top:4px;z-index:7;width:26px;height:26px;border-radius:7px;border:1px solid rgba(255,255,255,.35);background:rgba(11,14,36,.55) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'/%3E%3C/svg%3E") center/16px no-repeat;padding:0;cursor:pointer}
 body.bigscene #bigbtn{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5'/%3E%3C/svg%3E")}
 body.bigscene #scene{height:50vh}
+
+/* caduti: dopo l'animazione di morte spariscono; quando tornano in vita rientrano correndo da dietro */
+.u.gone{opacity:0!important;transition:opacity .6s}
+.u.revive{animation:runin 1.2s ease-out}
+@keyframes runin{from{transform:translateX(-190px)}to{transform:none}}
+.u.revive .kn{animation:knwalk .45s steps(6) infinite!important}.u.revive .mg{animation:mgwalk .5s steps(9) infinite!important}.u.revive .spr{animation:step .25s steps(2) infinite}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -1607,6 +1613,7 @@ function orderFront(list) {
   const rank = { Guerriero: 1, Arciere: 2, Mago: 3, Curatore: 4 };
   return list.map((u, i) => ({ u, i })).sort((a, b) => rank[a.u.cls] - rank[b.u.cls] || a.i - b.i);
 }
+const deadSeen = new Set(); // membri che hanno già fatto l'animazione di morte
 function buildScene() { setScroll();
   const sc = $('#units'); sc.innerHTML = '';
   pEls = []; eEls = [];
@@ -1621,6 +1628,8 @@ function buildScene() { setScroll();
     sc.appendChild(el); pEls[u.idx] = el;
   });
   place(order);
+  // chi era caduto: se è tornato in vita rientra correndo da dietro, se è ancora a terra resta nascosto
+  B.party.forEach(u => { const el = pEls[u.idx]; if (!el || !deadSeen.has(u.id)) return; if (u.hp > 0) { deadSeen.delete(u.id); el.classList.add('revive'); setTimeout(() => el.classList.remove('revive'), 1300); } else { el._gone = 1; el.classList.add('dead', 'gone'); } });
   // pet: volano sopra l'eroe, così restano sempre in vista
   const hu = B.party.find(u => u.id === 'hero'), heroEl = hu && pEls[hu.idx], hx = heroEl ? +heroEl.dataset.x : 168;
   Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (hx - 18 - i * 28) + 'px'; el.style.bottom = (66 + (i % 2) * 10) + 'px'; el.innerHTML = sprite('pet_' + k, 2); sc.appendChild(el); });
@@ -1677,7 +1686,8 @@ function updateScene() {
   const m = B.over === 'win' || moving || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
   { const left = en.length, fc = $('#foes'); if (fc && fc.dataset.n !== String(left)) { fc.dataset.n = left; fc.textContent = 'Nemici rimasti ' + left; } }
-  B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); });
+  B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0);
+    if (u.hp <= 0 && !el._gone) { el._gone = 1; const again = deadSeen.has(u.id); deadSeen.add(u.id); if (again) el.classList.add('gone'); else setTimeout(() => el.classList.add('gone'), 2500); } });
   B.party.forEach(u => { const el = pEls[u.idx]; if (el) el.style.left = (+el.dataset.x + (F.CLASSES[u.cls].range === 1 && u.hp > 0 ? (adv(u) - cam) * 15 : 0)) + 'px'; });
   { const bb = $('#bossbar'), fb = B.enemies.find(u => u.boss && (F.SPECIES[u.species].base || u.species) === 'divoratore'); // barra grande solo per il boss finale
     if (bb) { const on = !!fb && fb.hp > 0 && !(fb.arrive > 0); bb.hidden = !on; if (on) { bb.firstChild.style.width = (148 * fb.hp / fb.maxHp) + 'px'; const nm = F.SPECIES[fb.species].name; if (bb.lastChild.textContent !== nm) bb.lastChild.textContent = nm; } } }
@@ -2157,7 +2167,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 20:28</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 20:35</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {

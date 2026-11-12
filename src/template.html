@@ -460,6 +460,12 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 #bigbtn{position:absolute;right:5px;top:4px;z-index:7;width:26px;height:26px;border-radius:7px;border:1px solid rgba(255,255,255,.35);background:rgba(11,14,36,.55) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'/%3E%3C/svg%3E") center/16px no-repeat;padding:0;cursor:pointer}
 body.bigscene #bigbtn{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5'/%3E%3C/svg%3E")}
 body.bigscene #scene{height:50vh}
+
+/* caduti: dopo l'animazione di morte spariscono; quando tornano in vita rientrano correndo da dietro */
+.u.gone{opacity:0!important;transition:opacity .6s}
+.u.revive{animation:runin 1.2s ease-out}
+@keyframes runin{from{transform:translateX(-190px)}to{transform:none}}
+.u.revive .kn{animation:knwalk .45s steps(6) infinite!important}.u.revive .mg{animation:mgwalk .5s steps(9) infinite!important}.u.revive .spr{animation:step .25s steps(2) infinite}
 </style>
 </head>
 <body>
