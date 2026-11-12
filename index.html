@@ -589,6 +589,7 @@ const SKY_SECTORS = [
   { name: 'Oro e vendita', color: '#F2994A', ic: '◈', kinds: [['gold', 0.05, 'Oro'], ['gold', 0.05, 'Oro'], ['sell', 0.1, 'Vendita oggetti']] },
   { name: 'Esperienza e drop', color: '#B07CF0', ic: '✎', kinds: [['xp', 0.05, 'Esperienza'], ['drop', 0.03, 'Prob. di drop'], ['capture', 0.02, 'Prob. di cattura']] },
 ];
+const OFFLINE_STAR = { 3: 1200, 6: 1800, 9: 2400, 12: 2400, 15: 2400 }; // tempo offline delle stelle, sempre di più: in tutto +4 ore
 const SKY_SPECIAL = [['bag', 2, 'Posti zaino', '🎒'], ['chest', 2, 'Posti forziere', '📦'], ['offline', 1800, 'Tempo offline', '⏳'], ['move', 0.05, 'Velocità di marcia', '☄']];
 const SKY = (() => {
   const nodes = [{ id: 0, r: 0, i: 0, x: 0, y: 0, sec: -1, kind: null, v: 0, cost: 0, adj: [] }];
@@ -598,7 +599,7 @@ const SKY = (() => {
       const a = (i / n) * Math.PI * 2 - Math.PI / 2 + (r % 2) * 0.05, sec = Math.floor(i / n * 6), per = n / 6, j = i - Math.round(sec * per);
       const special = r % 3 === 0 && j === Math.floor(per / 2);
       let kind, v, label, ic;
-      if (special) { const sp = SKY_SPECIAL[(r / 3 - 1 + sec) % SKY_SPECIAL.length]; kind = sp[0]; v = sp[1]; label = sp[2]; ic = sp[3]; }
+      if (special) { const sp = SKY_SPECIAL[(r / 3 - 1 + sec) % SKY_SPECIAL.length]; kind = sp[0]; v = kind === 'offline' ? OFFLINE_STAR[r] : sp[1]; label = sp[2]; ic = sp[3]; }
       else { const kd = SKY_SECTORS[sec].kinds[(i + r) % 3]; kind = kd[0]; v = +(kd[1] * SKY_VMULT * (1 + 0.15 * (r - 1))).toFixed(4); label = kd[2]; ic = SKY_SECTORS[sec].ic; }
       nodes.push({ id: nodes.length, r, i, n, x: Math.cos(a) * r, y: Math.sin(a) * r, sec, kind, v, label, ic, special, cost: Math.round(SKY_COST0 * Math.pow(SKY_COSTG, r - 1) * (special ? 3 : 1)), adj: [] });
     }
@@ -657,7 +658,7 @@ const ACH = [
   { id: 'full',  name: 'Squadra al completo', desc: 'Sblocca e riempi tutti i posti della squadra', test: s => creaturesInTeam(s) >= CREATURE_SLOTS, astri: 20 },
 ];
 
-const OFFLINE_CAP = 4 * 3600; // 8 ore col Pass
+const OFFLINE_CAP = 6 * 3600; // 6 ore di base, fino a 10 con le stelle delle Costellazioni
 const BOSS_BATTLE = 30;
 
 function rnd(st) { // mulberry32 sul seed dello stato, così la simulazione è riproducibile
@@ -1077,7 +1078,7 @@ function spaceLeft(s, kind) { const m = monthKey(); if (!s.spaceBuys || s.spaceB
 function buySpace(s, kind) { if (spaceLeft(s, kind) < 1 || s.astri < SPACE_PACK.cost) return false; const m = monthKey(); if (!s.spaceBuys || s.spaceBuys.m !== m) s.spaceBuys = { m, bag: 0, chest: 0 }; s.spaceBuys[kind]++; s.astri -= SPACE_PACK.cost; if (kind === 'bag') s.extraBag = (s.extraBag || 0) + SPACE_PACK.n; else s.extraChest = (s.extraChest || 0) + SPACE_PACK.n; return true; }
 function toChest(s, id) { const i = s.inventory.findIndex(x => x.id === id); if (i < 0 || s.chest.length >= chestCap(s)) return false; s.chest.push(s.inventory.splice(i, 1)[0]); return true; }
 function fromChest(s, id) { const i = s.chest.findIndex(x => x.id === id); if (i < 0 || s.inventory.length >= bagCap(s)) return false; s.inventory.push(s.chest.splice(i, 1)[0]); return true; }
-function offlineCap(s) { return OFFLINE_CAP * (hasPass(s) ? 2 : 1) + B(s, 'offline'); }
+function offlineCap(s) { return OFFLINE_CAP + B(s, 'offline'); }
 const PASS_MAX_FILTER = 2; // col Pass si vendono in automatico anche i non comuni, mai oltre
 function maxFilter(s) { return hasPass(s) ? PASS_MAX_FILTER : FREE_MAX_FILTER; }
 function minKeep(s) { return Math.min(rarityIndex(s.settings.minRarity || 'comune'), maxFilter(s), protectIdx(s)); }
@@ -1816,7 +1817,7 @@ function pShop() {
   ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr">${sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}<br><small>prova gratis</small></button>`}</div>`; }).join('')}
   <div class="ph"><h2 style="font-size:13px">Abbonamento</h2></div>
   <div class="card passbig${F.hasPass(S) ? ' on' : ''}"><div class="pbhead"><div class="pbic">${ipx('collana', 44)}</div><div style="flex:1"><b class="pbt">Pass Astrale</b><div class="pbp">${F.PASS_PRICE}</div>${F.hasPass(S) ? `<div class="msub" style="color:#7ED36F">Attivo fino al ${new Date(S.pass).toLocaleDateString('it-IT')}</div>` : ''}</div></div>
-   <ul class="pbl"><li><b>×2 oro</b> da ogni nemico</li><li><b>×2 esperienza</b> per tutta la squadra</li><li>Zaino e forziere <b>doppi</b> (${F.bagCap(S) + (F.hasPass(S) ? 0 : 20)} posti)</li><li>Guadagno offline fino a <b>8 ore</b> (invece di 4)</li><li>Vendita automatica anche dei <b>non comuni</b></li></ul>
+   <ul class="pbl"><li><b>×2 oro</b> da ogni nemico</li><li><b>×2 esperienza</b> per tutta la squadra</li><li>Zaino e forziere <b>doppi</b> (${F.bagCap(S) + (F.hasPass(S) ? 0 : 20)} posti)</li><li>Vendita automatica anche dei <b>non comuni</b></li></ul>
    <button class="pb wide" data-act="pass">${F.hasPass(S) ? 'Rinnova' : 'Attiva'} · prova gratis</button>${F.hasPass(S) ? '<button class="sb wide" data-act="passoff" style="margin-top:6px;width:100%">Togli il Pass (prova)</button>' : ''}</div>
   <div class="note">Versione di prova: gli acquisti si sbloccano gratis, nessun pagamento reale.</div>`;
 }
@@ -1965,7 +1966,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 11:22</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 11:23</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -2036,7 +2037,7 @@ function showOffline(r) {
   const caps = r.events.filter(e => e.type === 'capture').map(e => S.roster[e.species] ? S.roster[e.species].name : e.species);
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-labelledby="offt">
    <h2 id="offt">Bentornato!</h2>
-   <p class="msub">Mentre eri via (${h >= 48 ? Math.round(h / 24) + ' giorni' : h + ' h ' + mi + ' min'}${!r.skip && r.seconds >= F.offlineCap(S) ? `, massimo ${F.offlineCap(S) / 3600} ore${F.hasPass(S) ? '' : ' (8 col Pass)'}` : ''}) la squadra ha combattuto da sola.</p>
+   <p class="msub">Mentre eri via (${h >= 48 ? Math.round(h / 24) + ' giorni' : h + ' h ' + mi + ' min'}${!r.skip && r.seconds >= F.offlineCap(S) ? `, massimo ${+(F.offlineCap(S) / 3600).toFixed(1)} ore` : ''}) la squadra ha combattuto da sola.</p>
    <div class="card"><div class="kv"><span>Nemici sconfitti</span><b>${fmt(r.kills)}</b></div><div class="kv"><span>Oro</span><b>+${cfmt(r.gold)}</b></div><div class="kv"><span>Oggetti trovati</span><b>${fmt(r.items)}</b></div>${F.ITEM_RARITY.filter(x => r.byRar && r.byRar[x.key] > 0).map(x => `<div class="kv sub"><span class="${x.rainbow ? 'rbw' : ''}" style="color:${x.color}">· ${x.label}</span><b>${fmt(r.byRar[x.key])}</b></div>`).join('')}${Object.keys(r.runes).filter(k => r.runes[k] > 0).map(k => `<div class="kv"><span style="color:${F.RUNE[k].color}">${F.RUNE[k].label}</span><b>+${fmt(r.runes[k])}</b></div>`).join('')}
    ${r.levels.map(l => `<div class="kv"><span>${esc(S.roster[l.id].name)}</span><b>Lv ${l.from} → ${l.to}</b></div>`).join('')}</div>
    ${r.lost ? `<div class="card" style="border-color:#FF8A96"><b style="color:#FF8A96">Zaino pieno:</b> ${fmt(r.lost)} oggetti persi. Libera spazio, usa il forziere o attiva la vendita automatica.</div>` : ''}
@@ -2071,7 +2072,7 @@ function skipTime(hours) {
 
 // ---------- benvenuto: nickname + breve tutorial ----------
 const TUT = [
-  ['La squadra combatte da sola', 'I tuoi personaggi avanzano e combattono in automatico, anche quando chiudi il gioco (fino a 4 ore, 8 col Pass). Tu decidi come farli crescere.'],
+  ['La squadra combatte da sola', 'I tuoi personaggi avanzano e combattono in automatico, anche quando chiudi il gioco (6 ore, fino a 10 con le Costellazioni). Tu decidi come farli crescere.'],
   ['Cattura le creature', 'Ogni nemico sconfitto può unirsi a te. Le creature catturate entrano in squadra: le trovi in Squadra e nel Bestiario.'],
   ['Equipaggia e vendi', 'Gli oggetti finiscono nello Zaino. Equipaggia i migliori e vendi il resto al Mercante: con lo zaino pieno gli oggetti nuovi vanno persi.'],
   ['Punti e stelle', 'A ogni livello hai 5 punti da assegnare nella scheda del personaggio. Con l\'oro accendi le stelle delle Costellazioni: bonus per tutta la squadra.'],

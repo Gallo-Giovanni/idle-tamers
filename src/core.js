@@ -176,6 +176,7 @@ const SKY_SECTORS = [
   { name: 'Oro e vendita', color: '#F2994A', ic: '◈', kinds: [['gold', 0.05, 'Oro'], ['gold', 0.05, 'Oro'], ['sell', 0.1, 'Vendita oggetti']] },
   { name: 'Esperienza e drop', color: '#B07CF0', ic: '✎', kinds: [['xp', 0.05, 'Esperienza'], ['drop', 0.03, 'Prob. di drop'], ['capture', 0.02, 'Prob. di cattura']] },
 ];
+const OFFLINE_STAR = { 3: 1200, 6: 1800, 9: 2400, 12: 2400, 15: 2400 }; // tempo offline delle stelle, sempre di più: in tutto +4 ore
 const SKY_SPECIAL = [['bag', 2, 'Posti zaino', '🎒'], ['chest', 2, 'Posti forziere', '📦'], ['offline', 1800, 'Tempo offline', '⏳'], ['move', 0.05, 'Velocità di marcia', '☄']];
 const SKY = (() => {
   const nodes = [{ id: 0, r: 0, i: 0, x: 0, y: 0, sec: -1, kind: null, v: 0, cost: 0, adj: [] }];
@@ -185,7 +186,7 @@ const SKY = (() => {
       const a = (i / n) * Math.PI * 2 - Math.PI / 2 + (r % 2) * 0.05, sec = Math.floor(i / n * 6), per = n / 6, j = i - Math.round(sec * per);
       const special = r % 3 === 0 && j === Math.floor(per / 2);
       let kind, v, label, ic;
-      if (special) { const sp = SKY_SPECIAL[(r / 3 - 1 + sec) % SKY_SPECIAL.length]; kind = sp[0]; v = sp[1]; label = sp[2]; ic = sp[3]; }
+      if (special) { const sp = SKY_SPECIAL[(r / 3 - 1 + sec) % SKY_SPECIAL.length]; kind = sp[0]; v = kind === 'offline' ? OFFLINE_STAR[r] : sp[1]; label = sp[2]; ic = sp[3]; }
       else { const kd = SKY_SECTORS[sec].kinds[(i + r) % 3]; kind = kd[0]; v = +(kd[1] * SKY_VMULT * (1 + 0.15 * (r - 1))).toFixed(4); label = kd[2]; ic = SKY_SECTORS[sec].ic; }
       nodes.push({ id: nodes.length, r, i, n, x: Math.cos(a) * r, y: Math.sin(a) * r, sec, kind, v, label, ic, special, cost: Math.round(SKY_COST0 * Math.pow(SKY_COSTG, r - 1) * (special ? 3 : 1)), adj: [] });
     }
@@ -244,7 +245,7 @@ const ACH = [
   { id: 'full',  name: 'Squadra al completo', desc: 'Sblocca e riempi tutti i posti della squadra', test: s => creaturesInTeam(s) >= CREATURE_SLOTS, astri: 20 },
 ];
 
-const OFFLINE_CAP = 4 * 3600; // 8 ore col Pass
+const OFFLINE_CAP = 6 * 3600; // 6 ore di base, fino a 10 con le stelle delle Costellazioni
 const BOSS_BATTLE = 30;
 
 function rnd(st) { // mulberry32 sul seed dello stato, così la simulazione è riproducibile
@@ -664,7 +665,7 @@ function spaceLeft(s, kind) { const m = monthKey(); if (!s.spaceBuys || s.spaceB
 function buySpace(s, kind) { if (spaceLeft(s, kind) < 1 || s.astri < SPACE_PACK.cost) return false; const m = monthKey(); if (!s.spaceBuys || s.spaceBuys.m !== m) s.spaceBuys = { m, bag: 0, chest: 0 }; s.spaceBuys[kind]++; s.astri -= SPACE_PACK.cost; if (kind === 'bag') s.extraBag = (s.extraBag || 0) + SPACE_PACK.n; else s.extraChest = (s.extraChest || 0) + SPACE_PACK.n; return true; }
 function toChest(s, id) { const i = s.inventory.findIndex(x => x.id === id); if (i < 0 || s.chest.length >= chestCap(s)) return false; s.chest.push(s.inventory.splice(i, 1)[0]); return true; }
 function fromChest(s, id) { const i = s.chest.findIndex(x => x.id === id); if (i < 0 || s.inventory.length >= bagCap(s)) return false; s.inventory.push(s.chest.splice(i, 1)[0]); return true; }
-function offlineCap(s) { return OFFLINE_CAP * (hasPass(s) ? 2 : 1) + B(s, 'offline'); }
+function offlineCap(s) { return OFFLINE_CAP + B(s, 'offline'); }
 const PASS_MAX_FILTER = 2; // col Pass si vendono in automatico anche i non comuni, mai oltre
 function maxFilter(s) { return hasPass(s) ? PASS_MAX_FILTER : FREE_MAX_FILTER; }
 function minKeep(s) { return Math.min(rarityIndex(s.settings.minRarity || 'comune'), maxFilter(s), protectIdx(s)); }
