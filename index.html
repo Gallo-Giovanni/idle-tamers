@@ -2051,7 +2051,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 13:34</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 13:44</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -2117,6 +2117,14 @@ function showCapture(sp) {
   </div>`;
   m$.hidden = false;
 }
+// stima di quanti oggetti persi si sarebbero salvati col Pass (scarto anche dei non comuni + 20 posti in più)
+function passSaved(r) {
+  if (F.hasPass(S) || !r.lost || !r.byRar) return 0;
+  const idx = k => F.ITEM_RARITY.findIndex(x => x.key === k), keep = F.minKeep(S);
+  const cand = th => Object.keys(r.byRar).reduce((t, k) => t + (idx(k) >= th ? r.byRar[k] : 0), 0);
+  const used = cand(keep) - r.lost, lostPass = Math.max(0, cand(Math.max(keep, F.PASS_MAX_FILTER)) - (used + 20));
+  return Math.max(0, r.lost - lostPass);
+}
 function showOffline(r) {
   const h = Math.floor(r.seconds / 3600), mi = Math.floor(r.seconds % 3600 / 60);
   const caps = r.events.filter(e => e.type === 'capture').map(e => S.roster[e.species] ? S.roster[e.species].name : e.species);
@@ -2125,7 +2133,7 @@ function showOffline(r) {
    <p class="msub">Mentre eri via (${h >= 48 ? Math.round(h / 24) + ' giorni' : h + ' h ' + mi + ' min'}${!r.skip && r.seconds >= F.offlineCap(S) ? `, massimo ${+(F.offlineCap(S) / 3600).toFixed(1)} ore` : ''}) la squadra ha combattuto da sola.</p>
    <div class="card"><div class="kv"><span>Nemici sconfitti</span><b>${fmt(r.kills)}</b></div><div class="kv"><span>Oro</span><b>+${cfmt(r.gold)}</b></div><div class="kv"><span>Oggetti trovati</span><b>${fmt(r.items)}</b></div>${F.ITEM_RARITY.filter(x => r.byRar && r.byRar[x.key] > 0).map(x => `<div class="kv sub"><span class="${x.rainbow ? 'rbw' : ''}" style="color:${x.color}">· ${x.label}</span><b>${fmt(r.byRar[x.key])}</b></div>`).join('')}${Object.keys(r.runes).filter(k => r.runes[k] > 0).map(k => `<div class="kv"><span style="color:${F.RUNE[k].color}">${F.RUNE[k].label}</span><b>+${fmt(r.runes[k])}</b></div>`).join('')}
    ${r.levels.map(l => `<div class="kv"><span>${esc(S.roster[l.id].name)}</span><b>Lv ${l.from} → ${l.to}</b></div>`).join('')}</div>
-   ${r.lost ? `<div class="card" style="border-color:#FF8A96"><b style="color:#FF8A96">Zaino pieno:</b> ${fmt(r.lost)} oggetti persi. Libera spazio, usa il forziere o attiva la vendita automatica.</div>` : ''}
+   ${r.lost ? `<div class="card" style="border-color:#FF8A96"><b style="color:#FF8A96">Zaino pieno:</b> ${fmt(r.lost)} oggetti persi. Libera spazio, usa il forziere o attiva la vendita automatica.${passSaved(r) > 0 ? `<div style="margin-top:6px">Col <b style="color:#F2C14E">Pass Astrale</b> (scarto anche dei non comuni e zaino doppio) ne avresti salvati circa <b>${fmt(passSaved(r))}</b>. <button class="sb" data-act="goshop" style="margin-top:4px">Vai allo Shop</button></div>` : ''}</div>` : ''}
    ${caps.length ? `<div class="card" style="border-color:#F2C14E"><b style="color:#F2C14E">Catture:</b> ${caps.map(esc).join(', ')}</div>` : ''}
    <button class="pb wide" data-act="close">Raccogli</button></div>`;
   $('#modal').hidden = false;
