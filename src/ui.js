@@ -344,7 +344,7 @@ function handle(ev) {
 }
 
 // ---------- HUD ----------
-const SHOP_VER = 3; // aumentalo quando nello Shop arriva qualcosa di nuovo: compare il pallino
+const SHOP_VER = 4; // aumentalo quando nello Shop arriva qualcosa di nuovo: compare il pallino
 function hud() {
   if (!S.dmgLog || S.dmgLog.zone !== S.zone) S.dmgLog = { since: S.clock || 0, by: {}, zone: S.zone }; // i danni per membro ripartono a ogni zona
   const mr = F.missionsReady(S), bt = document.querySelector('[data-tab=bestiario]'); if (bt) bt.classList.toggle('dot', mr > 0); const shb = document.querySelector('[data-tab=shop]'); if (tab === 'shop') S.shopSeen = SHOP_VER; if (shb) shb.classList.toggle('dot', F.dailyReady(S) || S.shopSeen !== SHOP_VER);
@@ -558,7 +558,7 @@ function runeBar() { return `<div class="runebar">${Object.keys(F.RUNE).map(k =>
 function ownedHTML() {
   const rows = [], lab = { gold: 'oro', xp: 'esperienza', drop: 'drop', capture: 'soggiogamento' };
   for (const k of Object.keys(S.pets || {})) { const p = F.PETS[k]; if (!p) continue; const b = p.bonus; rows.push([sprite('pet_' + k, 2), p.name, Object.keys(b).filter(x => x !== 'bag' && x !== 'chest').map(x => `+${Math.round(b[x] * 100)}% ${lab[x]}`).concat(`+${b.bag} zaino`, `+${b.chest} forziere`).join(' · ')]); }
-  for (const h of F.HERO_SHOP) if (S.roster[h.id]) { const sp = F.SPECIES[h.id]; rows.push([sprite(h.id, 2), sp.name, `${sp.cls} in squadra, senza occupare posti`]); }
+  for (const h of F.HERO_SHOP) if (S.roster[h.id]) { const sp = F.SPECIES[h.id]; rows.push([sprite(h.id, 2), sp.name, `${sp.cls} in squadra, senza occupare posti · +${F.HERO_SPACE} zaino · +${F.HERO_SPACE} forziere`]); }
   if (F.hasPass(S)) rows.push([ipx('collana', 22), 'Pass Astrale', `×2 oro ed esperienza, zaino e forziere doppi · scade il ${new Date(S.pass).toLocaleDateString('it-IT')}`]);
   if (S.extraBag || S.extraChest) rows.push([icon('bag', '#F2C14E', 20), 'Spazio extra', `+${S.extraBag || 0} zaino · +${S.extraChest || 0} forziere`]);
   if (S.welcomePack) rows.push([icon('gem', '#F49AC1', 20), 'Pacchetto Benvenuto', '500 Astri + un pet']);
@@ -571,6 +571,18 @@ function pShop() {
   return `<div class="ph"><h2>Shop</h2><span>${icon('gem', '#F49AC1', 14)} ${fmt(S.astri)} Astri</span></div>
   <div class="note" style="color:#9BFFB8;text-align:center">Versione di prova: per ora gli acquisti sono gratis, nessun pagamento reale.</div>
   <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min.`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
+  <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
+  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr">${sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub" style="color:#9BFFB8">+${F.HERO_SPACE} zaino · +${F.HERO_SPACE} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
+  <div class="ph" id="shop-pet"><h2 style="font-size:13px">Pet</h2><span>non combattono · i bonus si sommano</span></div>
+  ${S.welcomePack || !Object.keys(F.PETS).some(k => !F.PETS[k].astri && !(S.pets && S.pets[k])) ? '' : `<div class="card welcome"><b>Pacchetto Benvenuto · 4,99 €</b><div class="msub">500 ${icon('gem', '#F49AC1', 11)} + un pet a scelta · una sola volta</div>
+   <div class="wpick">${Object.keys(F.PETS).filter(k => !F.PETS[k].astri && !(S.pets && S.pets[k])).map(k => `<button class="sb" data-act="welcome" data-k="${k}">${sprite('pet_' + k, 2)}<span>${F.PETS[k].name}</span></button>`).join('')}</div></div>`}
+  ${Object.keys(F.PETS).map(k => { const p = F.PETS[k], own = S.pets && S.pets[k], b = p.bonus, lab = { gold: 'oro', xp: 'esperienza', drop: 'drop', capture: 'soggiogamento' };
+    const main = Object.keys(b).filter(x => x !== 'bag' && x !== 'chest').map(x => `+${Math.round(b[x] * 100)}% ${lab[x]}`).join(' · ');
+    return `<div class="card petcard${own ? ' own' : ''}"><div class="pspr">${sprite('pet_' + k, 4)}</div><div style="flex:1"><b>${p.name}</b><div class="msub">${main}<br>+${b.bag} zaino · +${b.chest} forziere</div></div>${own ? '<span class="pown">Posseduto</span>' : `<button class="pb" data-act="buypet" data-k="${k}" ${p.astri && S.astri < p.astri ? 'disabled' : ''}>${p.astri ? fmt(p.astri) + ' ' + icon('gem', '#1B1F3B', 11) : p.price + ''}</button>`}</div>`; }).join('')}
+  <div class="ph"><h2 style="font-size:13px">Abbonamento</h2></div>
+  <div class="card passbig${F.hasPass(S) ? ' on' : ''}"><div class="pbhead"><div class="pbic">${ipx('collana', 44)}</div><div style="flex:1"><b class="pbt">Pass Astrale</b><div class="pbp">${F.PASS_PRICE}</div>${F.hasPass(S) ? `<div class="msub" style="color:#7ED36F">Attivo fino al ${new Date(S.pass).toLocaleDateString('it-IT')}</div>` : ''}</div></div>
+   <ul class="pbl"><li><b>×2 oro</b> da ogni nemico</li><li><b>×2 esperienza</b> per tutta la squadra</li><li>Zaino e forziere <b>doppi</b> (${F.bagCap(S) + (F.hasPass(S) ? 0 : 20)} posti)</li><li>Vendita automatica anche dei <b>non comuni</b></li></ul>
+   <button class="pb wide" data-act="pass">${F.hasPass(S) ? 'Rinnova' : 'Attiva'}</button>${F.hasPass(S) ? '<button class="sb wide" data-act="passoff" style="margin-top:6px;width:100%">Togli il Pass (prova)</button>' : ''}</div>
   <div class="ph" id="shop-astri"><h2 style="font-size:13px">Astri</h2><span>la moneta dello Shop</span></div>
   <div class="sgrid astri4">${F.ASTRI_PACKS.map((p, i) => `<div class="card sitem">${icon('gem', '#F49AC1', 26)}<b style="color:#F49AC1">${fmt(p.astri)} Astri</b>${F.astriFirst(S, i) ? '<span class="x2">×2 al primo acquisto</span>' : ''}<span>${p.name}</span><button class="pb" data-act="buyastri" data-i="${i}">${p.price}</button></div>`).join('')}</div>
   <div class="ph" id="shop-oro"><h2 style="font-size:13px">Oro</h2><span>con gli Astri · cresce con la zona più lontana raggiunta</span></div>
@@ -579,18 +591,6 @@ function pShop() {
   <div class="sgrid runes4">${Object.keys(F.RUNE_BUY).map(k => { const r = F.RUNE[k]; return `<div class="card sitem" style="border-color:${r.color}">${icon('rune', r.color, 24)}<b style="color:${r.color}">${r.label.replace('Runa ', '')}</b><span>→ ${F.ITEM_RARITY.find(x => x.key === k).label}</span><span>hai ${fmt(S.runes[k])}</span><button class="pb" data-act="buyrune" data-k="${k}" ${S.astri < F.RUNE_BUY[k] ? 'disabled' : ''}>${F.RUNE_BUY[k]} ${icon('gem', '#1B1F3B', 11)}</button></div>`; }).join('')}</div>
   <div class="ph"><h2 style="font-size:13px">Spazio</h2><span>+${F.SPACE_PACK.n} posti per sempre · max ${F.SPACE_PACK.perMonth} al mese</span></div>
   <div class="sgrid">${[['bag', 'Zaino', 'Posti zaino', F.bagCap(S)], ['chest', 'Forziere', 'Posti forziere', F.chestCap(S)]].map(([k, n, l, cap]) => { const left = F.spaceLeft(S, k); return `<div class="card sitem"><b>+${F.SPACE_PACK.n} ${l.toLowerCase()}</b><span>${n} ora: ${cap} posti</span><span>Questo mese: ancora ${left}</span><button class="pb" data-act="buyspace" data-k="${k}" ${left < 1 || S.astri < F.SPACE_PACK.cost ? 'disabled' : ''}>${left < 1 ? 'Finiti per questo mese' : F.SPACE_PACK.cost + ' Astri'}</button></div>`; }).join('')}</div>
-  <div class="ph" id="shop-pet"><h2 style="font-size:13px">Pet</h2><span>non combattono · i bonus si sommano</span></div>
-  ${S.welcomePack || !Object.keys(F.PETS).some(k => !F.PETS[k].astri && !(S.pets && S.pets[k])) ? '' : `<div class="card welcome"><b>Pacchetto Benvenuto · 4,99 €</b><div class="msub">500 ${icon('gem', '#F49AC1', 11)} + un pet a scelta · una sola volta</div>
-   <div class="wpick">${Object.keys(F.PETS).filter(k => !F.PETS[k].astri && !(S.pets && S.pets[k])).map(k => `<button class="sb" data-act="welcome" data-k="${k}">${sprite('pet_' + k, 2)}<span>${F.PETS[k].name}</span></button>`).join('')}</div></div>`}
-  ${Object.keys(F.PETS).map(k => { const p = F.PETS[k], own = S.pets && S.pets[k], b = p.bonus, lab = { gold: 'oro', xp: 'esperienza', drop: 'drop', capture: 'soggiogamento' };
-    const main = Object.keys(b).filter(x => x !== 'bag' && x !== 'chest').map(x => `+${Math.round(b[x] * 100)}% ${lab[x]}`).join(' · ');
-    return `<div class="card petcard${own ? ' own' : ''}"><div class="pspr">${sprite('pet_' + k, 4)}</div><div style="flex:1"><b>${p.name}</b><div class="msub">${main}<br>+${b.bag} zaino · +${b.chest} forziere</div></div>${own ? '<span class="pown">Posseduto</span>' : `<button class="pb" data-act="buypet" data-k="${k}" ${p.astri && S.astri < p.astri ? 'disabled' : ''}>${p.astri ? fmt(p.astri) + ' ' + icon('gem', '#1B1F3B', 11) : p.price + ''}</button>`}</div>`; }).join('')}
-  <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
-  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr">${sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
-  <div class="ph"><h2 style="font-size:13px">Abbonamento</h2></div>
-  <div class="card passbig${F.hasPass(S) ? ' on' : ''}"><div class="pbhead"><div class="pbic">${ipx('collana', 44)}</div><div style="flex:1"><b class="pbt">Pass Astrale</b><div class="pbp">${F.PASS_PRICE}</div>${F.hasPass(S) ? `<div class="msub" style="color:#7ED36F">Attivo fino al ${new Date(S.pass).toLocaleDateString('it-IT')}</div>` : ''}</div></div>
-   <ul class="pbl"><li><b>×2 oro</b> da ogni nemico</li><li><b>×2 esperienza</b> per tutta la squadra</li><li>Zaino e forziere <b>doppi</b> (${F.bagCap(S) + (F.hasPass(S) ? 0 : 20)} posti)</li><li>Vendita automatica anche dei <b>non comuni</b></li></ul>
-   <button class="pb wide" data-act="pass">${F.hasPass(S) ? 'Rinnova' : 'Attiva'}</button>${F.hasPass(S) ? '<button class="sb wide" data-act="passoff" style="margin-top:6px;width:100%">Togli il Pass (prova)</button>' : ''}</div>
   ${ownedHTML()}
 `;
 }
