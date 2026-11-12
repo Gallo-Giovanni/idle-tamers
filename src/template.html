@@ -367,6 +367,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 #bossbar i{position:absolute;left:6px;top:24px;height:4px;width:148px;background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEoAAAACCAYAAAD/20pwAAAAKElEQVR4XmMsVbH4b8Dzg2EU4AZa6jwMLGd+/mRgYOAYDSd84OYXBgCfJwf6IJzxqQAAAABJRU5ErkJggg==) 0 0/148px 4px no-repeat;image-rendering:pixelated;transition:width .2s}
 #bossbar span{position:absolute;left:0;right:0;top:33px;text-align:center;font-family:'Pixelify Sans',sans-serif;font-size:11px;font-weight:700;color:#F2C14E;text-shadow:1px 1px 0 #000,-1px 1px 0 #000,1px -1px 0 #000,-1px -1px 0 #000}
 
+#foes{position:absolute;left:6px;top:4px;z-index:6;font-family:'Pixelify Sans',sans-serif;font-size:11px;font-weight:700;color:#fff;text-shadow:1px 1px 0 #000,-1px 1px 0 #000,1px -1px 0 #000,-1px -1px 0 #000;pointer-events:none}
 </style>
 </head>
 <body>
@@ -386,7 +387,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 <div id="scene" aria-label="Battaglia in corso">
  <div class="planet" aria-hidden="true"></div><div class="bgl cloud" aria-hidden="true"></div><div class="ring" aria-hidden="true"></div>
  <div class="bgl mount" aria-hidden="true"></div><div class="hills" aria-hidden="true"></div><div class="ground" aria-hidden="true"></div>
- <div class="bgl tufts" aria-hidden="true"></div><div id="units"></div><div id="bossbar" hidden aria-label="Vita del boss"><i></i><span></span></div><div id="fx"></div><div id="banner" aria-live="polite"></div>
+ <div class="bgl tufts" aria-hidden="true"></div><div id="foes" aria-live="off"></div><div id="units"></div><div id="bossbar" hidden aria-label="Vita del boss"><i></i><span></span></div><div id="fx"></div><div id="banner" aria-live="polite"></div>
 </div>
 <div id="log" aria-label="Vita del gruppo e danni"></div>
 <div id="toasts" aria-live="polite"></div>

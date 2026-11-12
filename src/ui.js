@@ -222,7 +222,7 @@ function buildScene() {
   // ognuno si mette alla distanza della sua gittata: prima i Guerrieri, poi Arcieri, Maghi e Curatori
   const order = orderFront(B.party);
   const place = (list) => list.forEach(({ u }, k) => {
-    const x = 168 - k * 15 - (F.CLASSES[u.cls].range - 1) * 6, y = 26; // tutti sul pavimento
+    const x = 168 - k * 10 - (F.CLASSES[u.cls].range - 1) * 4, y = 26; // tutti sul pavimento
     const el = document.createElement('div'); el.className = 'u'; el.dataset.x = x; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 20 - (k % 2) * 5;
     el.innerHTML = `<div class="hpb"><b style="background:#7ED36F"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
     sc.appendChild(el); pEls[u.idx] = el;
@@ -232,7 +232,7 @@ function buildScene() {
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
     const bp = u.secret ? 4 : u.boss ? 3 : 2, r = isRanged(u.cls);
-    const x = r ? 236 + (F.CLASSES[u.cls].range - 3) * 16 + (rk++) * 8 : 190 + (mk++) * 7 - (u.boss ? 6 : 0), y = 26;
+    const x = r ? 214 + (F.CLASSES[u.cls].range - 3) * 12 + (rk++) * 7 : 180 + (mk++) * 6 - (u.boss ? 6 : 0), y = 26;
     const el = document.createElement('div'); el.className = 'u' + (u.secret ? ' secret' : '') + (ANIM[(F.SPECIES[u.species].base || u.species)] ? ' anim' : ''); el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
     el.innerHTML = `<div class="hpb"><b style="background:#FF5A6E"></b></div><div class="mk">${icon('dust', '#7ED36F', 10)}</div>${animHTML(u) || sprite(u.species, bp, { flip: true })}`;
     sc.appendChild(el); eEls[u.idx] = el;
@@ -279,11 +279,12 @@ function updateScene() {
   const cam = B.party.reduce((x, u) => Math.max(x, adv(u)), 0), moving = cam > (B._cam || 0) + 1e-6; B._cam = cam;
   const m = B.over === 'win' || moving || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
+  { const left = en.length + (F.BOSS_BATTLE - S.battle) * 3, fc = $('#foes'); if (fc && fc.dataset.n !== String(left)) { fc.dataset.n = left; fc.textContent = 'Nemici rimasti ' + left; } }
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); });
-  B.party.forEach(u => { const el = pEls[u.idx]; if (el) el.style.left = (+el.dataset.x + (F.CLASSES[u.cls].range === 1 && u.hp > 0 ? (adv(u) - cam) * 23 : 0)) + 'px'; });
+  B.party.forEach(u => { const el = pEls[u.idx]; if (el) el.style.left = (+el.dataset.x + (F.CLASSES[u.cls].range === 1 && u.hp > 0 ? (adv(u) - cam) * 17 : 0)) + 'px'; });
   { const bb = $('#bossbar'), fb = B.enemies.find(u => u.boss && (F.SPECIES[u.species].base || u.species) === 'divoratore'); // barra grande solo per il boss finale
     if (bb) { const on = !!fb && fb.hp > 0 && !(fb.arrive > 0); bb.hidden = !on; if (on) { bb.firstChild.style.width = (148 * fb.hp / fb.maxHp) + 'px'; const nm = F.SPECIES[fb.species].name; if (bb.lastChild.textContent !== nm) bb.lastChild.textContent = nm; } } }
-  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (u.arrive > 0 ? tx + 240 * u.arrive / u.arriveMax : tx + (u.pos - F.CLASSES[u.cls].range - B._cam) * 23) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
+  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (u.arrive > 0 ? tx + 240 * u.arrive / u.arriveMax : tx + (u.pos - F.CLASSES[u.cls].range - B._cam) * 17) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
   updateLog();
 }
 let floats = 0;
