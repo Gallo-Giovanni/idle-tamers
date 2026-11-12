@@ -233,8 +233,8 @@ function buildScene() {
   B.enemies.forEach(u => {
     const bp = u.secret ? 4 : u.boss ? 3 : 2, r = isRanged(u.cls);
     const x = r ? 236 + (F.CLASSES[u.cls].range - 3) * 16 + (rk++) * 8 : 190 + (mk++) * 7 - (u.boss ? 6 : 0), y = 26 + ((r ? rk : mk) % 2) * 5;
-    const el = document.createElement('div'); el.className = 'u' + (u.secret ? ' secret' : ''); el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
-    el.innerHTML = `<div class="hpb"><b style="background:#FF5A6E"></b></div><div class="mk">${icon('dust', '#7ED36F', 10)}</div>${sprite(u.species, bp, { flip: true })}`;
+    const el = document.createElement('div'); el.className = 'u' + (u.secret ? ' secret' : '') + (ANIM[(F.SPECIES[u.species].base || u.species)] ? ' anim' : ''); el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
+    el.innerHTML = `<div class="hpb"><b style="background:#FF5A6E"></b></div><div class="mk">${icon('dust', '#7ED36F', 10)}</div>${animHTML(u) || sprite(u.species, bp, { flip: true })}`;
     sc.appendChild(el); eEls[u.idx] = el;
   });
   buildLog();
@@ -289,7 +289,9 @@ function floatText(el, text, cls) {
   $('#fx').appendChild(f); floats++;
   setTimeout(() => { f.remove(); floats--; }, 900);
 }
-function knAnim(el, k, ms) { const kn = el && el.querySelector('.kn'); if (!kn) return; kn.classList.remove('atk', 'atk2', 'sk', 'dg'); void kn.offsetWidth; kn.classList.add(k); clearTimeout(kn._t); kn._t = setTimeout(() => kn.classList.remove(k), ms); }
+const ANIM = { divoratore: 'an-rp' }; // creature con animazione completa
+function animHTML(u) { const k = ANIM[F.SPECIES[u.species].base || u.species]; return k ? `<div class="an ${k}" aria-hidden="true"></div>` : ''; }
+function knAnim(el, k, ms) { const kn = el && el.querySelector('.kn, .an'); if (!kn) return; kn.classList.remove('atk', 'atk2', 'sk', 'dg'); void kn.offsetWidth; kn.classList.add(k); clearTimeout(kn._t); kn._t = setTimeout(() => kn.classList.remove(k), ms); }
 function lunge(el, dir) { if (!el) return; el.style.setProperty('--dx', dir + 'px'); el.classList.remove('lg'); void el.offsetWidth; el.classList.add('lg'); }
 function banner(text) { const b = $('#banner'); b.textContent = text; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
 
@@ -308,7 +310,7 @@ function handle(ev) {
   for (const e of ev) {
     if (e.type === 'dmg' && e.side === 'e') snd(e.crit ? 'crit' : 'hit');
     if (e.type === 'dmg') { const el = (e.side === 'p' ? pEls : eEls)[e.idx]; floatText(el, cfmt(e.dmg), e.crit ? 'crit' : (e.side === 'p' ? 'hurt' : '')); }
-    else if (e.type === 'atk') { lunge((e.side === 'p' ? pEls : eEls)[e.idx], e.side === 'p' ? 8 : -8); if (e.side === 'p') { const el = pEls[e.idx]; const two = el && (el._k = !el._k); knAnim(el, two ? 'atk2' : 'atk', two ? 400 : 450); } }
+    else if (e.type === 'atk') { lunge((e.side === 'p' ? pEls : eEls)[e.idx], e.side === 'p' ? 8 : -8); if (e.side === 'e') knAnim(eEls[e.idx], 'atk', 800); if (e.side === 'p') { const el = pEls[e.idx]; const two = el && (el._k = !el._k); knAnim(el, two ? 'atk2' : 'atk', two ? 400 : 450); } }
     else if (e.type === 'skill') { floatText(pEls[e.idx], e.name, 'skill'); knAnim(pEls[e.idx], 'sk', 450); }
     else if (e.type === 'heal') { floatText(pEls[e.idx], '+' + cfmt(e.h), 'heal'); }
     else if (e.type === 'dodge') { if (e.side === 'p') knAnim(pEls[e.idx], 'dg', 450); }
