@@ -3,10 +3,10 @@
 'use strict';
 
 const CLASSES = {
-  Guerriero: { hp: 135, atk: 14, def: 5, spd: 1.1, block: 0.08, color: '#F08A5D', ability: 'Fendente', desc: 'Sta in prima linea: i nemici attaccano prima i Guerrieri. Para l\'8% dei colpi e ogni 3 attacchi sferra un colpo pesante: 220% dei danni sul bersaglio.' },
-  Arciere:   { hp: 80,  atk: 12, def: 1, spd: 1.0, color: '#7ED36F', ability: 'Marchio', desc: 'Ogni 3 attacchi marchia il bersaglio: +30% danni subiti per 4 s.' },
-  Curatore:  { hp: 85,  atk: 7,  def: 2, spd: 1.3, color: '#F2E27A', ability: 'Luce curativa', desc: 'Ogni 3 s cura l\'alleato più ferito: 6% della sua vita più il 100% del proprio attacco. Chi è appena stato curato riceve metà cure per 2 s.' },
-  Mago:      { hp: 70,  atk: 10, def: 1, spd: 1.6, color: '#C08CFF', ability: 'Tempesta arcana', desc: 'Ogni 5 s scaglia un fulmine arcano: 250% dei danni, ignora l\'armatura.' },
+  Guerriero: { range: 1, hp: 135, atk: 14, def: 5, spd: 1.1, block: 0.08, color: '#F08A5D', ability: 'Fendente', desc: 'Sta in prima linea (gittata 1): i nemici colpiscono sempre chi è più vicino. Para l\'8% dei colpi e ogni 3 attacchi sferra un colpo pesante: 220% dei danni sul bersaglio.' },
+  Arciere:   { range: 3, hp: 80,  atk: 12, def: 1, spd: 1.0, color: '#7ED36F', ability: 'Marchio', desc: 'Ogni 3 attacchi marchia il bersaglio: +30% danni subiti per 4 s.' },
+  Curatore:  { range: 5, hp: 85,  atk: 7,  def: 2, spd: 1.3, color: '#F2E27A', ability: 'Luce curativa', desc: 'Ogni 3 s cura l\'alleato più ferito: 6% della sua vita più il 100% del proprio attacco. Chi è appena stato curato riceve metà cure per 2 s.' },
+  Mago:      { range: 4, hp: 70,  atk: 10, def: 1, spd: 1.6, color: '#C08CFF', ability: 'Tempesta arcana', desc: 'Ogni 5 s scaglia un fulmine arcano: 250% dei danni, ignora l\'armatura.' },
 };
 
 const RARITY = {
@@ -414,6 +414,7 @@ if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JS
 const ZONE_BASE = [0, 1]; for (let z = 2; z <= MAX_ZONE; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n); }
 
+const ENEMY_WALK = 2.6; // secondi per entrare in scena: i nemici arrivano insieme, in gruppo, alla stessa velocità
 function makeEnemies(s) {
   const n = s.battle, Z = ZONES[s.zone], f = enemyScale(s.zone, n), pool = Z.pool;
   const list = [];
@@ -425,7 +426,7 @@ function makeEnemies(s) {
     const cls = SPECIES[sp].cls, boss = n === BOSS_BATTLE && i === 0, b = CLASSES[cls], sec = boss && secret;
     const big = s.zone % 5 === 0; // i boss di pianeta (zone 5 e 10) sono più duri
     const hp = Math.round(b.hp * 0.45 * f * (boss ? (big ? 8 : 4) : 1) * (sec ? 1.5 : 1));
-    return { side: 'e', idx: i, species: sp, cls, boss, secret: sec, hp, maxHp: hp, atk: b.atk * 0.46 * f * (boss ? (big ? 1.6 : 1.3) : 1) * (sec ? 1.15 : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: (1.4 + i * 0.9) / moveSpeed(s), arriveMax: (1.4 + i * 0.9) / moveSpeed(s) };
+    return { side: 'e', idx: i, species: sp, cls, boss, secret: sec, hp, maxHp: hp, atk: b.atk * 0.46 * f * (boss ? (big ? 1.6 : 1.3) : 1) * (sec ? 1.15 : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: ENEMY_WALK / moveSpeed(s), arriveMax: ENEMY_WALK / moveSpeed(s) };
   });
 }
 
@@ -442,8 +443,8 @@ function ready(list) { return list.filter(u => u.hp > 0 && !(u.arrive > 0)); }
 function frontTarget(s, list) {
   const a = ready(list); if (!a.length) return null;
   if (a[0].side !== 'p') return a[0];
-  const front = a.filter(u => u.cls === 'Guerriero'); // i nemici colpiscono prima i Guerrieri, a caso tra quelli in piedi
-  const pool = front.length ? front : a; return pool[Math.floor(rnd(s) * pool.length)];
+  // i nemici colpiscono solo il personaggio più vicino: gittata più bassa, poi chi sta più avanti nella fila
+  let best = a[0]; for (const u of a) { const g = CLASSES[u.cls].range, gb = CLASSES[best.cls].range; if (g < gb || (g === gb && u.idx < best.idx)) best = u; } return best;
 }
 
 function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {

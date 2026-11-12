@@ -219,15 +219,15 @@ function buildScene() {
   pEls = []; eEls = [];
   const isRanged = c => c === 'Arciere' || c === 'Mago' || c === 'Curatore';
   // squadra: mischia davanti, a distanza dietro con uno stacco
-  const melee = orderFront(B.party).filter(o => !isRanged(o.u.cls)), ranged = orderFront(B.party).filter(o => isRanged(o.u.cls));
-  const place = (list, x0) => list.forEach(({ u }, k) => {
-    const x = x0 - k * 15, y = 26 + (k % 2) * 6;
+  // ognuno si mette alla distanza della sua gittata: prima i Guerrieri, poi Arcieri, Maghi e Curatori
+  const order = orderFront(B.party);
+  const place = (list) => list.forEach(({ u }, k) => {
+    const x = 168 - k * 15 - (F.CLASSES[u.cls].range - 1) * 6, y = 26 + (k % 2) * 6;
     const el = document.createElement('div'); el.className = 'u'; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 20 - (k % 2) * 5;
     el.innerHTML = `<div class="hpb"><b style="background:#7ED36F"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
     sc.appendChild(el); pEls[u.idx] = el;
   });
-  place(melee, 168);
-  place(ranged, (melee.length ? 168 - melee.length * 15 - 34 : 168));
+  place(order);
   // nemici: quelli da mischia si ammassano sul primo bersaglio, quelli a distanza restano indietro
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
@@ -277,7 +277,7 @@ function updateScene() {
   const m = B.over === 'win' || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); });
-  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (u.arrive > 0 ? tx + Math.min(420 - tx, u.arrive * 170 * F.moveSpeed(S)) : tx) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
+  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (u.arrive > 0 ? tx + 240 * u.arrive / u.arriveMax : tx) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
   updateLog();
 }
 let floats = 0;
@@ -328,6 +328,7 @@ function handle(ev) {
 
 // ---------- HUD ----------
 function hud() {
+  if (!S.dmgLog || S.dmgLog.zone !== S.zone) S.dmgLog = { since: S.clock || 0, by: {}, zone: S.zone }; // i danni per membro ripartono a ogni zona
   const mr = F.missionsReady(S), bt = document.querySelector('[data-tab=bestiario]'); if (bt) bt.classList.toggle('dot', mr > 0); const shb = document.querySelector('[data-tab=shop]'); if (shb) shb.classList.toggle('dot', F.dailyReady(S));
   $('#gold').textContent = cfmt(S.gold); $('#astri').textContent = cfmt(S.astri);
   const pl = F.planetOf(S.zone); $('#ptitle').textContent = pl.name; $('#where').textContent = `Zona ${S.zone} · Battaglia ${S.battle}/30`;
@@ -370,7 +371,7 @@ function statsHTML(it, lv) {
 }
 function fullStats(st) {
   const pc = v => (v * 100).toFixed(1).replace('.', ',') + '%';
-  const rows = [['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)]];
+  const rows = [['Gittata', String(F.CLASSES[st.cls].range)], ['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)]];
   return `<div class="fstats">${rows.map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join('')}</div>`;
 }
 function ptsHTML(id) {
@@ -439,7 +440,7 @@ function bagForMember(id) {
 }
 function dmgHTML() { const d = S.dmgLog || { by: {}, since: S.clock || 0 }, ids = Object.keys(d.by).filter(id => S.roster[id]).sort((a, b) => d.by[b] - d.by[a]), tot = ids.reduce((x, id) => x + d.by[id], 0), secs = Math.max(1, (S.clock || 0) - d.since);
     return `<div class="ph"><h2>Danni per membro</h2><button class="sb" data-act="dmgreset" style="min-height:28px;font-size:11px">Azzera</button></div>
-    <div class="card">${ids.length ? ids.map(id => { const m = S.roster[id], c = CC(F.SPECIES[m.species].cls); return `<div class="dmrow"><span class="dmn">${esc(m.name)}</span><div class="dmbar"><b style="width:${100 * d.by[id] / d.by[ids[0]]}%;background:${c}"></b></div><span class="dmv">${cfmt(d.by[id] / secs)}/s · ${Math.round(100 * d.by[id] / tot)}%</span></div>`; }).join('') : '<div class="note">Nessun dato ancora.</div>'}<div class="msub" style="margin-top:4px">Danni medi al secondo e quota sul totale, da ${dur(secs)} di battaglie.</div></div>`; }
+    <div class="card">${ids.length ? ids.map(id => { const m = S.roster[id], c = CC(F.SPECIES[m.species].cls); return `<div class="dmrow"><span class="dmn">${esc(m.name)}</span><div class="dmbar"><b style="width:${100 * d.by[id] / d.by[ids[0]]}%;background:${c}"></b></div><span class="dmv">${cfmt(d.by[id] / secs)}/s · ${Math.round(100 * d.by[id] / tot)}%</span></div>`; }).join('') : '<div class="note">Nessun dato ancora.</div>'}<div class="msub" style="margin-top:4px">Danni medi al secondo e quota sul totale nella zona attuale, da ${dur(secs)} di battaglie. Si azzerano a ogni cambio di zona.</div></div>`; }
 let showDmg = false;
 function pSquadra() {
   const slots = F.slotCount(S), n = F.creaturesInTeam(S);
@@ -910,7 +911,7 @@ document.addEventListener('click', e => {
   else if (a === 'fuseopen') { showFuse(); return; }
   else if (a === 'fuse') { const it = F.fuse(S, t.dataset.k); if (it) { const r = F.ITEM_RARITY.find(x => x.key === it.rarity); snd('rare'); toast(`Fusione riuscita: <b style="color:${r.color}">${esc(F.itemName(it))}</b>`, r.color); } showFuse(); dirty = true; return; }
   else if (a === 'dmgtoggle') { showDmg = !showDmg; }
-  else if (a === 'dmgreset') { S.dmgLog = { since: S.clock || 0, by: {} }; }
+  else if (a === 'dmgreset') { S.dmgLog = { since: S.clock || 0, by: {}, zone: S.zone }; }
   else if (a === 'selrune') { selRune = selRune === t.dataset.k ? null : t.dataset.k; selItem = null; }
   else if (a === 'selshop') selShop = selShop === +t.dataset.i ? null : +t.dataset.i;
   else if (a === 'equipall') { const n = F.autoEquip(S); toast(n ? `Equipaggiati ${n} oggetti` : 'Nessun miglioramento disponibile'); }

@@ -401,10 +401,10 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 'use strict';
 
 const CLASSES = {
-  Guerriero: { hp: 135, atk: 14, def: 5, spd: 1.1, block: 0.08, color: '#F08A5D', ability: 'Fendente', desc: 'Sta in prima linea: i nemici attaccano prima i Guerrieri. Para l\'8% dei colpi e ogni 3 attacchi sferra un colpo pesante: 220% dei danni sul bersaglio.' },
-  Arciere:   { hp: 80,  atk: 12, def: 1, spd: 1.0, color: '#7ED36F', ability: 'Marchio', desc: 'Ogni 3 attacchi marchia il bersaglio: +30% danni subiti per 4 s.' },
-  Curatore:  { hp: 85,  atk: 7,  def: 2, spd: 1.3, color: '#F2E27A', ability: 'Luce curativa', desc: 'Ogni 3 s cura l\'alleato più ferito: 6% della sua vita più il 100% del proprio attacco. Chi è appena stato curato riceve metà cure per 2 s.' },
-  Mago:      { hp: 70,  atk: 10, def: 1, spd: 1.6, color: '#C08CFF', ability: 'Tempesta arcana', desc: 'Ogni 5 s scaglia un fulmine arcano: 250% dei danni, ignora l\'armatura.' },
+  Guerriero: { range: 1, hp: 135, atk: 14, def: 5, spd: 1.1, block: 0.08, color: '#F08A5D', ability: 'Fendente', desc: 'Sta in prima linea (gittata 1): i nemici colpiscono sempre chi è più vicino. Para l\'8% dei colpi e ogni 3 attacchi sferra un colpo pesante: 220% dei danni sul bersaglio.' },
+  Arciere:   { range: 3, hp: 80,  atk: 12, def: 1, spd: 1.0, color: '#7ED36F', ability: 'Marchio', desc: 'Ogni 3 attacchi marchia il bersaglio: +30% danni subiti per 4 s.' },
+  Curatore:  { range: 5, hp: 85,  atk: 7,  def: 2, spd: 1.3, color: '#F2E27A', ability: 'Luce curativa', desc: 'Ogni 3 s cura l\'alleato più ferito: 6% della sua vita più il 100% del proprio attacco. Chi è appena stato curato riceve metà cure per 2 s.' },
+  Mago:      { range: 4, hp: 70,  atk: 10, def: 1, spd: 1.6, color: '#C08CFF', ability: 'Tempesta arcana', desc: 'Ogni 5 s scaglia un fulmine arcano: 250% dei danni, ignora l\'armatura.' },
 };
 
 const RARITY = {
@@ -812,6 +812,7 @@ if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JS
 const ZONE_BASE = [0, 1]; for (let z = 2; z <= MAX_ZONE; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n); }
 
+const ENEMY_WALK = 2.6; // secondi per entrare in scena: i nemici arrivano insieme, in gruppo, alla stessa velocità
 function makeEnemies(s) {
   const n = s.battle, Z = ZONES[s.zone], f = enemyScale(s.zone, n), pool = Z.pool;
   const list = [];
@@ -823,7 +824,7 @@ function makeEnemies(s) {
     const cls = SPECIES[sp].cls, boss = n === BOSS_BATTLE && i === 0, b = CLASSES[cls], sec = boss && secret;
     const big = s.zone % 5 === 0; // i boss di pianeta (zone 5 e 10) sono più duri
     const hp = Math.round(b.hp * 0.45 * f * (boss ? (big ? 8 : 4) : 1) * (sec ? 1.5 : 1));
-    return { side: 'e', idx: i, species: sp, cls, boss, secret: sec, hp, maxHp: hp, atk: b.atk * 0.46 * f * (boss ? (big ? 1.6 : 1.3) : 1) * (sec ? 1.15 : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: (1.4 + i * 0.9) / moveSpeed(s), arriveMax: (1.4 + i * 0.9) / moveSpeed(s) };
+    return { side: 'e', idx: i, species: sp, cls, boss, secret: sec, hp, maxHp: hp, atk: b.atk * 0.46 * f * (boss ? (big ? 1.6 : 1.3) : 1) * (sec ? 1.15 : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: ENEMY_WALK / moveSpeed(s), arriveMax: ENEMY_WALK / moveSpeed(s) };
   });
 }
 
@@ -840,8 +841,8 @@ function ready(list) { return list.filter(u => u.hp > 0 && !(u.arrive > 0)); }
 function frontTarget(s, list) {
   const a = ready(list); if (!a.length) return null;
   if (a[0].side !== 'p') return a[0];
-  const front = a.filter(u => u.cls === 'Guerriero'); // i nemici colpiscono prima i Guerrieri, a caso tra quelli in piedi
-  const pool = front.length ? front : a; return pool[Math.floor(rnd(s) * pool.length)];
+  // i nemici colpiscono solo il personaggio più vicino: gittata più bassa, poi chi sta più avanti nella fila
+  let best = a[0]; for (const u of a) { const g = CLASSES[u.cls].range, gb = CLASSES[best.cls].range; if (g < gb || (g === gb && u.idx < best.idx)) best = u; } return best;
 }
 
 function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
@@ -1448,15 +1449,15 @@ function buildScene() {
   pEls = []; eEls = [];
   const isRanged = c => c === 'Arciere' || c === 'Mago' || c === 'Curatore';
   // squadra: mischia davanti, a distanza dietro con uno stacco
-  const melee = orderFront(B.party).filter(o => !isRanged(o.u.cls)), ranged = orderFront(B.party).filter(o => isRanged(o.u.cls));
-  const place = (list, x0) => list.forEach(({ u }, k) => {
-    const x = x0 - k * 15, y = 26 + (k % 2) * 6;
+  // ognuno si mette alla distanza della sua gittata: prima i Guerrieri, poi Arcieri, Maghi e Curatori
+  const order = orderFront(B.party);
+  const place = (list) => list.forEach(({ u }, k) => {
+    const x = 168 - k * 15 - (F.CLASSES[u.cls].range - 1) * 6, y = 26 + (k % 2) * 6;
     const el = document.createElement('div'); el.className = 'u'; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 20 - (k % 2) * 5;
     el.innerHTML = `<div class="hpb"><b style="background:#7ED36F"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
     sc.appendChild(el); pEls[u.idx] = el;
   });
-  place(melee, 168);
-  place(ranged, (melee.length ? 168 - melee.length * 15 - 34 : 168));
+  place(order);
   // nemici: quelli da mischia si ammassano sul primo bersaglio, quelli a distanza restano indietro
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
@@ -1506,7 +1507,7 @@ function updateScene() {
   const m = B.over === 'win' || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); });
-  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (u.arrive > 0 ? tx + Math.min(420 - tx, u.arrive * 170 * F.moveSpeed(S)) : tx) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
+  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (u.arrive > 0 ? tx + 240 * u.arrive / u.arriveMax : tx) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
   updateLog();
 }
 let floats = 0;
@@ -1557,6 +1558,7 @@ function handle(ev) {
 
 // ---------- HUD ----------
 function hud() {
+  if (!S.dmgLog || S.dmgLog.zone !== S.zone) S.dmgLog = { since: S.clock || 0, by: {}, zone: S.zone }; // i danni per membro ripartono a ogni zona
   const mr = F.missionsReady(S), bt = document.querySelector('[data-tab=bestiario]'); if (bt) bt.classList.toggle('dot', mr > 0); const shb = document.querySelector('[data-tab=shop]'); if (shb) shb.classList.toggle('dot', F.dailyReady(S));
   $('#gold').textContent = cfmt(S.gold); $('#astri').textContent = cfmt(S.astri);
   const pl = F.planetOf(S.zone); $('#ptitle').textContent = pl.name; $('#where').textContent = `Zona ${S.zone} · Battaglia ${S.battle}/30`;
@@ -1599,7 +1601,7 @@ function statsHTML(it, lv) {
 }
 function fullStats(st) {
   const pc = v => (v * 100).toFixed(1).replace('.', ',') + '%';
-  const rows = [['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)]];
+  const rows = [['Gittata', String(F.CLASSES[st.cls].range)], ['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)]];
   return `<div class="fstats">${rows.map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join('')}</div>`;
 }
 function ptsHTML(id) {
@@ -1668,7 +1670,7 @@ function bagForMember(id) {
 }
 function dmgHTML() { const d = S.dmgLog || { by: {}, since: S.clock || 0 }, ids = Object.keys(d.by).filter(id => S.roster[id]).sort((a, b) => d.by[b] - d.by[a]), tot = ids.reduce((x, id) => x + d.by[id], 0), secs = Math.max(1, (S.clock || 0) - d.since);
     return `<div class="ph"><h2>Danni per membro</h2><button class="sb" data-act="dmgreset" style="min-height:28px;font-size:11px">Azzera</button></div>
-    <div class="card">${ids.length ? ids.map(id => { const m = S.roster[id], c = CC(F.SPECIES[m.species].cls); return `<div class="dmrow"><span class="dmn">${esc(m.name)}</span><div class="dmbar"><b style="width:${100 * d.by[id] / d.by[ids[0]]}%;background:${c}"></b></div><span class="dmv">${cfmt(d.by[id] / secs)}/s · ${Math.round(100 * d.by[id] / tot)}%</span></div>`; }).join('') : '<div class="note">Nessun dato ancora.</div>'}<div class="msub" style="margin-top:4px">Danni medi al secondo e quota sul totale, da ${dur(secs)} di battaglie.</div></div>`; }
+    <div class="card">${ids.length ? ids.map(id => { const m = S.roster[id], c = CC(F.SPECIES[m.species].cls); return `<div class="dmrow"><span class="dmn">${esc(m.name)}</span><div class="dmbar"><b style="width:${100 * d.by[id] / d.by[ids[0]]}%;background:${c}"></b></div><span class="dmv">${cfmt(d.by[id] / secs)}/s · ${Math.round(100 * d.by[id] / tot)}%</span></div>`; }).join('') : '<div class="note">Nessun dato ancora.</div>'}<div class="msub" style="margin-top:4px">Danni medi al secondo e quota sul totale nella zona attuale, da ${dur(secs)} di battaglie. Si azzerano a ogni cambio di zona.</div></div>`; }
 let showDmg = false;
 function pSquadra() {
   const slots = F.slotCount(S), n = F.creaturesInTeam(S);
@@ -1923,7 +1925,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 07:26</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 07:32</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -2139,7 +2141,7 @@ document.addEventListener('click', e => {
   else if (a === 'fuseopen') { showFuse(); return; }
   else if (a === 'fuse') { const it = F.fuse(S, t.dataset.k); if (it) { const r = F.ITEM_RARITY.find(x => x.key === it.rarity); snd('rare'); toast(`Fusione riuscita: <b style="color:${r.color}">${esc(F.itemName(it))}</b>`, r.color); } showFuse(); dirty = true; return; }
   else if (a === 'dmgtoggle') { showDmg = !showDmg; }
-  else if (a === 'dmgreset') { S.dmgLog = { since: S.clock || 0, by: {} }; }
+  else if (a === 'dmgreset') { S.dmgLog = { since: S.clock || 0, by: {}, zone: S.zone }; }
   else if (a === 'selrune') { selRune = selRune === t.dataset.k ? null : t.dataset.k; selItem = null; }
   else if (a === 'selshop') selShop = selShop === +t.dataset.i ? null : +t.dataset.i;
   else if (a === 'equipall') { const n = F.autoEquip(S); toast(n ? `Equipaggiati ${n} oggetti` : 'Nessun miglioramento disponibile'); }
