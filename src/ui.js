@@ -372,7 +372,7 @@ function synergyHTML() {
 }
 // Statistiche di un oggetto, in stile scheda
 function statsHTML(it, lv) {
-  const sm = 1 + 0.1 * (lv || 0), main = F.mainStats(it), r = F.ITEM_RARITY.find(x => x.key === it.rarity);
+  const sm = 1 + F.SLOT_STEP * (lv || 0), main = F.mainStats(it), r = F.ITEM_RARITY.find(x => x.key === it.rarity);
   const val = (k, v) => F.PCT_STATS.includes(k) ? (v * sm * 100).toFixed(2).replace('.', ',') + '%' : (v * sm).toLocaleString('it-IT', { maximumFractionDigits: 1 });
   const rows = Object.keys(main).map(k => `<div class="srow2"><span>${F.STAT_LABEL[k]}</span><b>${val(k, main[k])}</b></div>`).join('');
   const bon = (it.bonus || []).map(b => `<div class="srow2 bon"><span><i style="background:${r.color}"></i>${F.STAT_LABEL[b.k]}</span><b>${val(b.k, F.bonusValue(it, b))}</b></div>`).join('');
@@ -416,13 +416,13 @@ function eqHTML(id) {
   const m = S.roster[id], cls = F.SPECIES[m.species].cls;
   return `<div class="eqgrid">${F.SLOTS.map(sl => { const it = m.eq[sl], lv = m.slv[sl] || 0, k = F.kindOf(sl), sel = selSlot === id + ':' + sl;
       const r = it ? F.ITEM_RARITY.find(x => x.key === it.rarity) : null, col = r ? r.color : '#4A5088';
-      return `<button class="eqt${sel ? ' sel' : ''}${it ? '' : ' empty'}${it && F.rarityIndex(it.rarity) >= 4 ? ' fx fx-' + it.rarity : ''}" style="border-color:${col};--c:${col}" data-act="selslot" data-id="${id}" data-slot="${sl}" aria-label="${F.SLOT_LABEL[sl]}${it ? ': ' + esc(F.itemName(it)) : ' vuoto'}">${itemIcon(k, it ? it.cls : cls, col, 22)}<span>${it ? cfmt(Math.round(F.itemPower(it) * (1 + 0.1 * lv))) : F.SLOT_LABEL[sl]}</span>${lv ? `<i>+${lv}</i>` : ''}</button>`; }).join('')}</div>
+      return `<button class="eqt${sel ? ' sel' : ''}${it ? '' : ' empty'}${it && F.rarityIndex(it.rarity) >= 4 ? ' fx fx-' + it.rarity : ''}" style="border-color:${col};--c:${col}" data-act="selslot" data-id="${id}" data-slot="${sl}" aria-label="${F.SLOT_LABEL[sl]}${it ? ': ' + esc(F.itemName(it)) : ' vuoto'}">${itemIcon(k, it ? it.cls : cls, col, 22)}<span>${it ? cfmt(Math.round(F.itemPower(it) * (1 + F.SLOT_STEP * lv))) : F.SLOT_LABEL[sl]}</span>${lv ? `<i>+${lv}</i>` : ''}</button>`; }).join('')}</div>
     ${(() => { if (!selSlot || selSlot.split(':')[0] !== id) return '<div class="note">Tocca un posto per vederlo, togliere l\'oggetto o potenziare lo slot.</div>';
       const sl = selSlot.split(':')[1], it = m.eq[sl], lv = m.slv[sl] || 0, c = F.slotCost(lv), rk = F.slotRune(lv), rr = F.RUNE[rk];
       const r = it ? F.ITEM_RARITY.find(x => x.key === it.rarity) : null;
       return `<div class="card eqdet" style="border-color:${r ? r.color : 'var(--line)'}"><div><b style="color:${r ? r.color : 'var(--muted)'}">${it ? esc(F.itemName(it)) : F.SLOT_LABEL[sl] + ' vuoto'}</b><div class="msub">${it ? r.label + ' · ' + F.SLOT_LABEL[F.kindOf(sl)] + ' · ' : ''}slot +${lv}</div>${it ? statsHTML(it, lv) : ''}</div>
       <div class="row2">${it ? `<button class="sb" data-act="uneq" data-id="${id}" data-slot="${sl}">Togli</button>` : ''}<button class="sb" data-act="slotup" data-id="${id}" data-slot="${sl}" ${lv >= 10 || S.astri < c ? 'disabled' : ''}>${lv >= 10 ? 'Slot al massimo' : `Potenzia slot a +${lv + 1} · ${c} ${icon('gem', '#F49AC1', 12)}`}</button></div></div>`; })()}
-  <div class="note">Il livello dello slot resta anche se cambi oggetto: +10% al potere per livello, fino a +10. Si paga in Astri (10, 20, 30… fino a 100).</div>`;
+  <div class="note">Il livello dello slot resta anche se cambi oggetto: +2% alle statistiche dell'oggetto per livello, fino a +20% a +10. Si paga in Astri (10, 20, 30… fino a 100).</div>`;
 }
 function showEquip(id) {
   equipOpen = id; const m = S.roster[id], sp = F.SPECIES[m.species], st = F.memberStats(S, id);
