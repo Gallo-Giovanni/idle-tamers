@@ -121,8 +121,8 @@ const ITEM_IC = {
   orecchini: '<circle cx="8" cy="5" r="1.5"/><circle cx="16" cy="5" r="1.5"/><path d="M8 7v4M16 7v4"/><path d="M8 11l2 4-2 3-2-3zM16 11l2 4-2 3-2-3z" fill="currentColor"/>',
   anello: '<circle cx="12" cy="15" r="6"/><path d="M10 6l2-3 2 3-2 3z" fill="currentColor"/>',
 };
-const WEAP_IC = { Tank: 'mazza', Guerriero: 'spada', Arciere: 'arco', Mago: 'bastone', Curatore: 'bastone' };
-const SEC_IC = { Tank: 'scudo', Guerriero: 'pugnale', Arciere: 'faretra', Mago: 'tomo', Curatore: 'tomo' };
+const WEAP_IC = { Guerriero: 'spada', Arciere: 'arco', Mago: 'bastone', Curatore: 'bastone' };
+const SEC_IC = { Guerriero: 'pugnale', Arciere: 'faretra', Mago: 'tomo', Curatore: 'tomo' };
 function itemIconKey(kind, cls) { return kind === 'arma' ? WEAP_IC[cls] || 'spada' : kind === 'secondaria' ? SEC_IC[cls] || 'scudo' : kind; }
 // Icone oggetto in pixel art 16x16 (colori realistici). Lettere -> colori della palette dell'oggetto.
 const IPX = {
@@ -211,7 +211,7 @@ let confirmRune = null, tab = 'squadra', bagView = 'zaino', dirty = true, selIte
 const scene = () => $('#scene');
 let pEls = [], eEls = [];
 function orderFront(list) {
-  const rank = { Tank: 0, Guerriero: 1, Arciere: 2, Mago: 3, Curatore: 4 };
+  const rank = { Guerriero: 1, Arciere: 2, Mago: 3, Curatore: 4 };
   return list.map((u, i) => ({ u, i })).sort((a, b) => rank[a.u.cls] - rank[b.u.cls] || a.i - b.i);
 }
 function buildScene() {
@@ -414,7 +414,7 @@ function eqHTML(id) {
 }
 function showEquip(id) {
   equipOpen = id; const m = S.roster[id], sp = F.SPECIES[m.species], st = F.memberStats(S, id);
-  $('#modal').innerHTML = `<div class="mod eqmod" role="dialog" aria-modal="true" aria-labelledby="eqt"><div class="eqhead"><div class="mspr">${sprite(m.species, 3)}</div><div><h2 id="eqt" style="text-align:left;font-size:20px;margin:0">${esc(m.name)}</h2><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · Lv ${m.lvl} · Potere ${fmt(F.memberPower(S, id))}</div></div><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
+  $('#modal').innerHTML = `<div class="mod eqmod" role="dialog" aria-modal="true" aria-labelledby="eqt"><div class="eqhead"><div class="mspr">${sprite(m.species, 3)}</div><div><h2 id="eqt" style="text-align:left;font-size:20px;margin:0">${esc(m.name)}</h2><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · Lv ${m.lvl} · Potere ${fmt(F.memberPower(S, id))}</div></div><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
   ${fullStats(st)}
   ${eqHTML(id)}
   ${bagForMember(id)}</div>`;
@@ -541,7 +541,7 @@ function pShop() {
   <div class="ph"><h2 style="font-size:13px">Spazio</h2><span>+${F.SPACE_PACK.n} posti per sempre · max ${F.SPACE_PACK.perMonth} al mese</span></div>
   <div class="sgrid">${[['bag', 'Zaino', 'Posti zaino', F.bagCap(S)], ['chest', 'Forziere', 'Posti forziere', F.chestCap(S)]].map(([k, n, l, cap]) => { const left = F.spaceLeft(S, k); return `<div class="card sitem"><b>+${F.SPACE_PACK.n} ${l.toLowerCase()}</b><span>${n} ora: ${cap} posti</span><span>Questo mese: ancora ${left}</span><button class="pb" data-act="buyspace" data-k="${k}" ${left < 1 || S.astri < F.SPACE_PACK.cost ? 'disabled' : ''}>${left < 1 ? 'Finiti per questo mese' : F.SPACE_PACK.cost + ' Astri'}</button></div>`; }).join('')}</div>
   <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
-  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr">${sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}<br><small>prova gratis</small></button>`}</div>`; }).join('')}
+  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr">${sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}<br><small>prova gratis</small></button>`}</div>`; }).join('')}
   <div class="ph"><h2 style="font-size:13px">Abbonamento</h2></div>
   <div class="card passbig${F.hasPass(S) ? ' on' : ''}"><div class="pbhead"><div class="pbic">${ipx('collana', 44)}</div><div style="flex:1"><b class="pbt">Pass Astrale</b><div class="pbp">${F.PASS_PRICE}</div>${F.hasPass(S) ? `<div class="msub" style="color:#7ED36F">Attivo fino al ${new Date(S.pass).toLocaleDateString('it-IT')}</div>` : ''}</div></div>
    <ul class="pbl"><li><b>×2 oro</b> da ogni nemico</li><li><b>×2 esperienza</b> per tutta la squadra</li><li>Zaino e forziere <b>doppi</b> (${F.bagCap(S) + (F.hasPass(S) ? 0 : 20)} posti)</li><li>Guadagno offline fino a <b>8 ore</b> (invece di 4)</li><li>Vendita automatica anche dei <b>non comuni</b></li></ul>
@@ -575,7 +575,7 @@ function pBestiario() {
   ${F.PLANETS.map(pl => `<div class="ph"><h2 style="font-size:13px">${pl.name}</h2><span>${pl.species.filter(k => S.roster[k]).length}/${pl.species.length} · zone ${pl.zones[0]}-${pl.zones[1]}</span></div>
   <div class="bgrid">${pl.species.map(k => { const sp = F.SPECIES[k], m = S.roster[k], rar = F.RARITY[sp.rarity].label, z = F.zoneOf(k);
     const mis = missionHTML(k);
-    if (m) return `<div class="card best"><div class="bspr">${sprite(k, 3)}</div><b>${esc(m.name)}</b><span style="color:${CC(sp.cls)}">${sp.cls}</span><em>${rar}</em><small>Zona ${z} · dopo ${fmt(m.waitKills)} incontri</small>${mis}</div>`;
+    if (m) return `<div class="card best"><div class="bspr">${sprite(k, 3)}</div><b>${esc(m.name)}</b><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span><em>${rar}</em><small>Zona ${z} · dopo ${fmt(m.waitKills)} incontri</small>${mis}</div>`;
     return `<div class="card best"><div class="bspr">${sprite(k, 3, { sil: true })}</div><b>???</b><span>&nbsp;</span><em>${rar}</em><small>${z <= S.maxZone ? 'Zona ' + z + ' · incontri ' + fmt(S.hunt[k] || 0) : 'Zona ' + z + ' (bloccata)'}</small>${mis}</div>`; }).join('')}</div>`).join('')}
   ${secretHTML()}`;
 }
@@ -584,7 +584,7 @@ function secretHTML() {
   return `<div class="ph"><h2 style="font-size:13px" class="rbw">Boss segreti</h2><span>${n}/${L.length}</span></div>
   <div class="note">Molto di rado, al posto del boss di zona compare la sua versione gigante. Se lo sconfiggi si unisce subito alla squadra, più forte del ${Math.round((F.SECRET_MULT - 1) * 100)}%.</div>
   <div class="bgrid">${L.map(k => { const sp = F.SPECIES[k], m = S.roster[k], z = F.zoneOf(k);
-    return m ? `<div class="card best sec"><div class="bspr">${sprite(k, 3)}</div><b>${esc(m.name)}</b><span style="color:${CC(sp.cls)}">${sp.cls}</span><em class="rbw">Segreto</em><small>Zona ${z}</small></div>`
+    return m ? `<div class="card best sec"><div class="bspr">${sprite(k, 3)}</div><b>${esc(m.name)}</b><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span><em class="rbw">Segreto</em><small>Zona ${z}</small></div>`
       : `<div class="card best"><div class="bspr">${sprite(k, 3, { sil: true })}</div><b>???</b><span>&nbsp;</span><em>Segreto</em><small>Zona ${z}</small></div>`; }).join('')}</div>`;
 }
 function missionHTML(k) {
@@ -749,9 +749,9 @@ function showCapture(sp) {
    <div class="kick${d.secret ? ' rbw' : ''}">${d.secret ? 'BOSS SEGRETO CATTURATO' : 'NUOVA CREATURA'}</div>
    <div class="halo"><div class="bob">${sprite(sp, 9)}</div></div>
    <h2 id="capname">${esc(m.name)}</h2>
-   <div class="badges"><span class="rb${d.secret ? ' rbw' : ''}">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}</span></div>
+   <div class="badges"><span class="rb${d.secret ? ' rbw' : ''}">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}${d.tough ? ' robusto' : ''}</span></div>
    <p class="quote">«${esc(d.quote)}»</p>
-   <div class="card"><div class="kv"><span>Pianeta</span><b>${F.planetOf(F.zoneOf(sp)).name}</b></div>${d.secret ? `<div class="kv"><span>Bonus</span><b class="rbw">+${Math.round((F.SECRET_MULT - 1) * 100)}% vita, attacco e difesa</b></div>` : `<div class="kv"><span>Incontri prima della cattura</span><b>${fmt(m.waitKills)}</b></div>`}<div class="kv"><span>Abilità</span><b style="color:${CC(cls)}">${F.CLASSES[cls].ability}</b></div></div>
+   <div class="card"><div class="kv"><span>Pianeta</span><b>${F.planetOf(F.zoneOf(sp)).name}</b></div>${d.secret ? `<div class="kv"><span>Bonus</span><b class="rbw">+${Math.round((F.SECRET_MULT - 1) * 100)}% vita, attacco e difesa</b></div>` : `<div class="kv"><span>Incontri prima della cattura</span><b>${fmt(m.waitKills)}</b></div>`}<div class="kv"><span>Abilità</span><b style="color:${CC(cls)}">${F.CLASSES[cls].ability}</b></div>${d.tough ? `<div class="kv"><span>Robusto</span><b>vita e difesa ×${F.TOUGH.hp}, attacco ×${F.TOUGH.atk}</b></div>` : ''}</div>
    <form class="rename" data-id="${sp}"><label for="capn">Dai un nome</label><input id="capn" maxlength="16" value="${esc(m.name)}"><button class="sb" type="submit">Salva</button></form>
    ${inTeam ? '<div class="note">È già entrata in squadra.</div>' : `<button class="pb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
    <div class="row2"><button class="discord" data-act="share" data-id="${sp}">Copia per Discord</button><button class="sb" data-act="close">Continua</button></div>

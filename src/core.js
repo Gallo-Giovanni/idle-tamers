@@ -3,8 +3,7 @@
 'use strict';
 
 const CLASSES = {
-  Tank:      { hp: 180, atk: 7,  def: 7, spd: 1.4, block: 0.15, color: '#6E9BFF', ability: 'Provocazione', desc: 'Attira gli attacchi nemici, subisce il 30% di danni in meno e para il 15% dei colpi.' },
-  Guerriero: { hp: 110, atk: 14, def: 3, spd: 1.1, color: '#F08A5D', ability: 'Fendente', desc: 'Ogni 3 attacchi sferra un colpo pesante: 220% dei danni sul bersaglio.' },
+  Guerriero: { hp: 135, atk: 14, def: 5, spd: 1.1, block: 0.08, color: '#F08A5D', ability: 'Fendente', desc: 'Sta in prima linea: i nemici attaccano prima i Guerrieri. Para l\'8% dei colpi e ogni 3 attacchi sferra un colpo pesante: 220% dei danni sul bersaglio.' },
   Arciere:   { hp: 80,  atk: 12, def: 1, spd: 1.0, color: '#7ED36F', ability: 'Marchio', desc: 'Ogni 3 attacchi marchia il bersaglio: +30% danni subiti per 4 s.' },
   Curatore:  { hp: 85,  atk: 7,  def: 2, spd: 1.3, color: '#F2E27A', ability: 'Luce curativa', desc: 'Ogni 3 s cura l\'alleato più ferito: 6% della sua vita più il 100% del proprio attacco. Chi è appena stato curato riceve metà cure per 2 s.' },
   Mago:      { hp: 70,  atk: 10, def: 1, spd: 1.6, color: '#C08CFF', ability: 'Tempesta arcana', desc: 'Ogni 5 s scaglia un fulmine arcano: 250% dei danni, ignora l\'armatura.' },
@@ -23,57 +22,57 @@ const SPECIES = {
   hero_arc: { name: 'Eroina Arciera', cls: 'Arciere', rarity: null, hero: true, quote: 'Una freccia, un bersaglio. Mai sprecare un colpo.' },
   hero_mag: { name: 'Eroe Mago',  cls: 'Mago',      rarity: null, hero: true, quote: 'La magia è solo pazienza molto veloce.' },
   glimmo:   { name: 'Glimmo',   cls: 'Arciere',   rarity: 'comune',    quote: 'Blip! Brillo solo per te.' },
-  cometuga: { name: 'Cometuga', cls: 'Tank',      rarity: 'comune',    quote: 'Piano piano... ma arrivo sempre.' },
+  cometuga: { name: 'Cometuga', cls: 'Guerriero', tough: true,      rarity: 'comune',    quote: 'Piano piano... ma arrivo sempre.' },
   sporello: { name: 'Sporello', cls: 'Curatore',      rarity: 'comune',    quote: 'Le mie spore sanno di luna.' },
   bzzt:     { name: 'Bzzt',     cls: 'Guerriero', rarity: 'noncomune', quote: 'Rotto? Ci penso io. A martellate.' },
-  astrillo: { name: 'Astrillo', cls: 'Tank',      rarity: 'noncomune', quote: 'Il mio guscio ha fermato una cometa.' },
+  astrillo: { name: 'Astrillo', cls: 'Guerriero', tough: true,      rarity: 'noncomune', quote: 'Il mio guscio ha fermato una cometa.' },
   nebulina: { name: 'Nebulina', cls: 'Mago',      rarity: 'rara',      quote: 'Le stelle mi hanno guidata fino a te. Adesso non ti liberi più di me.' },
   revuoto:  { name: 'Re Vuoto', cls: 'Guerriero', rarity: 'boss',      quote: 'Chi osa sconfiggere un re... merita di servirlo.' },
   scheggia:  { name: 'Scheggia',  cls: 'Guerriero', rarity: 'comune',    quote: 'Tagliente come il ghiaccio, fedele come una volpe.' },
-  geodino:   { name: 'Geodino',   cls: 'Tank',      rarity: 'comune',    quote: 'Dentro sono tutto ametista. Fuori, roccia dura.' },
+  geodino:   { name: 'Geodino',   cls: 'Guerriero', tough: true,      rarity: 'comune',    quote: 'Dentro sono tutto ametista. Fuori, roccia dura.' },
   lumispettro: { name: 'Lumispettro', cls: 'Curatore', rarity: 'comune',    quote: 'Non sono un fantasma. Sono solo molto luminoso.' },
   gemmerla:  { name: 'Gemmerla',  cls: 'Arciere',   rarity: 'noncomune', quote: 'Ogni mia piuma è una freccia di cristallo.' },
-  quarzillo: { name: 'Quarzillo', cls: 'Tank',      rarity: 'noncomune', quote: 'Piccolo golem, grande abbraccio.' },
+  quarzillo: { name: 'Quarzillo', cls: 'Guerriero', tough: true,      rarity: 'noncomune', quote: 'Piccolo golem, grande abbraccio.' },
   prismella: { name: 'Prismella', cls: 'Mago',      rarity: 'rara',      quote: 'Spezzo la luce in sette colori, e i nemici in sette pezzi.' },
   fiorastro: { name: 'Fiorastro', cls: 'Curatore', rarity: 'comune', quote: "Ogni petalo è una piccola stella. Ne regalo uno a te." },
   polvino: { name: 'Polvino', cls: 'Arciere', rarity: 'comune', quote: "Sono fatto di polvere di cometa. Non soffiare!" },
   meteorino: { name: 'Meteorino', cls: 'Guerriero', rarity: 'comune', quote: "Sono caduto dal cielo e mi è piaciuto." },
-  radichino: { name: 'Radichino', cls: 'Tank', rarity: 'noncomune', quote: "Metto radici dove serve: davanti a te." },
+  radichino: { name: 'Radichino', cls: 'Guerriero', tough: true, rarity: 'noncomune', quote: "Metto radici dove serve: davanti a te." },
   lucciolo: { name: 'Lucciolo', cls: 'Mago', rarity: 'noncomune', quote: "Faccio luce anche nelle notti più buie." },
   pipistrella: { name: 'Pipistrella', cls: 'Arciere', rarity: 'noncomune', quote: "Volo al contrario, così vedo il mondo dritto." },
   orbo: { name: 'Orbo', cls: 'Mago', rarity: 'rara', quote: "Ti osservo da sempre. Con affetto." },
   brinello: { name: 'Brinello', cls: 'Mago', rarity: 'comune', quote: "Un fiocco di neve con un carattere frizzante." },
-  stalagmo: { name: 'Stalagmo', cls: 'Tank', rarity: 'comune', quote: "Cresco di un millimetro all'anno. Ma che millimetro!" },
+  stalagmo: { name: 'Stalagmo', cls: 'Guerriero', tough: true, rarity: 'comune', quote: "Cresco di un millimetro all'anno. Ma che millimetro!" },
   cristallux: { name: 'Cristallux', cls: 'Guerriero', rarity: 'comune', quote: "Otto zampe, otto cristalli, un solo amico." },
   gufolunare: { name: 'Gufolunare', cls: 'Arciere', rarity: 'noncomune', quote: "Di notte vedo tutto. Di giorno pure." },
   ghiacciolo: { name: 'Ghiacciolo', cls: 'Curatore', rarity: 'noncomune', quote: "Le mie cure sono fresche come la luna." },
   lunella: { name: 'Lunella', cls: 'Arciere', rarity: 'comune', quote: "Danzo intorno alla luce della luna." },
   riflessa: { name: 'Riflessa', cls: 'Mago', rarity: 'rara', quote: "Guardami bene: dentro di me ci sei tu." },
   braciolo: { name: "Braciolo", cls: 'Guerriero', rarity: 'comune', quote: "Scotto un po', ma ti voglio bene." },
-  lavarospo: { name: "Lavarospo", cls: 'Tank', rarity: 'comune', quote: "Salto poco, resisto tanto." },
+  lavarospo: { name: "Lavarospo", cls: 'Guerriero', tough: true, rarity: 'comune', quote: "Salto poco, resisto tanto." },
   fiammella: { name: "Fiammella", cls: 'Mago', rarity: 'noncomune', quote: "Sono piccola, ma brucio di entusiasmo." },
   cenerino: { name: "Cenerino", cls: 'Arciere', rarity: 'comune', quote: "Sono fatto di cenere, ma ho la mira di fuoco." },
   magmolo: { name: "Magmolo", cls: 'Curatore', rarity: 'comune', quote: "Il mio calore guarisce. Ma non toccarmi." },
   salamandro: { name: "Salamandro", cls: 'Guerriero', rarity: 'noncomune', quote: "Coda di fuoco, cuore d'oro." },
-  vulcanello: { name: "Vulcanello", cls: 'Tank', rarity: 'noncomune', quote: "Se mi arrabbio, erutto. Di solito no." },
+  vulcanello: { name: "Vulcanello", cls: 'Guerriero', tough: true, rarity: 'noncomune', quote: "Se mi arrabbio, erutto. Di solito no." },
   fenicino: { name: "Fenicino", cls: 'Curatore', rarity: 'noncomune', quote: "Rinasco dalle mie ceneri. E dalle tue." },
   scoriatto: { name: "Scoriatto", cls: 'Arciere', rarity: 'comune', quote: "Miao. Ma con le scintille." },
   draghetto: { name: "Draghetto", cls: 'Mago', rarity: 'rara', quote: "Un giorno sarò enorme. Per ora ti proteggo lo stesso." },
-  ossidiana: { name: "Ossidiana", cls: 'Tank', rarity: 'noncomune', quote: "Lucido, duro, affidabile." },
+  ossidiana: { name: "Ossidiana", cls: 'Guerriero', tough: true, rarity: 'noncomune', quote: "Lucido, duro, affidabile." },
   lapillo: { name: "Lapillo", cls: 'Arciere', rarity: 'noncomune', quote: "Volo tra i fumi e non sbaglio un colpo." },
   solforo: { name: "Solforo", cls: 'Mago', rarity: 'rara', quote: "Puzzo un po', ma i miei incantesimi profumano di vittoria." },
-  imperatore: { name: "Imperatore Magma", cls: 'Tank', rarity: 'boss', quote: "Il fuoco obbedisce a me. E io, da oggi, a te." },
+  imperatore: { name: "Imperatore Magma", cls: 'Guerriero', tough: true, rarity: 'boss', quote: "Il fuoco obbedisce a me. E io, da oggi, a te." },
   ombretto: { name: "Ombretto", cls: 'Guerriero', rarity: 'comune', quote: "Vivo nel buio, ma mi piace la tua luce." },
   abissale: { name: "Abissale", cls: 'Curatore', rarity: 'comune', quote: "Le mie cure arrivano dal profondo." },
   lanternino: { name: "Lanternino", cls: 'Arciere', rarity: 'comune', quote: "Seguimi: conosco la strada nel buio." },
-  nullo: { name: "Nullo", cls: 'Tank', rarity: 'comune', quote: "Sono un cubo. Niente mi attraversa." },
+  nullo: { name: "Nullo", cls: 'Guerriero', tough: true, rarity: 'comune', quote: "Sono un cubo. Niente mi attraversa." },
   sussurro: { name: "Sussurro", cls: 'Mago', rarity: 'comune', quote: "Shhh. Sto lanciando un incantesimo." },
   tentacula: { name: "Tentacula", cls: 'Guerriero', rarity: 'noncomune', quote: "Otto braccia per abbracciarti. O per difenderti." },
   corvonero: { name: "Corvonero", cls: 'Arciere', rarity: 'noncomune', quote: "Gracchio poco, colpisco molto." },
-  guscionero: { name: "Guscionero", cls: 'Tank', rarity: 'noncomune', quote: "Chele forti, guscio più forte." },
+  guscionero: { name: "Guscionero", cls: 'Guerriero', tough: true, rarity: 'noncomune', quote: "Chele forti, guscio più forte." },
   eclissa: { name: "Eclissa", cls: 'Curatore', rarity: 'noncomune', quote: "Quando il sole si spegne, io curo." },
   milleocchi: { name: "Milleocchi", cls: 'Mago', rarity: 'rara', quote: "Ti vedo. Ti ho sempre visto." },
-  colosso: { name: "Colosso", cls: 'Tank', rarity: 'noncomune', quote: "Grande come una luna. Gentile come un gatto." },
+  colosso: { name: "Colosso", cls: 'Guerriero', tough: true, rarity: 'noncomune', quote: "Grande come una luna. Gentile come un gatto." },
   spettrina: { name: "Spettrina", cls: 'Arciere', rarity: 'comune', quote: "Una freccia d'ombra, un sorriso di luce." },
   stellanera: { name: "Stellanera", cls: 'Mago', rarity: 'rara', quote: "Sono una stella che ha scelto il buio. E te." },
   divoratore: { name: "Divoratore di Stelle", cls: 'Mago', rarity: 'boss', quote: "Ho mangiato mille stelle. La mille-e-una sarai tu... da proteggere." },
@@ -100,7 +99,8 @@ const MAX_ZONE = 20;
 let SECRET_P = 0.001; if (typeof process !== 'undefined' && process.env && process.env.SECP) SECRET_P = +process.env.SECP;
 const SECRET_MULT = 1.3; // un boss segreto in squadra è più forte del 30% rispetto alla sua versione normale
 const SECRET_SPECIES = [];
-for (let z = 1; z <= MAX_ZONE; z++) { const k = ZONE_BOSS[z], sk = k + '_s'; if (SPECIES[sk]) continue; SPECIES[sk] = { name: SPECIES[k].name + ' Gigante', cls: SPECIES[k].cls, rarity: 'segreto', secret: true, base: k, quote: 'Pochi mi hanno visto. Nessuno mi aveva mai battuto.' }; SECRET_SPECIES.push(sk); }
+const TOUGH = { hp: 1.5, def: 1.5, atk: 0.65 }; // Guerrieri robusti (gli ex Tank): più vita e difesa, meno attacco
+for (let z = 1; z <= MAX_ZONE; z++) { const k = ZONE_BOSS[z], sk = k + '_s'; if (SPECIES[sk]) continue; SPECIES[sk] = { name: SPECIES[k].name + ' Gigante', cls: SPECIES[k].cls, tough: SPECIES[k].tough, rarity: 'segreto', secret: true, base: k, quote: 'Pochi mi hanno visto. Nessuno mi aveva mai battuto.' }; SECRET_SPECIES.push(sk); }
 const ALL_SPECIES = PLANETS.flatMap(p => p.species);
 function planetOf(z) { return PLANETS.find(p => z >= p.zones[0] && z <= p.zones[1]); }
 function zoneOf(sp) { if (SPECIES[sp] && SPECIES[sp].base) sp = SPECIES[sp].base; for (let z = 1; z <= MAX_ZONE; z++) if (ZONES[z].pool.includes(sp) || ZONES[z].boss === sp) return z; return 1; }
@@ -124,8 +124,8 @@ const SLOTS = ['arma', 'secondaria', 'elmo', 'corazza', 'gambe', 'stivali', 'gua
 const KINDS = ['arma', 'secondaria', 'elmo', 'corazza', 'gambe', 'stivali', 'guanti', 'collana', 'orecchini', 'anello'];
 const kindOf = sl => sl === 'anello1' || sl === 'anello2' ? 'anello' : sl;
 const SLOT_LABEL = { arma: 'Arma', secondaria: 'Secondaria', elmo: 'Elmo', corazza: 'Corazza', gambe: 'Gambe', stivali: 'Stivali', guanti: 'Guanti', collana: 'Collana', orecchini: 'Orecchini', anello: 'Anello', anello1: 'Anello', anello2: 'Anello' };
-const WEAPON = { Tank: 'Mazza cometa', Guerriero: 'Spada stellare', Arciere: 'Arco di luce', Mago: 'Bastone nebulare', Curatore: 'Scettro di luce' };
-const SECONDARY = { Tank: 'Scudo cometa', Guerriero: 'Pugnale lunare', Arciere: 'Faretra siderale', Mago: 'Tomo runico', Curatore: 'Libro delle preghiere' };
+const WEAPON = { Guerriero: 'Spada stellare', Arciere: 'Arco di luce', Mago: 'Bastone nebulare', Curatore: 'Scettro di luce' };
+const SECONDARY = { Guerriero: 'Pugnale lunare', Arciere: 'Faretra siderale', Mago: 'Tomo runico', Curatore: 'Libro delle preghiere' };
 const ITEM_NAME = { elmo: 'Elmo siderale', corazza: 'Corazza siderale', gambe: 'Gambali siderali', stivali: 'Stivali cometa', guanti: 'Guanti stellari', collana: 'Collana del vuoto', orecchini: 'Orecchini di nebula', anello: 'Anello lunare' };
 const emptyEq = () => Object.fromEntries(SLOTS.map(k => [k, null]));
 const emptySlv = () => Object.fromEntries(SLOTS.map(k => [k, 0]));
@@ -315,8 +315,8 @@ function pctScale(it) { return Math.sqrt(rarMult(it.rarity)) * (1 + itemLevel(it
 function mainStats(it) {
   const P = itemBase(it), q = pctScale(it), c = it.cls, o = {};
   switch (it.slot) {
-    case 'arma': if (c === 'Tank') { o.atk = P * 0.4; o.def = P * 0.15; } else if (c === 'Arciere') { o.atk = P * 0.6; o.crit = 0.02 * q; } else if (c === 'Curatore') o.atk = P * 0.5; else o.atk = P * 0.7; break;
-    case 'secondaria': if (c === 'Tank') { o.def = P * 0.3; o.block = 0.03 * q; } else if (c === 'Arciere') { o.atk = P * 0.2; o.crit = 0.015 * q; } else if (c === 'Guerriero') { o.atk = P * 0.25; o.aspd = 0.03 * q; } else o.atk = P * 0.3; break;
+    case 'arma': if (c === 'Arciere') { o.atk = P * 0.6; o.crit = 0.02 * q; } else if (c === 'Curatore') o.atk = P * 0.5; else o.atk = P * 0.7; break;
+    case 'secondaria': if (c === 'Arciere') { o.atk = P * 0.2; o.crit = 0.015 * q; } else if (c === 'Guerriero') { o.atk = P * 0.25; o.aspd = 0.03 * q; } else o.atk = P * 0.3; break;
     case 'elmo': o.hp = P * 1.5; o.def = P * 0.05; break;
     case 'corazza': o.hp = P * 3; o.def = P * 0.1; o.block = 0.01 * q; break;
     case 'gambe': o.hp = P * 2; o.def = P * 0.05; break;
@@ -375,17 +375,17 @@ function ptsFree(m) { const p = ptsOf(m); return PTS_PER_LEVEL * (m.lvl - 1) - (
 function addPts(s, id, k, n) { const m = s.roster[id]; if (!m || !ATTRS[k]) return 0; const p = ptsOf(m); n = n > 0 ? Math.min(n, ptsFree(m)) : Math.max(n, -p[k]); p[k] += n; return n; }
 function resetPts(s, id) { const m = s.roster[id]; if (m) m.pts = { atk: 0, hp: 0, def: 0, crit: 0 }; }
 // distribuzione consigliata in base alla classe (usata dal pulsante "Auto" e dalla simulazione)
-const AUTO_PTS = { Tank: { hp: 0.5, def: 0.5 }, Guerriero: { atk: 0.6, crit: 0.2, hp: 0.2 }, Arciere: { atk: 0.5, crit: 0.4, hp: 0.1 }, Mago: { atk: 0.7, crit: 0.2, hp: 0.1 }, Curatore: { atk: 0.5, hp: 0.5 } };
+const AUTO_PTS = { Guerriero: { atk: 0.6, crit: 0.2, hp: 0.2 }, Arciere: { atk: 0.5, crit: 0.4, hp: 0.1 }, Mago: { atk: 0.7, crit: 0.2, hp: 0.1 }, Curatore: { atk: 0.5, hp: 0.5 } };
 function autoPts(s, id) { const m = s.roster[id], w = AUTO_PTS[SPECIES[m.species].cls]; let f = ptsFree(m); const keys = Object.keys(w); while (f > 0) { const p = ptsOf(m), tot = p.atk + p.hp + p.def + p.crit + 1; let best = keys[0], gap = -1e9; for (const k of keys) { const g = w[k] - p[k] / tot; if (g > gap) { gap = g; best = k; } } p[best]++; f--; } }
 // Sinergie: bonus per classi uguali (2/4/6) e per la squadra con tutte e 5 le classi
 const SYN_SAME = [[6, 0.20], [4, 0.12], [2, 0.05]], SYN_ALL = 0.08;
 function synergy(s, cls) { const cc = classCounts(s), n = cc[cls] || 0; let v = 0; for (const [k, b] of SYN_SAME) if (n >= k) { v = b; break; } if (Object.values(cc).every(x => x > 0)) v += SYN_ALL; return v; }
-function classCounts(s) { const c = { Tank: 0, Guerriero: 0, Arciere: 0, Mago: 0, Curatore: 0 }; for (const id of s.team) c[SPECIES[s.roster[id].species].cls]++; return c; }
+function classCounts(s) { const c = { Guerriero: 0, Arciere: 0, Mago: 0, Curatore: 0 }; for (const id of s.team) c[SPECIES[s.roster[id].species].cls]++; return c; }
 
 function memberStats(s, id) {
   const m = s.roster[id], cls = SPECIES[m.species].cls, b = CLASSES[cls];
-  const lm = (1 + 0.35 * (m.lvl - 1)) * (SPECIES[m.species].secret ? SECRET_MULT : 1);
-  let hp = b.hp * lm, atk = b.atk * lm, def = b.def * lm, crit = 0.05, critDmg = 1.5;
+  const lm = (1 + 0.35 * (m.lvl - 1)) * (SPECIES[m.species].secret ? SECRET_MULT : 1), tg = SPECIES[m.species].tough ? TOUGH : null;
+  let hp = b.hp * lm * (tg ? tg.hp : 1), atk = b.atk * lm * (tg ? tg.atk : 1), def = b.def * lm * (tg ? tg.def : 1), crit = 0.05, critDmg = 1.5;
   let aspd = 0, block = b.block || 0, dodge = 0;
   for (const sl of SLOTS) {
     const it = m.eq[sl]; if (!it) continue; const sm = 1 + 0.1 * ((m.slv && m.slv[sl]) || 0), st = itemStats(it);
@@ -409,7 +409,7 @@ function memberPower(s, id) { const st = memberStats(s, id); return Math.round(s
 let WZ = 1.03; if (typeof process !== 'undefined' && process.env && process.env.WZ) WZ = +process.env.WZ;
 function withinZone(n) { return Math.pow(WZ, n - 1); }
 // Passo tra le zone: sul primo pianeta più dolce, sul secondo più ripido (la squadra è già grande)
-let ZONE_K = [0, 0, 2.0, 2.0, 2.0, 2.0, 1.78, 1.78, 1.78, 1.78, 1.68, 1.5, 1.5, 1.5, 1.5, 1.5, 1.38, 1.38, 1.38, 1.38, 1.38]; // tarato: 20 zone in circa 30-35 giorni (giocatore che controlla ogni 4 ore)
+let ZONE_K = [0, 0, 2.0, 2.0, 2.0, 2.0, 1.74, 1.74, 1.74, 1.74, 1.62, 1.46, 1.46, 1.46, 1.46, 1.46, 1.35, 1.35, 1.35, 1.35, 1.35]; // tarato: 20 zone in circa 30-35 giorni (giocatore che controlla ogni 4 ore)
 if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JSON.parse(process.env.ZK);
 const ZONE_BASE = [0, 1]; for (let z = 2; z <= MAX_ZONE; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30) * ZONE_K[z];
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n); }
@@ -439,9 +439,11 @@ function startBattle(s) {
 
 function alive(list) { return list.filter(u => u.hp > 0); }
 function ready(list) { return list.filter(u => u.hp > 0 && !(u.arrive > 0)); }
-function frontTarget(list) {
+function frontTarget(s, list) {
   const a = ready(list); if (!a.length) return null;
-  const tank = a.find(u => u.cls === 'Tank'); return tank || a[0];
+  if (a[0].side !== 'p') return a[0];
+  const front = a.filter(u => u.cls === 'Guerriero'); // i nemici colpiscono prima i Guerrieri, a caso tra quelli in piedi
+  const pool = front.length ? front : a; return pool[Math.floor(rnd(s) * pool.length)];
 }
 
 function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
@@ -451,7 +453,6 @@ function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
   if (rnd(s) < src.crit) { dmg *= src.critDmg; crit = true; }
   if (!ignoreDef) dmg *= src.atk / (src.atk + 1.5 * dst.def); // difesa a rendimento decrescente: niente muri impossibili
   if (dst.mark > 0) dmg *= 1.3;
-  if (dst.cls === 'Tank' && dst.side === 'p') dmg *= 0.7;
   if (dst.block && rnd(s) < dst.block) dmg *= 0.5;
   dmg = Math.max(1, Math.round(dmg));
   const real = Math.min(dmg, dst.hp); src.dealt += real; dst.taken += real;
@@ -463,7 +464,7 @@ function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
 
 function attack(s, b, u, ev) {
   const foes = u.side === 'p' ? b.enemies : b.party;
-  const tgt = u.side === 'e' ? frontTarget(foes) : ready(foes)[0];
+  const tgt = u.side === 'e' ? frontTarget(s, foes) : ready(foes)[0];
   if (!tgt) return;
   u.hits++;
   if (ev) ev.push({ type: 'atk', side: u.side, idx: u.idx });
@@ -745,7 +746,9 @@ function claimMission(s, sp) {
 function missionsReady(s) { return ALL_SPECIES.filter(sp => missionReady(s, sp)).length; }
 function setZone(s, z) { if (z < 1 || z > s.maxZone) return false; s.zone = z; s.battle = 1; s.runHp = {}; s.zoneStart = s.clock || 0; return true; }
 function moveSpeed(s) { return 1 + B(s, 'move'); }
+function untank(o) { if (!o || typeof o !== 'object') return; if (o.cls === 'Tank') o.cls = 'Guerriero'; for (const k in o) untank(o[k]); }
 function migrate(s) {
+  untank(s); // la classe Tank non esiste più: armi e creature passano ai Guerrieri
   if (s.zone === undefined) { s.zone = 1; s.maxZone = 1; s.cleared = 0; s.battle = 1; s.maxBattle = 1; s.maxGlobal = 1; delete s.bossCleared; }
   if (typeof s.runes !== 'object' || s.runes === null) s.runes = { noncomune: s.runes || 0, rara: 0, epica: 0, leggendaria: 0 };
   if (s.runes.mitico === undefined) s.runes.mitico = 0; if (s.runes.astrale === undefined) s.runes.astrale = 0; if (s.runes.arcano === undefined) s.runes.arcano = 0;
@@ -818,7 +821,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
