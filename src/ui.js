@@ -220,7 +220,7 @@ function orderFront(list) {
   const rank = { Guerriero: 1, Arciere: 2, Mago: 3, Curatore: 4 };
   return list.map((u, i) => ({ u, i })).sort((a, b) => rank[a.u.cls] - rank[b.u.cls] || a.i - b.i);
 }
-function buildScene() {
+function buildScene() { setScroll();
   const sc = $('#units'); sc.innerHTML = '';
   pEls = []; eEls = [];
   const isRanged = c => c === 'Arciere' || c === 'Mago' || c === 'Curatore';
@@ -398,7 +398,7 @@ function statsHTML(it, lv) {
 }
 function fullStats(st) {
   const pc = v => (v * 100).toFixed(1).replace('.', ',') + '%';
-  const rows = [['Gittata', String(F.CLASSES[st.cls].range)], ['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)]];
+  const rows = [['Gittata', String(F.CLASSES[st.cls].range)], ['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)], ['Vel. movimento', '+' + pc(st.move || 0)]];
   return `<div class="fstats">${rows.map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join('')}</div>`;
 }
 function ptsHTML(id) {
@@ -458,7 +458,7 @@ function eqOrder() { return S.team.concat(Object.keys(S.roster).filter(x => !S.t
 function showEquip(id) {
   equipOpen = id; const m = S.roster[id], sp = F.SPECIES[m.species], st = F.memberStats(S, id), ord = eqOrder(), at = ord.indexOf(id);
   const pc = v => (v * 100).toFixed(0) + '%';
-  const mini = [['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(Math.round(st.def * 10) / 10).replace('.', ',')], ['Critico', pc(st.crit)], ['Danni crit.', pc(st.critDmg)], ['Vel. att.', '+' + pc(st.aspd)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)]];
+  const mini = [['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(Math.round(st.def * 10) / 10).replace('.', ',')], ['Critico', pc(st.crit)], ['Danni crit.', pc(st.critDmg)], ['Vel. att.', '+' + pc(st.aspd)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)], ['Vel. movimento', '+' + pc(st.move || 0)]];
   $('#modal').innerHTML = `<div class="mod eqmod doll" role="dialog" aria-modal="true" aria-labelledby="eqt" id="dollmod">
    <div class="dhead"><button class="ib" data-act="eqnav" data-d="-1" aria-label="Precedente" ${at <= 0 ? 'disabled' : ''}>◀</button>
     <div class="dtitle"><h2 id="eqt">${esc(m.name)}</h2><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · Lv ${m.lvl} · Potere <b style="color:var(--gold)">${fmt(F.memberPower(S, id))}</b> ${rarTag(m.species)}</div></div>
@@ -934,7 +934,7 @@ function showCmpPick(a) {
 function showCmp(a, b) {
   const A = [F.bareStats(S, a), F.memberStats(S, a)], Bs = [F.bareStats(S, b), F.memberStats(S, b)];
   const pc = v => (v * 100).toFixed(1).replace('.', ',') + '%', n = v => fmt(Math.round(v)), d1 = v => (Math.round(v * 10) / 10).toString().replace('.', ',');
-  const rows = [['Vita', 'hp', n], ['Attacco', 'atk', n], ['Difesa', 'def', d1], ['Prob. critico', 'crit', pc], ['Danni critici', 'critDmg', pc], ['Blocco', 'block', pc], ['Schivata', 'dodge', pc]];
+  const rows = [['Vita', 'hp', n], ['Attacco', 'atk', n], ['Difesa', 'def', d1], ['Prob. critico', 'crit', pc], ['Danni critici', 'critDmg', pc], ['Blocco', 'block', pc], ['Schivata', 'dodge', pc], ['Vel. movimento', 'move', pc]];
   const head = id => { const m = S.roster[id], sp = F.SPECIES[m.species]; return `<div class="cphead">${sprite(m.species, 2)}<b>${esc(m.name)}</b><span class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · Lv ${m.lvl}</span>${rarTag(m.species)}</div>`; };
   const cell = (x, y, f) => `<td class="${x > y * 1.0001 ? 'win' : x * 1.0001 < y ? 'lose' : ''}">${f(x)}</td>`;
   const table = (k, title) => `<div class="msub" style="margin:8px 0 4px">${title}</div><table class="cmpt"><tbody>${rows.map(([l, key, f]) => `<tr><th>${l}</th>${cell(A[k][key] || 0, Bs[k][key] || 0, f)}${cell(Bs[k][key] || 0, A[k][key] || 0, f)}</tr>`).join('')}<tr><th>Potere</th>${cell(k ? F.memberPower(S, a) : 0, k ? F.memberPower(S, b) : 0, n)}${cell(k ? F.memberPower(S, b) : 0, k ? F.memberPower(S, a) : 0, n)}</tr></tbody></table>`;

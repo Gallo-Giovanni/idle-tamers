@@ -314,11 +314,12 @@ let XP_R = 4.4, XP_0 = 30000; if (typeof process !== 'undefined' && process.env 
 function xpNeed(l) { return Math.round(XP_0 * Math.pow(XP_R, l - 1)); } // circa un livello per zona
 // ---------- Statistiche degli oggetti ----------
 // Statistiche principali dal tipo; statistiche bonus casuali: 0 comune, 1 non comune, 2 rara, 3 epica, 4 leggendaria
-const STAT_LABEL = { atk: 'Danni', hp: 'PV massimi', def: 'Difesa', crit: 'Prob. critico', critDmg: 'Danni critici', aspd: "Vel. d'attacco", block: 'Blocco', dodge: 'Schivata' };
-const PCT_STATS = ['crit', 'critDmg', 'aspd', 'block', 'dodge'];
-const BONUS_KEYS = ['atk', 'hp', 'def', 'crit', 'critDmg', 'aspd', 'block', 'dodge'];
-const BONUS_DEF = { atk: 0.12, hp: 0.8, def: 0.04, crit: 0.02, critDmg: 0.08, aspd: 0.04, block: 0.03, dodge: 0.03 };
-const SUFFIX = { atk: 'della Furia', hp: 'del Gigante', def: 'della Roccia', crit: 'del Falco', critDmg: 'della Tempesta', aspd: 'del Vento', block: 'del Bastione', dodge: "dell'Ombra" };
+const STAT_LABEL = { move: 'Vel. movimento', atk: 'Danni', hp: 'PV massimi', def: 'Difesa', crit: 'Prob. critico', critDmg: 'Danni critici', aspd: "Vel. d'attacco", block: 'Blocco', dodge: 'Schivata' };
+let MOVE_BOOTS = 0.04, MOVE_CAP = 1; if (typeof process !== 'undefined' && process.env && process.env.MVB) MOVE_BOOTS = +process.env.MVB; if (typeof process !== 'undefined' && process.env && process.env.MVC) MOVE_CAP = +process.env.MVC;
+const PCT_STATS = ['crit', 'critDmg', 'aspd', 'block', 'dodge', 'move'];
+const BONUS_KEYS = ['atk', 'hp', 'def', 'crit', 'critDmg', 'aspd', 'block', 'dodge', 'move'];
+const BONUS_DEF = { atk: 0.12, hp: 0.8, def: 0.04, crit: 0.02, critDmg: 0.08, aspd: 0.04, block: 0.03, dodge: 0.03, move: 0.05 };
+const SUFFIX = { atk: 'della Furia', hp: 'del Gigante', def: 'della Roccia', crit: 'del Falco', critDmg: 'della Tempesta', aspd: 'del Vento', block: 'del Bastione', dodge: "dell'Ombra", move: 'della Cometa' };
 const BONUS_COUNT = { comune: 0, noncomune: 1, rara: 2, epica: 3, leggendaria: 4, mitico: 4, astrale: 4, arcano: 5, eterno: 5, segreto: 5 };
 const rarMult = k => ITEM_RARITY.find(r => r.key === k).mult;
 // Livello oggetto = livello di zona (1-20): nella zona N cadono oggetti di livello da 1 a N
@@ -335,8 +336,8 @@ function mainStats(it) {
     case 'secondaria': if (c === 'Arciere') { o.atk = P * 0.2; o.crit = 0.015 * q; } else if (c === 'Guerriero') { o.atk = P * 0.25; o.aspd = 0.03 * q; } else o.atk = P * 0.3; break;
     case 'elmo': o.hp = P * 1.5; o.def = P * 0.05; break;
     case 'corazza': o.hp = P * 3; o.def = P * 0.1; o.block = 0.01 * q; break;
-    case 'gambe': o.hp = P * 2; o.def = P * 0.05; break;
-    case 'stivali': o.hp = P * 1; o.dodge = 0.02 * q; break;
+    case 'gambe': o.hp = P * 2; o.def = P * 0.05; o.move = MOVE_BOOTS * q; break;
+    case 'stivali': o.hp = P * 1; o.dodge = 0.02 * q; o.move = MOVE_BOOTS * q; break;
     case 'guanti': o.atk = P * 0.2; o.aspd = 0.03 * q; break;
     case 'collana': o.hp = P * 1.5; o.atk = P * 0.2; break;
     case 'orecchini': o.critDmg = 0.06 * q; o.crit = 0.01 * q; break;
@@ -402,11 +403,11 @@ function memberStats(s, id) {
   const m = s.roster[id], cls = SPECIES[m.species].cls, b = CLASSES[cls];
   const lm = (1 + 0.35 * (m.lvl - 1)) * (SPECIES[m.species].secret ? SECRET_MULT : (RAR_MULT[SPECIES[m.species].rarity] || 1)), tg = SPECIES[m.species].tough ? TOUGH : null;
   let hp = b.hp * lm * (tg ? tg.hp : 1), atk = b.atk * lm * (tg ? tg.atk : 1), def = b.def * lm * (tg ? tg.def : 1), crit = 0.05, critDmg = 1.5;
-  let aspd = 0, block = b.block || 0, dodge = 0;
+  let aspd = 0, block = b.block || 0, dodge = 0, move = 0;
   for (const sl of SLOTS) {
     const it = m.eq[sl]; if (!it) continue; const sm = 1 + SLOT_STEP * ((m.slv && m.slv[sl]) || 0), st = itemStats(it);
     atk += (st.atk || 0) * sm; hp += (st.hp || 0) * sm; def += (st.def || 0) * sm;
-    crit += (st.crit || 0) * sm; critDmg += (st.critDmg || 0) * sm; aspd += (st.aspd || 0) * sm; block += (st.block || 0) * sm; dodge += (st.dodge || 0) * sm;
+    crit += (st.crit || 0) * sm; critDmg += (st.critDmg || 0) * sm; aspd += (st.aspd || 0) * sm; block += (st.block || 0) * sm; dodge += (st.dodge || 0) * sm; move += (st.move || 0) * sm;
   }
   const syn = synergy(s, cls); hp *= 1 + syn; atk *= 1 + syn;
   const pt = ptsOf(m); atk *= 1 + 0.02 * pt.atk; hp *= 1 + 0.03 * pt.hp; def *= 1 + 0.03 * pt.def; block += 0.002 * pt.def; crit += 0.003 * pt.crit; critDmg += 0.015 * pt.crit;
@@ -414,7 +415,7 @@ function memberStats(s, id) {
   atk *= 1 + B(s, 'atk');
   def *= 1 + B(s, 'def');
   crit += B(s, 'crit'); critDmg += B(s, 'critDmg'); aspd += B(s, 'aspd'); block += B(s, 'block'); dodge += B(s, 'dodge');
-  return { hp: Math.round(hp), atk: Math.round(atk), def: Math.round(def * 10) / 10, spd: b.spd / (1 + Math.min(aspd, 1)), crit: Math.min(crit, 0.75), critDmg, block: Math.min(block, 0.5), dodge: Math.min(dodge, 0.4), aspd: Math.min(aspd, 1), cls };
+  return { hp: Math.round(hp), atk: Math.round(atk), def: Math.round(def * 10) / 10, spd: b.spd / (1 + Math.min(aspd, 1)), crit: Math.min(crit, 0.75), critDmg, block: Math.min(block, 0.5), dodge: Math.min(dodge, 0.4), aspd: Math.min(aspd, 1), move, cls };
 }
 // statistiche senza equipaggiamento (per i confronti)
 function bareStats(s, id) { const m = s.roster[id], eq = m.eq; m.eq = emptyEq(); try { return memberStats(s, id); } finally { m.eq = eq; } }
@@ -463,6 +464,7 @@ function makeEnemies(s) {
 function startBattle(s) {
   s.runHp = s.runHp || {};
   const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', pos: -CLASSES[st.cls].range, idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0 }; });
+  s.mvTeam = teamMove(s);
   return { party, enemies: makeEnemies(s), time: 0, over: null, pause: 0 };
 }
 
@@ -792,7 +794,9 @@ function claimMission(s, sp) {
 }
 function missionsReady(s) { return ALL_SPECIES.filter(sp => missionReady(s, sp)).length; }
 function setZone(s, z) { if (z < 1 || z > s.maxZone) return false; s.zone = z; s.battle = 1; s.runHp = {}; s.zoneStart = s.clock || 0; return true; }
-function moveSpeed(s) { return 1 + B(s, 'move'); }
+function moveSpeed(s) { return 1 + B(s, 'move') + (s.mvTeam || 0); }
+// velocità di marcia dagli oggetti: media della squadra (chi non ha bonus conta zero), al massimo +100%
+function teamMove(s) { if (!s.team || !s.team.length) return 0; let t = 0; for (const id of s.team) t += memberStats(s, id).move || 0; return Math.min(MOVE_CAP, t / s.team.length); }
 function untank(o) { if (!o || typeof o !== 'object') return; if (o.cls === 'Tank') o.cls = 'Guerriero'; for (const k in o) untank(o[k]); }
 function migrate(s) {
   untank(s); for (const id in (s.roster || {})) { const m = s.roster[id]; if (SPECIES[m.species] && !SPECIES[m.species].hero) m.name = SPECIES[m.species].name; } // i mostri tengono il loro nome: si rinominano solo gli eroi // la classe Tank non esiste più: armi e creature passano ai Guerrieri
@@ -868,7 +872,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { teamMove, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
