@@ -567,6 +567,7 @@ function ownedHTML() {
 function pShop() {
   const left = Math.max(0, F.nextMidnight(Date.now()) - Date.now()), h = Math.floor(left / 3600000), mi = Math.floor(left % 3600000 / 60000), ready = F.dailyReady(S);
   return `<div class="ph"><h2>Shop</h2><span>${icon('gem', '#F49AC1', 14)} ${fmt(S.astri)} Astri</span></div>
+  <div class="note" style="color:#9BFFB8;text-align:center">Versione di prova: per ora gli acquisti sono gratis, nessun pagamento reale.</div>
   <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min.`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
   <div class="ph" id="shop-astri"><h2 style="font-size:13px">Astri</h2><span>la moneta dello Shop</span></div>
   <div class="sgrid astri4">${F.ASTRI_PACKS.map((p, i) => `<div class="card sitem">${icon('gem', '#F49AC1', 26)}<b style="color:#F49AC1">${fmt(p.astri)} Astri</b>${F.astriFirst(S, i) ? '<span class="x2">×2 al primo acquisto</span>' : ''}<span>${p.name}</span><button class="pb" data-act="buyastri" data-i="${i}">${p.price}</button></div>`).join('')}</div>
@@ -589,7 +590,7 @@ function pShop() {
    <ul class="pbl"><li><b>×2 oro</b> da ogni nemico</li><li><b>×2 esperienza</b> per tutta la squadra</li><li>Zaino e forziere <b>doppi</b> (${F.bagCap(S) + (F.hasPass(S) ? 0 : 20)} posti)</li><li>Vendita automatica anche dei <b>non comuni</b></li></ul>
    <button class="pb wide" data-act="pass">${F.hasPass(S) ? 'Rinnova' : 'Attiva'}</button>${F.hasPass(S) ? '<button class="sb wide" data-act="passoff" style="margin-top:6px;width:100%">Togli il Pass (prova)</button>' : ''}</div>
   ${ownedHTML()}
-  <div class="note">Versione di prova: gli acquisti si sbloccano gratis, nessun pagamento reale.</div>`;
+`;
 }
 function pNegozio() {
   const left = Math.max(0, F.nextRefresh(Date.now()) - Date.now()), h = Math.floor(left / 3600000), mi = Math.floor(left % 3600000 / 60000);
