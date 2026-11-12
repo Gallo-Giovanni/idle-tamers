@@ -2063,7 +2063,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 13:58</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 14:03</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -2101,12 +2101,13 @@ function placePop() {
   // appena aperta, scorre quanto basta per mostrarla tutta
   if (popKey !== pc[1]) { popKey = pc[1]; const b = d.offsetTop + d.offsetHeight + 8 - (p.scrollTop + p.clientHeight); if (b > 0) p.scrollTop += b; }
 }
-let popKey = null;
+let popKey = null, scrollAt = 0, touching = false; // non ridisegnare mentre si scorre o si tocca il pannello
+setTimeout(() => { const p = $('#panel'); if (!p) return; p.addEventListener('scroll', () => { scrollAt = performance.now(); }, { passive: true }); p.addEventListener('touchstart', () => { touching = true; }, { passive: true }); p.addEventListener('touchend', () => { touching = false; scrollAt = performance.now(); }, { passive: true }); }, 0);
 function render() {
   const p = $('#panel');
   const y = p.scrollTop;
   p.innerHTML = tab === 'squadra' ? pSquadra() : tab === 'zaino' ? pZaino() : tab === 'negozio' ? pNegozio() : tab === 'shop' ? pShop() : tab === 'mappa' ? pMappa() : tab === 'bestiario' ? pBestiario() : tab === 'stelle' ? pStelle() : pAltro();
-  p.scrollTop = y; placePop();
+  placePop(); p.scrollTop = y; // prima il riquadro (allunga la pagina), poi la posizione: niente salti verso l'alto
   if (tab === 'altro') drawChart();
   document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-current', t.dataset.tab === tab ? 'page' : 'false'));
   dirty = false;
@@ -2457,7 +2458,7 @@ function frame(now) {
   handle(ev); updateScene(); hud();
   if (now - achAt > 1500) { achAt = now; for (const a of F.checkAch(S)) { toast(`Achievement: <b>${esc(a.name)}</b> · +${a.astri} Astri`, '#F2C14E'); dirty = true; } }
   if ($('#modal').hidden && capQueue.length) showCapture(capQueue.shift());
-  if (dirty && !skyDrag && now - renderAt > 700 && !document.activeElement.matches('input,select')) { renderAt = now; render(); }
+  if (dirty && !skyDrag && now - renderAt > 700 && now - scrollAt > 1500 && !touching && !document.activeElement.matches('input,select')) { renderAt = now; render(); }
   if (now - saveAt > 10000) { saveAt = now; if (F.ensureShop(S, Date.now())) toast('Il mercante ha nuovi oggetti', '#F49AC1'); save(); }
   requestAnimationFrame(frame);
 }

@@ -776,12 +776,13 @@ function placePop() {
   // appena aperta, scorre quanto basta per mostrarla tutta
   if (popKey !== pc[1]) { popKey = pc[1]; const b = d.offsetTop + d.offsetHeight + 8 - (p.scrollTop + p.clientHeight); if (b > 0) p.scrollTop += b; }
 }
-let popKey = null;
+let popKey = null, scrollAt = 0, touching = false; // non ridisegnare mentre si scorre o si tocca il pannello
+setTimeout(() => { const p = $('#panel'); if (!p) return; p.addEventListener('scroll', () => { scrollAt = performance.now(); }, { passive: true }); p.addEventListener('touchstart', () => { touching = true; }, { passive: true }); p.addEventListener('touchend', () => { touching = false; scrollAt = performance.now(); }, { passive: true }); }, 0);
 function render() {
   const p = $('#panel');
   const y = p.scrollTop;
   p.innerHTML = tab === 'squadra' ? pSquadra() : tab === 'zaino' ? pZaino() : tab === 'negozio' ? pNegozio() : tab === 'shop' ? pShop() : tab === 'mappa' ? pMappa() : tab === 'bestiario' ? pBestiario() : tab === 'stelle' ? pStelle() : pAltro();
-  p.scrollTop = y; placePop();
+  placePop(); p.scrollTop = y; // prima il riquadro (allunga la pagina), poi la posizione: niente salti verso l'alto
   if (tab === 'altro') drawChart();
   document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-current', t.dataset.tab === tab ? 'page' : 'false'));
   dirty = false;
@@ -1132,7 +1133,7 @@ function frame(now) {
   handle(ev); updateScene(); hud();
   if (now - achAt > 1500) { achAt = now; for (const a of F.checkAch(S)) { toast(`Achievement: <b>${esc(a.name)}</b> · +${a.astri} Astri`, '#F2C14E'); dirty = true; } }
   if ($('#modal').hidden && capQueue.length) showCapture(capQueue.shift());
-  if (dirty && !skyDrag && now - renderAt > 700 && !document.activeElement.matches('input,select')) { renderAt = now; render(); }
+  if (dirty && !skyDrag && now - renderAt > 700 && now - scrollAt > 1500 && !touching && !document.activeElement.matches('input,select')) { renderAt = now; render(); }
   if (now - saveAt > 10000) { saveAt = now; if (F.ensureShop(S, Date.now())) toast('Il mercante ha nuovi oggetti', '#F49AC1'); save(); }
   requestAnimationFrame(frame);
 }
