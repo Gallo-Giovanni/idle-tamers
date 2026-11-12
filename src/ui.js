@@ -938,11 +938,10 @@ async function shareScore() { if (!S.net || Date.now() - lastScore < 60000) retu
 // pallino sul pulsante se ci sono messaggi nuovi
 async function chatPeek() {
   if (chatOpen) return;
-  try {
-    const seen = +(localStorage.getItem('it_seen') || 0); if (!seen) { const r0 = await api('it_chat?select=id&order=id.desc&limit=1'); if (r0 && r0[0]) localStorage.setItem('it_seen', r0[0].id); return; }
-    const r = await api(`it_chat?select=id,player_id,nickname,body&id=gt.${seen}&order=id.asc&limit=20`);
-    const news = (r || []).filter(m => !S.net || m.player_id !== S.net.id); if (!news.length) return;
-    $('#chatbtn').classList.add('dot'); localStorage.setItem('it_seen', r[r.length - 1].id); // solo un pallino: sparisce quando apri la chat
+  try { // pallino se ci sono messaggi di altri più recenti dell'ultimo letto (anche appena entri nel gioco)
+    const seen = +(localStorage.getItem('it_seen') || 0);
+    const r = await api(`it_chat?select=id,player_id&id=gt.${seen}&order=id.desc&limit=20`);
+    if ((r || []).some(m => !S.net || m.player_id !== S.net.id)) $('#chatbtn').classList.add('dot');
   } catch (e) {}
 }
 document.addEventListener('click', async e => {
