@@ -421,8 +421,8 @@ function eqHTML(id) {
       const sl = selSlot.split(':')[1], it = m.eq[sl], lv = m.slv[sl] || 0, c = F.slotCost(lv), rk = F.slotRune(lv), rr = F.RUNE[rk];
       const r = it ? F.ITEM_RARITY.find(x => x.key === it.rarity) : null;
       return `<div class="card eqdet" style="border-color:${r ? r.color : 'var(--line)'}"><div><b style="color:${r ? r.color : 'var(--muted)'}">${it ? esc(F.itemName(it)) : F.SLOT_LABEL[sl] + ' vuoto'}</b><div class="msub">${it ? r.label + ' · ' + F.SLOT_LABEL[F.kindOf(sl)] + ' · ' : ''}slot +${lv}</div>${it ? statsHTML(it, lv) : ''}</div>
-      <div class="row2">${it ? `<button class="sb" data-act="uneq" data-id="${id}" data-slot="${sl}">Togli</button>` : ''}<button class="sb" data-act="slotup" data-id="${id}" data-slot="${sl}" ${lv >= 10 || S.runes[rk] < c ? 'disabled' : ''}>${lv >= 10 ? 'Slot al massimo' : `Potenzia slot · ${c} runa <span style="color:${rr.color}">${rr.label.replace('Runa ', '')}</span>`}</button></div></div>`; })()}
-  <div class="note">Il livello dello slot resta anche se cambi oggetto: +10% al potere per livello.</div>`;
+      <div class="row2">${it ? `<button class="sb" data-act="uneq" data-id="${id}" data-slot="${sl}">Togli</button>` : ''}<button class="sb" data-act="slotup" data-id="${id}" data-slot="${sl}" ${lv >= 10 || S.astri < c ? 'disabled' : ''}>${lv >= 10 ? 'Slot al massimo' : `Potenzia slot a +${lv + 1} · ${c} ${icon('gem', '#F49AC1', 12)}`}</button></div></div>`; })()}
+  <div class="note">Il livello dello slot resta anche se cambi oggetto: +10% al potere per livello, fino a +10. Si paga in Astri (10, 20, 30… fino a 100).</div>`;
 }
 function showEquip(id) {
   equipOpen = id; const m = S.roster[id], sp = F.SPECIES[m.species], st = F.memberStats(S, id);
@@ -996,7 +996,7 @@ document.addEventListener('click', e => {
   else if (a === 'sell') { F.sellItem(S, item); selItem = null; }
   else if (a === 'equip') { selSlot = null; eqSel = null; showEquip(id); return; }
   else if (a === 'selslot') { const v = id + ':' + t.dataset.slot; selSlot = selSlot === v ? null : v; }
-  else if (a === 'slotup') { if (confirmRune !== 'slot' + id + t.dataset.slot) { confirmRune = 'slot' + id + t.dataset.slot; toast('Tocca di nuovo per usare la runa', '#F2C14E'); setTimeout(() => { confirmRune = null; }, 3000); return; } confirmRune = null; if (F.upgradeSlot(S, id, t.dataset.slot)) rebuild(); }
+  else if (a === 'slotup') { if (confirmRune !== 'slot' + id + t.dataset.slot) { confirmRune = 'slot' + id + t.dataset.slot; toast('Tocca di nuovo per spendere gli Astri', '#F49AC1'); setTimeout(() => { confirmRune = null; }, 3000); return; } confirmRune = null; if (F.upgradeSlot(S, id, t.dataset.slot)) { snd('coin'); rebuild(); } }
   else if (a === 'sellrune1') { F.sellRunes(S, t.dataset.k, 1); }
   else if (a === 'sellruneall') { const g = F.sellRunes(S, t.dataset.k, S.runes[t.dataset.k]); toast(`+${g} Astri`); }
   else if (a === 'raise' && confirmRune !== 'raise' + item) { confirmRune = 'raise' + item; toast('Tocca di nuovo per usare la runa', '#F2C14E'); setTimeout(() => { confirmRune = null; }, 3000); return; }

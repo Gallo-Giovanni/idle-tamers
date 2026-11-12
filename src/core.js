@@ -711,8 +711,8 @@ function nextRarity(it) { const i = ITEM_RARITY.findIndex(r => r.key === it.rari
 function canRaise(s, it) { const n = nextRarity(it); return !!n && s.runes[n] > 0; }
 function raiseRarity(s, it) { const n = nextRarity(it); if (!n || s.runes[n] < 1) return false; s.runes[n]--; it.rarity = n; rollBonus(s, it); if (n === 'leggendaria') s.stats.legendary++; return true; }
 function slotRune(l) { return l < 4 ? 'noncomune' : l < 7 ? 'rara' : l < 9 ? 'epica' : 'leggendaria'; }
-function slotCost(l) { return 1; }
-function upgradeSlot(s, id, sl) { const m = s.roster[id]; if (!m) return false; const l = m.slv[sl] || 0, k = slotRune(l); if (l >= 10 || s.runes[k] < 1) return false; s.runes[k] -= 1; m.slv[sl] = l + 1; return true; }
+function slotCost(l) { return 10 * (l + 1); } // in Astri: 10, 20, ... 100 (550 per arrivare a +10)
+function upgradeSlot(s, id, sl) { const m = s.roster[id]; if (!m) return false; const l = m.slv[sl] || 0, c = slotCost(l); if (l >= 10 || s.astri < c) return false; s.astri -= c; m.slv[sl] = l + 1; return true; }
 // Rune in vendita nello Shop per Astri (provvisorio)
 const RUNE_BUY = { epica: 100, leggendaria: 250, mitico: 500, astrale: 1000, arcano: 2000 }; // verde e blu non si vendono: si trovano spesso
 function buyRune(s, k) { const c = RUNE_BUY[k]; if (!c || s.astri < c) return false; s.astri -= c; s.runes[k]++; return true; }
