@@ -841,7 +841,7 @@ async function registerNick(v) {
   try { const r = await api('rpc/it_register', { p_nickname: v }); S.net = { id: r.id, token: r.token, nick: r.nickname }; S.nick = r.nickname; save(); return 'ok'; }
   catch (err) { return /taken/.test(err.message) ? 'taken' : /check/.test(err.message) ? 'check' : 'net'; }
 }
-function closeModal() { equipOpen = null; $('#modal').hidden = true; $('#modal').innerHTML = ''; }
+function closeModal() { $('#modal').classList.remove('chatfull'); equipOpen = null; $('#modal').hidden = true; $('#modal').innerHTML = ''; }
 
 // ---------- chat globale e drop rari (Supabase) ----------
 const NET = { url: 'https://nvfpiwrienohvavvceqi.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52ZnBpd3JpZW5vaHZhdnZjZXFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NTQ4MzYsImV4cCI6MjEwODQzMDgzNn0.M_fmOZlu6qbdXw5flxwQsdvJxCgeMTY-WOpxwcLRSpA' };
@@ -864,27 +864,35 @@ async function chatLoad() {
   } catch (e) { chatErr = 'Connessione non riuscita. Riprovo tra poco.'; }
   if (chatOpen && document.querySelector('#modal .chatmod')) chatRender();
 }
-function chatRender() {
-  const me = S.net && S.net.id, list = $('#chatlist'), atBottom = !list || list.scrollHeight - list.scrollTop - list.clientHeight < 40;
-  let body;
-  if (chatTab === 'chat') {
-    body = `<div class="chatlist" id="chatlist">${chatMsgs.map(m => `<div class="cmsg${m.player_id === me ? ' me' : ''}"><time>${ago(m.created_at)}</time>${m.player_id !== me && me ? `<button class="rep" data-chat="report" data-id="${m.id}" aria-label="Segnala">segnala</button>` : ''}<span class="cn">${esc(m.nickname)}</span>${esc(clean(m.body))}</div>`).join('') || '<div class="note">Ancora nessun messaggio. Rompi il ghiaccio!</div>'}</div>
-    ${S.net ? `<form class="chatform" id="chatform"><input id="chatin" maxlength="200" placeholder="Scrivi come ${esc(S.net.nick)}…" autocomplete="off" aria-label="Messaggio"><button class="pb" type="submit">Invia</button></form>`
-      : `<form class="chatform" id="nickform"><input id="nickin" maxlength="16" minlength="3" value="${esc(S.nick || '')}" placeholder="Scegli un nickname (3-16)" autocomplete="off" aria-label="Nickname"><button class="pb" type="submit">Entra</button></form><div class="note">Il nickname sarà visibile a tutti e non si può cambiare. Niente insulti: i messaggi segnalati da 3 giocatori spariscono.</div>`}`;
-  } else if (chatTab === 'top') {
-    const me = S.net && S.net.id;
-    body = `<div class="note">Potenza totale: la somma del potere di tutti i tuoi personaggi (squadra e riserva).${S.net ? '' : ' Entra in chat con un nickname per comparire.'}</div><div class="chatlist">${chatTop.map((r, i) => `<div class="cmsg toprow${r.player_id === me ? ' me' : ''}"><b class="tpos">${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</b><span class="cn" style="flex:1">${esc(r.nickname)}</span><span class="msub">zona ${r.zone} · ${r.creatures} creature</span><b class="tpow">${cfmt(r.power)}</b></div>`).join('') || '<div class="note">Classifica vuota: sii il primo!</div>'}</div>`;
-  } else {
-    body = `<div class="note">Gli ultimi oggetti Astrale, Arcano, Eterno e Segreto trovati da tutti i giocatori.</div><div class="chatlist">${chatDrops.map(d => { const r = F.ITEM_RARITY.find(x => x.key === d.rarity); return `<div class="cmsg dropg">${itemIcon(d.slot, null, r.color, 20)}<div style="flex:1"><span class="cn">${esc(d.nickname)}</span>ha trovato <b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</b> · ${F.SLOT_LABEL[d.slot] || esc(d.slot)} Lv ${d.ilvl}<div class="msub">Zona ${d.zone} · ${ago(d.created_at)}</div></div></div>`; }).join('') || '<div class="note">Nessun drop raro ancora: il primo potresti essere tu.</div>'}</div>`;
-  }
-  $('#modal').innerHTML = `<div class="mod chatmod" role="dialog" aria-modal="true" aria-label="Chat globale"><div class="eqhead"><h2 style="margin:0;font-size:18px">Community</h2><button class="ib" data-chat="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
-  <div class="tabs2"><button class="sb${chatTab === 'chat' ? ' on' : ''}" data-chat="tab" data-v="chat">Chat</button><button class="sb${chatTab === 'drops' ? ' on' : ''}" data-chat="tab" data-v="drops">Drop rari</button><button class="sb${chatTab === 'top' ? ' on' : ''}" data-chat="tab" data-v="top">Classifica</button></div>
-  ${chatErr ? `<div class="note" style="color:#FF8A96">${chatErr}</div>` : ''}${body}</div>`;
-  $('#modal').hidden = false;
-  const l = $('#chatlist'); if (l && atBottom) l.scrollTop = l.scrollHeight;
+const nickColor = n => { let h = 0; for (const ch of String(n)) h = (h * 31 + ch.charCodeAt(0)) % 360; return `hsl(${h},75%,72%)`; };
+function chatListHTML() {
+  const me = S.net && S.net.id;
+  if (chatTab === 'chat') return chatMsgs.map(m => { const mine = m.player_id === me;
+    return `<div class="bub${mine ? ' me' : ''}">${mine ? '' : `<span class="cn" style="color:${nickColor(m.nickname)}">${esc(m.nickname)}</span>`}<div class="btxt">${esc(clean(m.body))}</div><div class="bmeta"><time>${m.id < 0 ? 'invio…' : ago(m.created_at)}</time>${!mine && me ? `<button class="rep" data-chat="report" data-id="${m.id}" aria-label="Segnala">segnala</button>` : ''}</div></div>`; }).join('') || '<div class="cempty">Ancora nessun messaggio.<br>Rompi il ghiaccio!</div>';
+  if (chatTab === 'top') return chatTop.map((r, i) => `<div class="cmsg toprow${r.player_id === me ? ' me' : ''}"><b class="tpos">${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</b><span class="cn" style="color:${nickColor(r.nickname)}">${esc(r.nickname)}</span><span class="msub">zona ${r.zone} · ${r.creatures} creature</span><b class="tpow">${cfmt(r.power)}</b></div>`).join('') || '<div class="cempty">Classifica vuota.</div>';
+  return chatDrops.map(d => { const r = F.ITEM_RARITY.find(x => x.key === d.rarity); return `<div class="cmsg dropg">${itemIcon(d.slot, null, r.color, 20)}<div style="flex:1"><span class="cn" style="color:${nickColor(d.nickname)}">${esc(d.nickname)}</span> ha trovato <b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</b><div class="msub">${F.SLOT_LABEL[d.slot] || d.slot} · Lv ${d.ilvl} · zona ${d.zone} · ${ago(d.created_at)}</div></div></div>`; }).join('') || '<div class="cempty">Nessun drop raro per ora.</div>';
 }
-function chatShow() { chatOpen = true; $('#chatbtn').classList.remove('dot'); chatRender(); chatLoad(); clearInterval(chatTimer); chatTimer = setInterval(chatLoad, 6000); }
-function chatClose() { chatOpen = false; clearInterval(chatTimer); closeModal(); }
+function chatRender(full) {
+  const list = $('#chatlist'), atBottom = !list || list.scrollHeight - list.scrollTop - list.clientHeight < 60;
+  if (!full && list && list.dataset.tab === chatTab) { // aggiorna solo i messaggi: quello che stai scrivendo resta
+    list.innerHTML = chatListHTML(); const er = $('#chaterr'); if (er) er.textContent = chatErr;
+    if (atBottom || chatTab !== 'chat') list.scrollTop = chatTab === 'chat' ? list.scrollHeight : list.scrollTop; return;
+  }
+  const foot = chatTab !== 'chat' ? (chatTab === 'top' ? `<div class="note">Potenza totale: la somma del potere di tutti i tuoi personaggi.</div>` : `<div class="note">Gli ultimi oggetti Astrale, Arcano, Eterno e Segreto trovati da tutti.</div>`)
+    : S.net ? `<form class="chatbar" id="chatform"><input id="chatin" maxlength="200" placeholder="Scrivi un messaggio…" autocomplete="off" enterkeyhint="send" aria-label="Messaggio"><button class="csend" type="submit" aria-label="Invia">➤</button></form>`
+    : `<div class="note">Scegli un nickname per scrivere in chat.</div>`;
+  $('#modal').classList.add('chatfull');
+  $('#modal').innerHTML = `<div class="mod chatmod" role="dialog" aria-modal="true" aria-label="Community">
+   <div class="chead"><div><h2>Community</h2><span class="msub">${S.net ? 'sei ' + esc(S.net.nick) : ''}</span></div><button class="ib" data-chat="close" aria-label="Chiudi">✕</button></div>
+   <div class="tabs2"><button class="sb${chatTab === 'chat' ? ' on' : ''}" data-chat="tab" data-v="chat">Chat</button><button class="sb${chatTab === 'drops' ? ' on' : ''}" data-chat="tab" data-v="drops">Drop rari</button><button class="sb${chatTab === 'top' ? ' on' : ''}" data-chat="tab" data-v="top">Classifica</button></div>
+   <div id="chaterr" class="cerr">${chatErr}</div>
+   <div class="chatlist${chatTab === 'chat' ? ' talk' : ''}" id="chatlist" data-tab="${chatTab}">${chatListHTML()}</div>
+   ${foot}</div>`;
+  $('#modal').hidden = false;
+  const l = $('#chatlist'); if (l && chatTab === 'chat') l.scrollTop = l.scrollHeight;
+}
+function chatShow() { chatOpen = true; $('#chatbtn').classList.remove('dot'); chatRender(true); chatLoad(); clearInterval(chatTimer); chatTimer = setInterval(chatLoad, 6000); }
+function chatClose() { chatOpen = false; clearInterval(chatTimer); $('#modal').classList.remove('chatfull'); closeModal(); }
 // invia al server i drop rari non ancora condivisi (anche quelli trovati offline)
 async function shareDrops() {
   if (!S.net || !S.rareLog) return;
@@ -897,7 +905,15 @@ function totalPower() { let p = 0; for (const id in S.roster) p += F.memberPower
 let lastScore = 0;
 async function shareScore() { if (!S.net || Date.now() - lastScore < 60000) return; lastScore = Date.now(); try { await api('rpc/it_post_score', { p_token: S.net.token, p_power: totalPower(), p_zone: S.cleared, p_creatures: F.capturedCount(S) }); } catch (e) {} }
 // pallino sul pulsante se ci sono messaggi nuovi
-async function chatPeek() { if (chatOpen) return; try { const r = await api('it_chat?select=id&order=id.desc&limit=1'); const seen = +(localStorage.getItem('it_seen') || 0); if (r && r[0] && r[0].id > seen) $('#chatbtn').classList.add('dot'); } catch (e) {} }
+async function chatPeek() {
+  if (chatOpen) return;
+  try {
+    const seen = +(localStorage.getItem('it_seen') || 0); if (!seen) { const r0 = await api('it_chat?select=id&order=id.desc&limit=1'); if (r0 && r0[0]) localStorage.setItem('it_seen', r0[0].id); return; }
+    const r = await api(`it_chat?select=id,player_id,nickname,body&id=gt.${seen}&order=id.asc&limit=20`);
+    const news = (r || []).filter(m => !S.net || m.player_id !== S.net.id); if (!news.length) return;
+    $('#chatbtn').classList.add('dot'); localStorage.setItem('it_seen', r[r.length - 1].id); // solo un pallino: sparisce quando apri la chat
+  } catch (e) {}
+}
 document.addEventListener('click', async e => {
   const t = e.target.closest('[data-chat]'); if (!t) return;
   const a = t.dataset.chat;
@@ -928,11 +944,12 @@ document.addEventListener('submit', async e => {
     catch (err) { toast(/taken/.test(err.message) ? 'Nickname già usato, scegline un altro' : /check/.test(err.message) ? 'Usa solo lettere, numeri, spazi, _ . -' : 'Registrazione non riuscita'); }
   } else if (e.target.id === 'chatform') {
     e.preventDefault(); const inp = $('#chatin'), v = inp.value.trim(); if (!v) return;
-    try { await api('rpc/it_post_message', { p_token: S.net.token, p_body: v }); inp.value = ''; await chatLoad(); const l = $('#chatlist'); if (l) l.scrollTop = l.scrollHeight; }
-    catch (err) { toast(/too_fast/.test(err.message) ? 'Piano! Aspetta qualche secondo' : 'Messaggio non inviato'); }
+    const tmp = { id: -Date.now(), player_id: S.net.id, nickname: S.net.nick, body: v, created_at: new Date().toISOString() }; chatMsgs.push(tmp); inp.value = ''; chatRender(); const l0 = $('#chatlist'); if (l0) l0.scrollTop = l0.scrollHeight; inp.focus();
+    try { await api('rpc/it_post_message', { p_token: S.net.token, p_body: v }); await chatLoad(); const l = $('#chatlist'); if (l) l.scrollTop = l.scrollHeight; }
+    catch (err) { chatMsgs = chatMsgs.filter(m => m !== tmp); chatRender(); inp.value = v; toast(/too_fast/.test(err.message) ? 'Piano! Aspetta qualche secondo' : 'Messaggio non inviato'); }
   }
 });
-setInterval(() => { shareDrops(); chatPeek(); }, 60000); setInterval(shareScore, 600000); setTimeout(() => { shareDrops(); chatPeek(); }, 3000);
+setInterval(shareDrops, 60000); setInterval(chatPeek, 20000); setInterval(shareScore, 600000); setTimeout(() => { shareDrops(); chatPeek(); }, 3000);
 
 // ---------- input ----------
 document.addEventListener('click', e => {
