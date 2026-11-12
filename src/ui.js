@@ -255,7 +255,7 @@ const dps = {}, lastDealt = {}, acc = {};
 let dpsAt = 0;
 function buildLog() {
   const box = $('#log'); logRows = [];
-  box.innerHTML = `<div class="lhead"><span id="alive"></span><span>danno medio / s</span></div><div class="pgrid">${B.party.map(u => `<div class="pc"><div class="pt"><i style="background:${F.CLASSES[u.cls].color}"></i><span class="pn">${esc(S.roster[u.id].name)}</span><b class="pd"></b></div><div class="hbar"><b></b></div></div>`).join('')}</div>`;
+  box.innerHTML = `<div class="lhead"><span id="alive"></span><span>vita · danno/s</span></div><div class="pgrid">${B.party.map(u => `<div class="pc"><div class="pt"><i style="background:${F.CLASSES[u.cls].color}"></i><span class="pn">${esc(S.roster[u.id].name)}</span><b class="ph2"></b><b class="pd"></b></div><div class="hbar"><b></b></div></div>`).join('')}</div>`;
   const cells = box.querySelectorAll('.pc');
   B.party.forEach((u, i) => { logRows.push([u, cells[i]]); lastDealt[u.idx] = 0; });
 }
@@ -273,7 +273,8 @@ function updateLog() {
     const pct = Math.max(0, u.hp / u.maxHp); if (u.hp > 0) alive++;
     const b = c.lastChild.firstChild; b.style.width = (100 * pct) + '%';
     b.style.background = pct > 0.6 ? '#7ED36F' : pct > 0.3 ? '#F2C14E' : '#FF5A6E';
-    c.querySelector('.pd').textContent = u.hp > 0 ? cfmt(dps[u.id] || 0) : 'KO';
+    c.querySelector('.ph2').textContent = u.hp > 0 ? cfmt(Math.ceil(u.hp)) : 'KO'; c.querySelector('.ph2').style.color = b.style.background;
+    c.querySelector('.pd').textContent = u.hp > 0 ? cfmt(dps[u.id] || 0) : '';
     c.classList.toggle('ko', u.hp <= 0);
     c.classList.toggle('mvp', u.hp > 0 && (dps[u.id] || 0) >= top && top > 1);
   }

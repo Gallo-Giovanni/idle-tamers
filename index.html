@@ -57,7 +57,7 @@ header{padding:6px 10px 5px;display:flex;flex-direction:column;gap:4px;flex-shri
 .pc{min-width:0}.pt{display:flex;align-items:center;gap:4px;font-size:10.5px;line-height:13px}
 .pt i{width:6px;height:6px;border-radius:2px;flex-shrink:0}.pn{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
 .pd{font-weight:600;color:var(--gold);font-variant-numeric:tabular-nums;font-size:10px}
-.hbar{height:3px;background:#1E2350;border-radius:2px;overflow:hidden;margin-top:1px}.hbar b{display:block;height:100%;transition:width .2s}
+.hbar{height:2px;background:#1E2350;border-radius:2px;overflow:hidden;margin-top:1px}.hbar b{display:block;height:100%;transition:width .2s}
 .pc.ko{opacity:.4}.pc.ko .pd{color:#FF8A96}.pc.mvp .pd{color:#FFD97A}
 #panel{flex:1;overflow-y:auto;padding:2px 10px 12px;min-height:0;font-size:13px}
 #toasts{position:absolute;left:12px;right:12px;bottom:78px;display:flex;flex-direction:column;gap:6px;z-index:30;pointer-events:none}
@@ -408,6 +408,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 @keyframes upg{50%{transform:translateY(-2px);box-shadow:0 0 0 2px var(--bg),0 0 14px #5dff8a}}
 .freeslot{display:flex;align-items:center;gap:8px;border:1px dashed var(--line);background:transparent;color:var(--muted);padding:10px 12px}.freeslot span{font-weight:700}.freeslot small{margin-left:auto;font-size:11px}
 .freeslot.lock{opacity:.6}.eqres{font-size:11px;white-space:nowrap}
+.pt .ph2{margin-left:auto;font-size:10px}.pt .pd{font-size:9.5px;color:var(--muted);font-weight:600;min-width:26px;text-align:right}.pt .pd::before{content:'· '}.pt .pd:empty::before{content:''}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -1586,7 +1587,7 @@ const dps = {}, lastDealt = {}, acc = {};
 let dpsAt = 0;
 function buildLog() {
   const box = $('#log'); logRows = [];
-  box.innerHTML = `<div class="lhead"><span id="alive"></span><span>danno medio / s</span></div><div class="pgrid">${B.party.map(u => `<div class="pc"><div class="pt"><i style="background:${F.CLASSES[u.cls].color}"></i><span class="pn">${esc(S.roster[u.id].name)}</span><b class="pd"></b></div><div class="hbar"><b></b></div></div>`).join('')}</div>`;
+  box.innerHTML = `<div class="lhead"><span id="alive"></span><span>vita · danno/s</span></div><div class="pgrid">${B.party.map(u => `<div class="pc"><div class="pt"><i style="background:${F.CLASSES[u.cls].color}"></i><span class="pn">${esc(S.roster[u.id].name)}</span><b class="ph2"></b><b class="pd"></b></div><div class="hbar"><b></b></div></div>`).join('')}</div>`;
   const cells = box.querySelectorAll('.pc');
   B.party.forEach((u, i) => { logRows.push([u, cells[i]]); lastDealt[u.idx] = 0; });
 }
@@ -1604,7 +1605,8 @@ function updateLog() {
     const pct = Math.max(0, u.hp / u.maxHp); if (u.hp > 0) alive++;
     const b = c.lastChild.firstChild; b.style.width = (100 * pct) + '%';
     b.style.background = pct > 0.6 ? '#7ED36F' : pct > 0.3 ? '#F2C14E' : '#FF5A6E';
-    c.querySelector('.pd').textContent = u.hp > 0 ? cfmt(dps[u.id] || 0) : 'KO';
+    c.querySelector('.ph2').textContent = u.hp > 0 ? cfmt(Math.ceil(u.hp)) : 'KO'; c.querySelector('.ph2').style.color = b.style.background;
+    c.querySelector('.pd').textContent = u.hp > 0 ? cfmt(dps[u.id] || 0) : '';
     c.classList.toggle('ko', u.hp <= 0);
     c.classList.toggle('mvp', u.hp > 0 && (dps[u.id] || 0) >= top && top > 1);
   }
@@ -2069,7 +2071,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 14:51</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 16:50</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
