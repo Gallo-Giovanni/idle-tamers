@@ -274,13 +274,16 @@ function updateLog() {
 let marching = null;
 function updateScene() {
   const en = B.enemies.filter(u => u.hp > 0);
-  const m = B.over === 'win' || (en.length > 0 && en.every(u => u.arrive > 0));
+  // telecamera: quando la prima linea avanza, avanza tutta la squadra e la scena la segue (la squadra resta ferma sullo schermo)
+  const adv = u => (u.pos === undefined || F.CLASSES[u.cls].range !== 1 || u.hp <= 0) ? 0 : u.pos + 1;
+  const cam = B.party.reduce((x, u) => Math.max(x, adv(u)), 0), moving = cam > (B._cam || 0) + 1e-6; B._cam = cam;
+  const m = B.over === 'win' || moving || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); });
-  B.party.forEach(u => { const el = pEls[u.idx]; if (el && u.pos !== undefined) el.style.left = (+el.dataset.x + (u.pos + F.CLASSES[u.cls].range) * 23) + 'px'; }); // la mischia avanza verso chi sta dietro
+  B.party.forEach(u => { const el = pEls[u.idx]; if (el) el.style.left = (+el.dataset.x + (F.CLASSES[u.cls].range === 1 && u.hp > 0 ? (adv(u) - cam) * 23 : 0)) + 'px'; });
   { const bb = $('#bossbar'), fb = B.enemies.find(u => u.boss && (F.SPECIES[u.species].base || u.species) === 'divoratore'); // barra grande solo per il boss finale
     if (bb) { const on = !!fb && fb.hp > 0 && !(fb.arrive > 0); bb.hidden = !on; if (on) { bb.firstChild.style.width = (148 * fb.hp / fb.maxHp) + 'px'; const nm = F.SPECIES[fb.species].name; if (bb.lastChild.textContent !== nm) bb.lastChild.textContent = nm; } } }
-  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (u.arrive > 0 ? tx + 240 * u.arrive / u.arriveMax : tx + (u.pos - F.CLASSES[u.cls].range) * 23) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
+  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (u.arrive > 0 ? tx + 240 * u.arrive / u.arriveMax : tx + (u.pos - F.CLASSES[u.cls].range - B._cam) * 23) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
   updateLog();
 }
 let floats = 0;
