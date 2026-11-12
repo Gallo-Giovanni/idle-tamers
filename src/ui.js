@@ -222,7 +222,7 @@ function buildScene() {
   // ognuno si mette alla distanza della sua gittata: prima i Guerrieri, poi Arcieri, Maghi e Curatori
   const order = orderFront(B.party);
   const place = (list) => list.forEach(({ u }, k) => {
-    const x = 168 - k * 15 - (F.CLASSES[u.cls].range - 1) * 6, y = 26 + (k % 2) * 6;
+    const x = 168 - k * 15 - (F.CLASSES[u.cls].range - 1) * 6, y = 26; // tutti sul pavimento
     const el = document.createElement('div'); el.className = 'u'; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 20 - (k % 2) * 5;
     el.innerHTML = `<div class="hpb"><b style="background:#7ED36F"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
     sc.appendChild(el); pEls[u.idx] = el;
@@ -232,7 +232,7 @@ function buildScene() {
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
     const bp = u.secret ? 4 : u.boss ? 3 : 2, r = isRanged(u.cls);
-    const x = r ? 236 + (F.CLASSES[u.cls].range - 3) * 16 + (rk++) * 8 : 190 + (mk++) * 7 - (u.boss ? 6 : 0), y = 26 + ((r ? rk : mk) % 2) * 5;
+    const x = r ? 236 + (F.CLASSES[u.cls].range - 3) * 16 + (rk++) * 8 : 190 + (mk++) * 7 - (u.boss ? 6 : 0), y = 26;
     const el = document.createElement('div'); el.className = 'u' + (u.secret ? ' secret' : '') + (ANIM[(F.SPECIES[u.species].base || u.species)] ? ' anim' : ''); el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
     el.innerHTML = `<div class="hpb"><b style="background:#FF5A6E"></b></div><div class="mk">${icon('dust', '#7ED36F', 10)}</div>${animHTML(u) || sprite(u.species, bp, { flip: true })}`;
     sc.appendChild(el); eEls[u.idx] = el;
