@@ -823,6 +823,7 @@ function showWelcome() {
   m$.innerHTML = `<div class="mod cap" role="dialog" aria-modal="true" aria-labelledby="wtit">
    <div class="kick">BENVENUTO</div><h2 id="wtit">Idle Tamers</h2>
    <p class="quote">Scegli il nome con cui ti vedranno gli altri giocatori in chat e in classifica.</p>
+   <div id="wmsg" class="note" style="color:#FF8A96;min-height:16px" aria-live="polite"></div>
    <form id="welcomeform" class="wform"><label for="wnick">Nickname</label><input id="wnick" maxlength="16" minlength="3" autocomplete="off" placeholder="3-16 caratteri" value="${esc(S.nick || '')}"><button class="pb" type="submit">Inizia</button></form>
   </div>`;
   m$.hidden = false; setTimeout(() => { const i = $('#wnick'); if (i) i.focus(); }, 50);
@@ -907,13 +908,15 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('submit', async e => {
   if (e.target.id === 'welcomeform') {
-    e.preventDefault(); const v = $('#wnick').value.trim();
-    if (v.length < 3) { toast('Il nickname deve avere almeno 3 caratteri'); return; }
-    if (BAD.some(w => v.toLowerCase().includes(w))) { toast('Scegli un nickname senza parolacce'); return; }
-    const res = await registerNick(v);
-    if (res === 'taken') { toast('Nickname già usato, scegline un altro'); return; }
-    if (res === 'check') { toast('Usa solo lettere, numeri, spazi, _ . -'); return; }
-    S.nick = v; save(); // in mancanza di rete il nome resta salvato e si registra in chat più tardi
+    e.preventDefault(); const v = $('#wnick').value.trim(), msg = t => { const w = $('#wmsg'); if (w) w.textContent = t; };
+    if (v.length < 3) { msg('Il nickname deve avere almeno 3 caratteri.'); return; }
+    if (BAD.some(w => v.toLowerCase().includes(w))) { msg('Scegli un nickname senza parolacce.'); return; }
+    msg(''); const btn = e.target.querySelector('button'); btn.disabled = true;
+    const res = await registerNick(v); btn.disabled = false;
+    if (res === 'taken') { msg('Il nickname «' + v + '» è già occupato: scegline un altro.'); return; }
+    if (res === 'check') { msg('Usa solo lettere, numeri, spazi, _ . -'); return; }
+    if (res === 'net') { msg('Connessione assente: serve internet per registrare il nickname. Riprova.'); return; }
+    S.nick = v; save();
     if (!S.tutorial) showTutorial(0); else closeModal();
     return;
   }
@@ -1004,7 +1007,7 @@ document.addEventListener('click', e => {
   else if (a === 'zone') { if (F.setZone(S, +t.dataset.z)) { rebuild(); banner('ZONA ' + S.zone); } }
   else if (a === 'tree') { F.buyTree(S, t.dataset.k); }
   else if (a === 'treereset') { if (confirmTree > Date.now()) { const b = F.skyReset(S); confirmTree = 0; toast(`Recuperati ${cfmt(b)} oro`); rebuild(); } else confirmTree = Date.now() + 3000; }
-  else if (a === 'reset') { if (confirmReset > Date.now()) { S = F.newState(); save(); rebuild(); confirmReset = 0; toast('Nuova partita'); } else confirmReset = Date.now() + 3000; }
+  else if (a === 'reset') { if (confirmReset > Date.now()) { const tk = S.net && S.net.token; if (tk) api('rpc/it_unregister', { p_token: tk }).catch(() => {}); S = F.newState(); save(); rebuild(); confirmReset = 0; showWelcome(); } else confirmReset = Date.now() + 3000; }
   else if (a === 'capadd') { F.addToTeam(S, id); rebuild(); closeModal(); }
   else if (a === 'share') { const m = S.roster[id], d = F.SPECIES[m.species]; const txt = `Ho catturato ${m.name} (${F.RARITY[d.rarity].label}, ${d.cls}) in Frontiera Arcana dopo ${fmt(m.waitKills)} incontri!`; try { navigator.clipboard.writeText(txt).then(() => { t.textContent = 'Copiato!'; }, () => { t.textContent = 'Copia non riuscita'; }); } catch (err) { t.textContent = 'Copia non riuscita'; } return; }
   else if (a === 'close') { closeModal(); }
@@ -1038,7 +1041,7 @@ let last = performance.now(), saveAt = 0, achAt = 0, renderAt = 0;
 function frame(now) {
   let dt = Math.min(0.1, (now - last) / 1000); last = now;
   S.stats.played += dt;
-  const speed = S.settings.test ? 5 : 1; let left = dt * speed;
+  const speed = S.settings.test ? 5 : 1; let left = S.net ? dt * speed : 0; // senza nickname il gioco resta fermo
   const ev = [];
   while (left > 0) { const d = Math.min(0.05, left); F.step(S, B, d, ev); left -= d; }
   handle(ev); updateScene(); hud();
@@ -1063,7 +1066,7 @@ const had = load();
 F.ensureShop(S, Date.now());
 if (!S.settings) S.settings = { autoEquip: true, test: false };
 if (had) catchUp(); else { B = F.startBattle(S); buildScene(); }
-if (!S.net && !S.nick) showWelcome(); else if (!had && !S.tutorial) showTutorial(0);
+if (!S.net) showWelcome(); else if (!had && !S.tutorial) showTutorial(0);
 banner('BATTAGLIA ' + S.battle);
 setScroll(); render(); hud();
 requestAnimationFrame(t => { last = t; frame(t); });
