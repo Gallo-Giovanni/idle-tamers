@@ -484,8 +484,10 @@ body.bigscene #scene{height:50vh}
 @keyframes pafly{from{background-position-x:0}to{background-position-x:114.2857%}}
 .u.pet .pa{margin:-14px}.pspr .pa{margin:-18px -12px}
 
-/* negozio: gli eroi camminano sul posto */
-.herocard .mspr .ar{animation:arwalk .72s steps(6) infinite}.herocard .mspr .mg{animation:mgwalk .72s steps(6) infinite}
+/* negozio: gli eroi camminano 1 secondo, poi attaccano, e si ripete */
+.herocard .mspr{margin-right:16px}
+.herocard .mspr .ar,.herocard .mspr .mg{animation:shopatk 1.6s infinite}
+@keyframes shopatk{0%{background-position-x:-80px;animation-timing-function:steps(6)}62.5%{background-position-x:-560px;animation-timing-function:steps(8)}100%{background-position-x:-1200px}}
 </style>
 </head>
 <body>

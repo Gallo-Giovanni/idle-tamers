@@ -244,7 +244,7 @@ function buildScene() { setScroll();
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el || !deadSeen.has(u.id)) return; if (u.hp > 0) { deadSeen.delete(u.id); el.classList.add('revive'); setTimeout(() => el.classList.remove('revive'), 1300); } else { el._gone = 1; el.classList.add('dead', 'gone'); } });
   // pet: volano sopra l'eroe, così restano sempre in vista
   const hu = B.party.find(u => u.id === 'hero'), heroEl = hu && pEls[hu.idx], hx = heroEl ? +heroEl.dataset.x : 168;
-  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (hx - 18 - i * 28) + 'px'; el.style.bottom = (66 + (i % 2) * 10) + 'px'; el.innerHTML = petHTML(k, 2); sc.appendChild(el); });
+  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (hx - 18 - i * 28) + 'px'; el.style.bottom = (82 + (i % 2) * 10) + 'px'; el.innerHTML = petHTML(k, 2); sc.appendChild(el); });
   // nemici: quelli da mischia si ammassano sul primo bersaglio, quelli a distanza restano indietro
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {

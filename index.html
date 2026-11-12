@@ -484,8 +484,10 @@ body.bigscene #scene{height:50vh}
 @keyframes pafly{from{background-position-x:0}to{background-position-x:114.2857%}}
 .u.pet .pa{margin:-14px}.pspr .pa{margin:-18px -12px}
 
-/* negozio: gli eroi camminano sul posto */
-.herocard .mspr .ar{animation:arwalk .72s steps(6) infinite}.herocard .mspr .mg{animation:mgwalk .72s steps(6) infinite}
+/* negozio: gli eroi camminano 1 secondo, poi attaccano, e si ripete */
+.herocard .mspr{margin-right:16px}
+.herocard .mspr .ar,.herocard .mspr .mg{animation:shopatk 1.6s infinite}
+@keyframes shopatk{0%{background-position-x:-80px;animation-timing-function:steps(6)}62.5%{background-position-x:-560px;animation-timing-function:steps(8)}100%{background-position-x:-1200px}}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -1657,7 +1659,7 @@ function buildScene() { setScroll();
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el || !deadSeen.has(u.id)) return; if (u.hp > 0) { deadSeen.delete(u.id); el.classList.add('revive'); setTimeout(() => el.classList.remove('revive'), 1300); } else { el._gone = 1; el.classList.add('dead', 'gone'); } });
   // pet: volano sopra l'eroe, così restano sempre in vista
   const hu = B.party.find(u => u.id === 'hero'), heroEl = hu && pEls[hu.idx], hx = heroEl ? +heroEl.dataset.x : 168;
-  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (hx - 18 - i * 28) + 'px'; el.style.bottom = (66 + (i % 2) * 10) + 'px'; el.innerHTML = petHTML(k, 2); sc.appendChild(el); });
+  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (hx - 18 - i * 28) + 'px'; el.style.bottom = (82 + (i % 2) * 10) + 'px'; el.innerHTML = petHTML(k, 2); sc.appendChild(el); });
   // nemici: quelli da mischia si ammassano sul primo bersaglio, quelli a distanza restano indietro
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
@@ -2192,7 +2194,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 22:10</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 22:13</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
