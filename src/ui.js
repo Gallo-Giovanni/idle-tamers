@@ -399,13 +399,14 @@ function ptsHTML(id) {
   ${Object.keys(F.ATTRS).map(k => { const a = F.ATTRS[k]; return `<div class="ptsrow"><span class="pn2" style="color:${a.color}">${a.ic} ${a.name} <b>${p[k]}</b></span><span class="pd">${a.desc}</span><span class="pb2">${[-10, -1].map(n => `<button class="ib" data-act="pts" data-id="${id}" data-k="${k}" data-n="${n}" ${p[k] ? '' : 'disabled'}>${n}</button>`).join('')}${[1, 10].map(n => `<button class="ib" data-act="pts" data-id="${id}" data-k="${k}" data-n="${n}" ${free ? '' : 'disabled'}>+${n}</button>`).join('')}<button class="ib" data-act="pts" data-id="${id}" data-k="${k}" data-n="999" ${free ? '' : 'disabled'}>Max</button></span></div>`; }).join('')}
   <div class="note">${F.PTS_PER_LEVEL} punti a ogni livello. Puoi azzerarli gratis quando vuoi.</div></div>`;
 }
+function rarTag(species) { const d = F.SPECIES[species]; if (!d || d.hero) return ''; const rl = d.secret ? 'Segreto' : F.RARITY[d.rarity] ? F.RARITY[d.rarity].label : ''; const b = F.speciesBonus(species); return `<span class="rtag${d.secret ? ' rbw' : ''}">${rl}${b ? ' ' + b : ''}</span>`; }
 function memberRow(id, inTeam, i) {
   const m = S.roster[id], sp = F.SPECIES[m.species], cls = sp.cls, st = F.memberStats(S, id), open = openMember === id;
   const need = F.xpNeed(m.lvl);
   let html = `<div class="card mrow" style="border-left:3px solid ${CC(cls)}">
   <button class="mhead" data-act="openm" data-id="${id}" aria-expanded="${open}">
     <div class="mspr">${sprite(m.species, 2)}</div>
-    <div class="minfo"><div class="mname">${esc(m.name)}${m.locked ? ' ' + icon('lock', '#A9B0D6', 13) : ''}${F.ptsFree(m) ? ` <span class="ptsdot">+${F.ptsFree(m)}</span>` : ''}</div><div class="msub"><span style="color:${CC(cls)}">${cls}</span> · Lv ${m.lvl} · Potere ${fmt(F.memberPower(S, id))}</div><div class="xp"><b style="width:${100 * m.xp / need}%"></b></div></div>
+    <div class="minfo"><div class="mname">${esc(m.name)}${m.locked ? ' ' + icon('lock', '#A9B0D6', 13) : ''}${F.ptsFree(m) ? ` <span class="ptsdot">+${F.ptsFree(m)}</span>` : ''}</div><div class="msub"><span style="color:${CC(cls)}">${cls}</span> · Lv ${m.lvl} · Potere ${fmt(F.memberPower(S, id))} ${rarTag(m.species)}</div><div class="xp"><b style="width:${100 * m.xp / need}%"></b></div></div>
   </button>`;
   html += `<button class="eqb" data-act="equip" data-id="${id}" aria-label="Equipaggiamento di ${esc(m.name)}">${itemIcon('corazza', cls, '#F2C14E', 18)}</button>`;
   if (inTeam) html += `<div class="mbtns"><button class="ib" data-act="up" data-id="${id}" aria-label="Sposta su" ${i === 0 ? 'disabled' : ''}>${icon('up')}</button><button class="ib" data-act="down" data-id="${id}" aria-label="Sposta giù" ${i === S.team.length - 1 ? 'disabled' : ''}>${icon('down')}</button></div>`;
@@ -414,6 +415,7 @@ function memberRow(id, inTeam, i) {
   if (open) {
     html += `<div class="card detail">
     ${fullStats(st)}
+    <button class="sb" data-act="cmppick" data-id="${id}" style="width:100%;margin:6px 0">Confronta con un'altra creatura</button>
     <div class="abil"><b style="color:${CC(cls)}">${F.CLASSES[cls].ability}</b> · ${F.CLASSES[cls].desc}</div>
     ${ptsHTML(id)}
     <div class="row2"><label class="tg"><input type="checkbox" data-act="lockm" data-id="${id}" ${m.locked ? 'checked' : ''}> Blocca equipaggiamento</label>${inTeam && !F.isHero(id) ? `<button class="sb" data-act="bench" data-id="${id}">Metti in riserva</button>` : ''}</div>
@@ -619,7 +621,7 @@ function pBestiario() {
   ${F.PLANETS.map(pl => `<div class="ph"><h2 style="font-size:13px">${pl.name}</h2><span>${pl.species.filter(k => S.roster[k]).length}/${pl.species.length} · zone ${pl.zones[0]}-${pl.zones[1]}</span></div>
   <div class="bgrid">${pl.species.map(k => { const sp = F.SPECIES[k], m = S.roster[k], rar = F.RARITY[sp.rarity].label, z = F.zoneOf(k);
     const mis = missionHTML(k);
-    if (m) return `<div class="card best"><div class="bspr">${sprite(k, 3)}</div><b>${esc(m.name)}</b><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span><em>${rar}</em><small>Zona ${z} · dopo ${fmt(m.waitKills)} incontri</small>${mis}</div>`;
+    if (m) return `<div class="card best"><div class="bspr">${sprite(k, 3)}</div><b>${esc(m.name)}</b><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span><em>${rarTag(k)}</em><small>Zona ${z} · dopo ${fmt(m.waitKills)} incontri</small>${mis}</div>`;
     return `<div class="card best"><div class="bspr">${sprite(k, 3, (S.seen && S.seen[k]) || (S.kills && S.kills[k]) ? undefined : { sil: true })}</div><b>???</b><span>&nbsp;</span><em>${rar}</em><small>${z <= S.maxZone ? 'Zona ' + z + ' · incontri ' + fmt(S.hunt[k] || 0) : 'Zona ' + z + ' (bloccata)'}</small>${mis}</div>`; }).join('')}</div>`).join('')}
   ${secretHTML()}`;
 }
@@ -873,6 +875,25 @@ async function registerNick(v) {
   try { const r = await api('rpc/it_register', { p_nickname: v }); S.net = { id: r.id, token: r.token, nick: r.nickname }; S.nick = r.nickname; save(); return 'ok'; }
   catch (err) { return /taken/.test(err.message) ? 'taken' : /check/.test(err.message) ? 'check' : 'net'; }
 }
+
+function showCmpPick(a) {
+  const ids = Object.keys(S.roster).filter(x => x !== a);
+  $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-labelledby="cpt"><div class="eqhead"><h2 id="cpt" style="margin:0;font-size:17px">Confronta ${esc(S.roster[a].name)} con…</h2><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
+   <div class="cpick">${ids.map(b => { const m = S.roster[b], sp = F.SPECIES[m.species]; return `<button class="sb" data-act="cmp" data-a="${a}" data-b="${b}"><div class="mspr">${sprite(m.species, 2)}</div><div style="text-align:left;flex:1"><b>${esc(m.name)}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · Lv ${m.lvl} ${rarTag(m.species)}</div></div></button>`; }).join('') || '<div class="note">Non hai altre creature.</div>'}</div></div>`;
+  $('#modal').hidden = false;
+}
+function showCmp(a, b) {
+  const A = [F.bareStats(S, a), F.memberStats(S, a)], Bs = [F.bareStats(S, b), F.memberStats(S, b)];
+  const pc = v => (v * 100).toFixed(1).replace('.', ',') + '%', n = v => fmt(Math.round(v)), d1 = v => (Math.round(v * 10) / 10).toString().replace('.', ',');
+  const rows = [['Vita', 'hp', n], ['Attacco', 'atk', n], ['Difesa', 'def', d1], ['Prob. critico', 'crit', pc], ['Danni critici', 'critDmg', pc], ['Blocco', 'block', pc], ['Schivata', 'dodge', pc]];
+  const head = id => { const m = S.roster[id], sp = F.SPECIES[m.species]; return `<div class="cphead">${sprite(m.species, 2)}<b>${esc(m.name)}</b><span class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · Lv ${m.lvl}</span>${rarTag(m.species)}</div>`; };
+  const cell = (x, y, f) => `<td class="${x > y * 1.0001 ? 'win' : x * 1.0001 < y ? 'lose' : ''}">${f(x)}</td>`;
+  const table = (k, title) => `<div class="msub" style="margin:8px 0 4px">${title}</div><table class="cmpt"><tbody>${rows.map(([l, key, f]) => `<tr><th>${l}</th>${cell(A[k][key] || 0, Bs[k][key] || 0, f)}${cell(Bs[k][key] || 0, A[k][key] || 0, f)}</tr>`).join('')}<tr><th>Potere</th>${cell(k ? F.memberPower(S, a) : 0, k ? F.memberPower(S, b) : 0, n)}${cell(k ? F.memberPower(S, b) : 0, k ? F.memberPower(S, a) : 0, n)}</tr></tbody></table>`;
+  $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-label="Confronto"><div class="eqhead"><h2 style="margin:0;font-size:17px">Confronto</h2><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
+   <div class="cpheads">${head(a)}${head(b)}</div>${table(0, 'Statistiche base (senza equipaggiamento)').replace(/<tr><th>Potere<\/th>.*?<\/tr>/, '')}${table(1, 'Con equipaggiamento, punti e bonus')}
+   <div class="note">In verde chi è più forte. Le statistiche base contano livello, classe, rarità e punti.</div></div>`;
+  $('#modal').hidden = false;
+}
 function closeModal() { $('#modal').classList.remove('chatfull'); equipOpen = null; $('#modal').hidden = true; $('#modal').innerHTML = ''; }
 
 // ---------- chat globale e drop rari (Supabase) ----------
@@ -1063,6 +1084,8 @@ document.addEventListener('click', e => {
   else if (a === 'capadd') { F.addToTeam(S, id); rebuild(); closeModal(); }
   else if (a === 'share') { const m = S.roster[id], d = F.SPECIES[m.species]; const txt = `Ho catturato ${m.name} (${F.RARITY[d.rarity].label}, ${d.cls}) in Frontiera Arcana dopo ${fmt(m.waitKills)} incontri!`; try { navigator.clipboard.writeText(txt).then(() => { t.textContent = 'Copiato!'; }, () => { t.textContent = 'Copia non riuscita'; }); } catch (err) { t.textContent = 'Copia non riuscita'; } return; }
   else if (a === 'close') { closeModal(); }
+  else if (a === 'cmppick') { showCmpPick(id); return; }
+  else if (a === 'cmp') { showCmp(t.dataset.a, t.dataset.b); return; }
   else if (a === 'tutnext') { const i = +t.dataset.i + 1; if (i < TUT.length) { showTutorial(i); return; } S.tutorial = 1; save(); closeModal(); }
   else if (a === 'tutskip') { S.tutorial = 1; save(); closeModal(); }
   else if (a === 'tutshow') { showTutorial(0); return; }
