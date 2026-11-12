@@ -70,10 +70,10 @@ const SPR = {
   reginaquarzo: [{ W: '#E6FBFF', Q: '#F1E3FF', K: '#1B1F3B', P: '#FF8A96', C: '#7FD6F0', A: '#F2C14E' }, ['..W.W.W.W.W...', '..WWWWWWWWW...', '...QQQQQQQ....', '..QQQQQQQQQ...', '..QKQQQQQKQ...', '..QQQQQQQQQ...', '...QQPPPQQ...A', '..CCCCCCCCC.A.', '.CCCCCCCCCCCA.', 'CC.CCCCCCC.AA.', '...CCCCCCC.A..', '...CC...CC....', '..KKK...KKK...']],
 };
 Object.assign(SPR, {
-  pet_micio: [{"D": "#3A3F70", "G": "#8A93C8", "W": "#E9ECFF", "Y": "#FFE15A", "P": "#FF9BB5", "K": "#1B1F3B", "L": "#B9C0EE"}, ["Y..........D...D.", "YYY.......DGD.DGD", ".Y.......DGGGGGGD", ".D.......DGKGGKGD", ".D.......DGGGPGGD", "..D......DLWWWLD.", "..DGGGGGGGGGGGD..", "..DGLGGGGGGLGGD..", "..DGGGGGGGGGGD...", "...DGD....DGD....", "...DD.....DD....."]],
+  pet_micio: [{"D": "#24183F", "P": "#5B3F8C", "L": "#9C7BE6", "Y": "#FFE15A", "W": "#FFFFFF", "S": "#FFE15A"}, [".......D...D.......", "D......DD.DD......D", "DD....DPPPPPD....DD", "DPD...DPYPYPD...DPD", "DPPD..DPPPPPD..DPPD", "DPLPDDDPWPWPDDDPLPD", "DPLLPPPPPPPPPPPLLPD", ".DPLLPDPPPPPDPLLPD.", "..DPD.DDPPPDD.DPD..", "...D....D.D....D..."]],
   pet_gufo: [{"D": "#3B2470", "P": "#8E6BE0", "L": "#B79BF5", "W": "#F4E9FF", "Y": "#FFD34D", "K": "#1B1F3B", "O": "#F2994A", "S": "#FFE15A"}, ["..D.....S.D..", "..DD.....DD..", "..DPPPPPPPD..", ".DPWWPPPWWPD.", ".DWYKWPWYKWD.", ".DPWWPOPWWPD.", ".DPPPPOPPPPD.", "DPLPLPPPLPLPD", "DPPLPLPLPLPPD", ".DPPPPPPPPPD.", "..DPPPPPPPD..", "...O.....O..."]],
   pet_draghetto: [{"D": "#7A1F1C", "R": "#E2504A", "L": "#FF8A6E", "O": "#F2994A", "Y": "#FFE15A", "K": "#1B1F3B", "W": "#FFF3D6"}, ["..........DD...", ".O.......DRRD..", "OOO.....DRRRRD.", "OYOO....DRKRRRD", ".OOOD...DRRRWWD", "..ODRD.DRRRRDD.", "...DRRDRRRRD...", "..DRRRRRYYRD...", ".DRRLRRYYYRRD..", "DRD.DRRRRRRD...", "D...DRD..DRD...", "....DD...DD...."]],
-  pet_volpe: [{"D": "#4A5488", "G": "#B8C0E8", "W": "#F2F4FF", "B": "#7FE3FF", "K": "#1B1F3B", "N": "#2A2F55", "M": "#FFE15A"}, ["............D.D..", "...........DGDGD.", "..BB.......DWWWWD", ".BBBB......DWKWWWN", "BBWWBB.....DWWWWWN", ".BWWWBB...DWWWWD..", "..BWWWGGGGWWMWD...", "...DGGGGGGGGGD....", "...DGWGGGGGWD.....", "....DGD...DGD.....", "....DD.....DD....."]],
+  pet_volpe: [{"D": "#4A5488", "G": "#B8C0E8", "W": "#F2F4FF", "B": "#7FE3FF", "K": "#1B1F3B", "N": "#2A2F55", "M": "#FFE15A", "A": "#CFF6FF"}, ["............D.D..", "...........DGDGD.", "..BB.......DWWWWD", ".BBBB......DWKWWWN", "BBWWBBAAA..DWWWWWN", ".BWWWBAA..DWWWWD..", "..BWWWGGGGWWMWD...", "...DGGGGGGGGGD....", "...DGWGGGGGWD.....", "....DGD...DGD.....", "....DD.....DD....."]],
 });
 const sprCache = {};
 function sprite(key, p, opts) {
@@ -235,7 +235,7 @@ function buildScene() {
   });
   place(order);
   // pet: camminano dietro alla squadra
-  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (168 - order.length * 10 - 30 - i * 26) + 'px'; el.style.bottom = (k === 'gufo' ? 44 : 26) + 'px'; el.innerHTML = sprite('pet_' + k, 2); sc.appendChild(el); });
+  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (168 - order.length * 10 - 30 - i * 26) + 'px'; el.style.bottom = (50 + (i % 2) * 8) + 'px'; el.innerHTML = sprite('pet_' + k, 2); sc.appendChild(el); });
   // nemici: quelli da mischia si ammassano sul primo bersaglio, quelli a distanza restano indietro
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {

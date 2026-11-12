@@ -211,7 +211,7 @@ function skyReset(s) { let back = s.skySpent; if (back === undefined) { back = 0
 function tb(s) { if (s._tb && s._tbn === skyOwned(s).length) return s._tb; const t = {}; for (const id of skyOwned(s)) { const o = SKY[id]; if (o.kind) t[o.kind] = (t[o.kind] || 0) + o.v; } s._tb = t; s._tbn = s.sky.length; return t; }
 // Pet: si comprano una volta e i bonus di tutti quelli posseduti si sommano
 const PETS = {
-  micio:     { name: 'Micio Cometa',       price: '2,99 €', bonus: { gold: 0.05, bag: 1, chest: 1 } },
+  micio:     { name: 'Pipistrello Stellare',       price: '2,99 €', bonus: { gold: 0.05, bag: 1, chest: 1 } },
   volpe:     { name: 'Volpe Lunare',       price: '2,99 €', bonus: { xp: 0.05, bag: 1, chest: 1 } },
   gufo:      { name: 'Gufo Astrale',       price: '2,99 €', bonus: { drop: 0.05, bag: 1, chest: 1 } },
   draghetto: { name: 'Draghetto di Brace', astri: 5000,     bonus: { capture: 0.10, bag: 1, chest: 1 } },

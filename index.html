@@ -392,7 +392,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .wpick{display:flex;gap:6px;margin-top:8px}.wpick button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;font-size:11px}
 .welcome{border-color:var(--gold);background:linear-gradient(135deg,#2a2350,#141a46)}
 .petcard.welcome{border-color:var(--gold);background:linear-gradient(135deg,#2a2350,#141a46)}
-.u.pet .spr{animation:petbob .5s steps(2) infinite}.u.pet{z-index:4}@keyframes petbob{50%{transform:translateY(-2px)}}
+.u.pet .spr{animation:petbob 1.2s ease-in-out infinite}.u.pet{z-index:4}@keyframes petbob{50%{transform:translateY(-5px)}}
 .owned{display:flex;flex-direction:column;gap:8px}.orow{display:flex;align-items:center;gap:10px}.oic{width:40px;display:flex;justify-content:center}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
@@ -650,7 +650,7 @@ function skyReset(s) { let back = s.skySpent; if (back === undefined) { back = 0
 function tb(s) { if (s._tb && s._tbn === skyOwned(s).length) return s._tb; const t = {}; for (const id of skyOwned(s)) { const o = SKY[id]; if (o.kind) t[o.kind] = (t[o.kind] || 0) + o.v; } s._tb = t; s._tbn = s.sky.length; return t; }
 // Pet: si comprano una volta e i bonus di tutti quelli posseduti si sommano
 const PETS = {
-  micio:     { name: 'Micio Cometa',       price: '2,99 €', bonus: { gold: 0.05, bag: 1, chest: 1 } },
+  micio:     { name: 'Pipistrello Stellare',       price: '2,99 €', bonus: { gold: 0.05, bag: 1, chest: 1 } },
   volpe:     { name: 'Volpe Lunare',       price: '2,99 €', bonus: { xp: 0.05, bag: 1, chest: 1 } },
   gufo:      { name: 'Gufo Astrale',       price: '2,99 €', bonus: { drop: 0.05, bag: 1, chest: 1 } },
   draghetto: { name: 'Draghetto di Brace', astri: 5000,     bonus: { capture: 0.10, bag: 1, chest: 1 } },
@@ -1371,10 +1371,10 @@ const SPR = {
   reginaquarzo: [{ W: '#E6FBFF', Q: '#F1E3FF', K: '#1B1F3B', P: '#FF8A96', C: '#7FD6F0', A: '#F2C14E' }, ['..W.W.W.W.W...', '..WWWWWWWWW...', '...QQQQQQQ....', '..QQQQQQQQQ...', '..QKQQQQQKQ...', '..QQQQQQQQQ...', '...QQPPPQQ...A', '..CCCCCCCCC.A.', '.CCCCCCCCCCCA.', 'CC.CCCCCCC.AA.', '...CCCCCCC.A..', '...CC...CC....', '..KKK...KKK...']],
 };
 Object.assign(SPR, {
-  pet_micio: [{"D": "#3A3F70", "G": "#8A93C8", "W": "#E9ECFF", "Y": "#FFE15A", "P": "#FF9BB5", "K": "#1B1F3B", "L": "#B9C0EE"}, ["Y..........D...D.", "YYY.......DGD.DGD", ".Y.......DGGGGGGD", ".D.......DGKGGKGD", ".D.......DGGGPGGD", "..D......DLWWWLD.", "..DGGGGGGGGGGGD..", "..DGLGGGGGGLGGD..", "..DGGGGGGGGGGD...", "...DGD....DGD....", "...DD.....DD....."]],
+  pet_micio: [{"D": "#24183F", "P": "#5B3F8C", "L": "#9C7BE6", "Y": "#FFE15A", "W": "#FFFFFF", "S": "#FFE15A"}, [".......D...D.......", "D......DD.DD......D", "DD....DPPPPPD....DD", "DPD...DPYPYPD...DPD", "DPPD..DPPPPPD..DPPD", "DPLPDDDPWPWPDDDPLPD", "DPLLPPPPPPPPPPPLLPD", ".DPLLPDPPPPPDPLLPD.", "..DPD.DDPPPDD.DPD..", "...D....D.D....D..."]],
   pet_gufo: [{"D": "#3B2470", "P": "#8E6BE0", "L": "#B79BF5", "W": "#F4E9FF", "Y": "#FFD34D", "K": "#1B1F3B", "O": "#F2994A", "S": "#FFE15A"}, ["..D.....S.D..", "..DD.....DD..", "..DPPPPPPPD..", ".DPWWPPPWWPD.", ".DWYKWPWYKWD.", ".DPWWPOPWWPD.", ".DPPPPOPPPPD.", "DPLPLPPPLPLPD", "DPPLPLPLPLPPD", ".DPPPPPPPPPD.", "..DPPPPPPPD..", "...O.....O..."]],
   pet_draghetto: [{"D": "#7A1F1C", "R": "#E2504A", "L": "#FF8A6E", "O": "#F2994A", "Y": "#FFE15A", "K": "#1B1F3B", "W": "#FFF3D6"}, ["..........DD...", ".O.......DRRD..", "OOO.....DRRRRD.", "OYOO....DRKRRRD", ".OOOD...DRRRWWD", "..ODRD.DRRRRDD.", "...DRRDRRRRD...", "..DRRRRRYYRD...", ".DRRLRRYYYRRD..", "DRD.DRRRRRRD...", "D...DRD..DRD...", "....DD...DD...."]],
-  pet_volpe: [{"D": "#4A5488", "G": "#B8C0E8", "W": "#F2F4FF", "B": "#7FE3FF", "K": "#1B1F3B", "N": "#2A2F55", "M": "#FFE15A"}, ["............D.D..", "...........DGDGD.", "..BB.......DWWWWD", ".BBBB......DWKWWWN", "BBWWBB.....DWWWWWN", ".BWWWBB...DWWWWD..", "..BWWWGGGGWWMWD...", "...DGGGGGGGGGD....", "...DGWGGGGGWD.....", "....DGD...DGD.....", "....DD.....DD....."]],
+  pet_volpe: [{"D": "#4A5488", "G": "#B8C0E8", "W": "#F2F4FF", "B": "#7FE3FF", "K": "#1B1F3B", "N": "#2A2F55", "M": "#FFE15A", "A": "#CFF6FF"}, ["............D.D..", "...........DGDGD.", "..BB.......DWWWWD", ".BBBB......DWKWWWN", "BBWWBBAAA..DWWWWWN", ".BWWWBAA..DWWWWD..", "..BWWWGGGGWWMWD...", "...DGGGGGGGGGD....", "...DGWGGGGGWD.....", "....DGD...DGD.....", "....DD.....DD....."]],
 });
 const sprCache = {};
 function sprite(key, p, opts) {
@@ -1536,7 +1536,7 @@ function buildScene() {
   });
   place(order);
   // pet: camminano dietro alla squadra
-  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (168 - order.length * 10 - 30 - i * 26) + 'px'; el.style.bottom = (k === 'gufo' ? 44 : 26) + 'px'; el.innerHTML = sprite('pet_' + k, 2); sc.appendChild(el); });
+  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (168 - order.length * 10 - 30 - i * 26) + 'px'; el.style.bottom = (50 + (i % 2) * 8) + 'px'; el.innerHTML = sprite('pet_' + k, 2); sc.appendChild(el); });
   // nemici: quelli da mischia si ammassano sul primo bersaglio, quelli a distanza restano indietro
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
@@ -2037,7 +2037,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 12:21</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 12:23</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
