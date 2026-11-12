@@ -495,6 +495,9 @@ body.bigscene #scene{height:50vh}
 .arws i{position:absolute;left:-7px;width:14px;height:2px;transform-origin:100% 50%;background:linear-gradient(90deg,#E9E4D2 0 2px,#C9C2AE 2px 4px,#6E4626 4px 13px,#9AA3B0 13px);box-shadow:0 1px 0 rgba(0,0,0,.35);animation:arwin .12s ease-out}
 @keyframes arwin{from{left:-30px;opacity:0}to{left:-7px;opacity:1}}
 .u.dead .arws{opacity:0;transition:opacity .3s}
+
+/* alleati vivi: si spostano con dolcezza quando chi è davanti cade */
+.u.pm{transition:left .45s ease-out,opacity .3s,filter .3s}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -1646,6 +1649,7 @@ const ARC_FRONT = h => `<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA
 const MAG_SIDE = h => `<img src="data:image/png;base64,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" alt="" style="height:${h}px;image-rendering:pixelated">`;
 const PET_ANIM = { micio: 1, volpe: 1 }; // pet con animazione di volo
 const petHTML = (k, p) => PET_ANIM[k] ? `<div class="pa pa-${k}" style="--z:${p * 22}px" aria-hidden="true"></div>` : sprite('pet_' + k, p);
+let partyOrder = [], lastFrame = 0;
 const deadSeen = new Set(); // membri che hanno già fatto l'animazione di morte
 function buildScene() { setScroll();
   const sc = $('#units'); sc.innerHTML = '';
@@ -1657,11 +1661,11 @@ function buildScene() { setScroll();
   const place = (list) => list.forEach(({ u }, k) => {
     const step = list.length <= 6 ? 17 : list.length <= 9 ? 13 : 10; // più spazio quando la squadra è piccola, così si riconosce ognuno
     const x = 168 - k * step - (F.CLASSES[u.cls].range - 1) * 4, y = 26; // tutti sul pavimento
-    const el = document.createElement('div'); el.className = 'u'; el.dataset.x = x; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 20 - (k % 2) * 5;
+    const el = document.createElement('div'); el.className = 'u pm'; el.dataset.x = x; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 20 - (k % 2) * 5;
     el.innerHTML = `<div class="hpb"><b style="background:#7ED36F"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : u.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : u.species === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
     sc.appendChild(el); pEls[u.idx] = el;
   });
-  place(order);
+  place(order); partyOrder = order;
   // chi era caduto: se è tornato in vita rientra correndo da dietro, se è ancora a terra resta nascosto
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el || !deadSeen.has(u.id)) return; if (u.hp > 0) { deadSeen.delete(u.id); el.classList.add('revive'); setTimeout(() => el.classList.remove('revive'), 1300); } else { el._gone = 1; el.classList.add('dead', 'gone'); } });
   // pet: volano sopra l'eroe, così restano sempre in vista
@@ -1722,7 +1726,14 @@ function updateScene() {
   { const left = en.length, fc = $('#foes'); if (fc && fc.dataset.n !== String(left)) { fc.dataset.n = left; fc.textContent = 'Nemici rimasti ' + left; } }
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0);
     if (u.hp <= 0 && !el._gone) { el._gone = 1; const again = deadSeen.has(u.id); deadSeen.add(u.id); if (again) el.classList.add('gone'); else setTimeout(() => el.classList.add('gone'), 2500); } });
-  B.party.forEach(u => { const el = pEls[u.idx]; if (el) el.style.left = (+el.dataset.x + (F.CLASSES[u.cls].range === 1 && u.hp > 0 ? (adv(u) - cam) * 15 : 0)) + 'px'; });
+  // chi cade resta dove è caduto (scorre via col terreno); gli altri avanzano a prendere il suo posto
+  { const now = performance.now(), dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0; lastFrame = now;
+    const n = partyOrder.length, step = n <= 6 ? 17 : n <= 9 ? 13 : 10; let k = 0;
+    partyOrder.forEach(({ u }) => { const el = pEls[u.idx]; if (!el) return;
+      if (u.hp > 0) { const bx = 168 - k * step - (F.CLASSES[u.cls].range - 1) * 4; k++; el._wx = undefined; el.style.left = (bx + (F.CLASSES[u.cls].range === 1 ? (adv(u) - cam) * 15 : 0)) + 'px'; return; }
+      if (el._wx === undefined) { el._wx = parseFloat(el.style.left) || +el.dataset.x; el._cam0 = cam; el.classList.remove('pm'); }
+      if (marching) el._wx -= dt * 75 * F.moveSpeed(S);
+      el.style.left = (el._wx - (cam - el._cam0) * 15) + 'px'; }); }
   { const bb = $('#bossbar'), fb = B.enemies.find(u => u.boss && (F.SPECIES[u.species].base || u.species) === 'divoratore'); // barra grande solo per il boss finale
     if (bb) { const on = !!fb && fb.hp > 0 && !(fb.arrive > 0); bb.hidden = !on; if (on) { bb.firstChild.style.width = (148 * fb.hp / fb.maxHp) + 'px'; const nm = F.SPECIES[fb.species].name; if (bb.lastChild.textContent !== nm) bb.lastChild.textContent = nm; } } }
   B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (196 + (u.pos - 1) * 15 + tx - B._cam * 15) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
@@ -2212,7 +2223,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 22:34</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 22:57</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
