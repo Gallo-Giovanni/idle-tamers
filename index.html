@@ -425,6 +425,9 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .frow{display:flex;align-items:center;gap:8px;background:#10143A;border:1px solid var(--line);border-left:3px solid var(--c);border-radius:8px;padding:5px 8px}
 .fmid{flex:1;min-width:0;display:flex;flex-direction:column}.fmid b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fmid span{font-size:10.5px;color:var(--muted)}
 .frow em{font-style:normal;font-size:10.5px;font-weight:700}.upgs{font-style:normal;color:#fff;background:#2fbf5b;border-radius:50%;width:16px;height:16px;font-size:9px;display:flex;align-items:center;justify-content:center}
+#modal.dollfull{padding:8px;align-items:stretch}
+#modal.dollfull .doll{max-width:none;width:100%;height:100%;max-height:100%;display:flex;flex-direction:column;overflow:hidden}
+.doll .dbag{flex:1;min-height:0;overflow-y:auto;align-content:start;padding:6px 2px 4px}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -1812,10 +1815,10 @@ function showEquip(id) {
    <div class="dstats">${mini.map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join('')}</div>
    ${slotDetail(id)}
    ${bagForMember(id)}</div>`;
-  $('#modal').hidden = false;
+  $('#modal').classList.add('dollfull'); $('#modal').hidden = false;
   const md = $('#dollmod'); let x0 = null, y0 = null;
   md.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
-  md.addEventListener('touchend', e => { if (x0 === null || e.target.closest('.hscroll')) { x0 = null; return; } const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) eqNav(dx < 0 ? 1 : -1); }, { passive: true });
+  md.addEventListener('touchend', e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) eqNav(dx < 0 ? 1 : -1); }, { passive: true });
 }
 function eqNav(d) { const ord = eqOrder(), i = ord.indexOf(equipOpen) + d; if (i < 0 || i >= ord.length) return; selSlot = null; eqSel = null; showEquip(ord[i]); }
 function bagForMember(id) {
@@ -1830,8 +1833,8 @@ function bagForMember(id) {
       ${statsHTML(it, lv)}
       <div class="row2"><button class="pb" data-act="eqto" data-item="${it.id}" data-id="${id}">Equipaggia</button><button class="sb" data-act="sell" data-item="${it.id}">Vendi · ${cfmt(F.sellValue(it, S))}</button></div></div>`;
   }
-  return `<div class="ph"><h2 style="font-size:13px">Zaino</h2><span>${inv.length} oggetti adatti · scorri →</span></div>
-  <div class="igrid hscroll">${inv.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), cur = m.eq[F.targetSlot(m, it)], up = !cur || F.itemPower(it) > F.itemPower(cur); return `<button class="it${eqSel === it.id ? ' sel' : ''}${F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${r.color};--c:${r.color}" data-act="eqpick" data-item="${it.id}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b>${up ? '<i class="upar">▲</i>' : ''}</button>`; }).join('') || '<div class="note" style="grid-column:1/-1">Nessun oggetto adatto nello zaino.</div>'}</div>${det}`;
+  return `<div class="ph"><h2 style="font-size:13px">Zaino</h2><span>${inv.length} oggetti adatti</span></div>${det}
+  <div class="igrid dbag">${inv.map(it => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity), cur = m.eq[F.targetSlot(m, it)], up = !cur || F.itemPower(it) > F.itemPower(cur); return `<button class="it${eqSel === it.id ? ' sel' : ''}${F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${r.color};--c:${r.color}" data-act="eqpick" data-item="${it.id}">${itemIcon(it.slot, it.cls, r.color, 22)}<b>${cfmt(F.itemPower(it))}</b>${up ? '<i class="upar">▲</i>' : ''}</button>`; }).join('') || '<div class="note" style="grid-column:1/-1">Nessun oggetto adatto nello zaino.</div>'}</div>`;
 }
 function dmgHTML() { const d = S.dmgLog || { by: {}, since: S.clock || 0 }, ids = Object.keys(d.by).filter(id => S.roster[id]).sort((a, b) => d.by[b] - d.by[a]), tot = ids.reduce((x, id) => x + d.by[id], 0), secs = Math.max(1, (S.clock || 0) - d.since);
     return `<div class="ph"><h2>Danni per membro</h2><button class="sb" data-act="dmgreset" style="min-height:28px;font-size:11px">Azzera</button></div>
@@ -2111,7 +2114,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 18:27</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 18:29</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -2286,7 +2289,7 @@ function showCmp(a, b) {
    <div class="note">In verde chi è più forte. Le statistiche base contano livello, classe, rarità e punti.</div></div>`;
   $('#modal').hidden = false;
 }
-function closeModal() { $('#modal').classList.remove('chatfull'); equipOpen = null; $('#modal').hidden = true; $('#modal').innerHTML = ''; }
+function closeModal() { $('#modal').classList.remove('chatfull', 'dollfull'); equipOpen = null; $('#modal').hidden = true; $('#modal').innerHTML = ''; }
 
 // ---------- chat globale e drop rari (Supabase) ----------
 const NET = { url: 'https://nvfpiwrienohvavvceqi.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52ZnBpd3JpZW5vaHZhdnZjZXFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NTQ4MzYsImV4cCI6MjEwODQzMDgzNn0.M_fmOZlu6qbdXw5flxwQsdvJxCgeMTY-WOpxwcLRSpA' };
