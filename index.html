@@ -659,7 +659,7 @@ const PETS = {
   micio:     { name: 'Pipistrello Stellare',       price: '2,99 €', bonus: { gold: 0.05, bag: 1, chest: 1 } },
   volpe:     { name: 'Volpe Lunare',       price: '2,99 €', bonus: { xp: 0.05, bag: 1, chest: 1 } },
   gufo:      { name: 'Gufo Astrale',       price: '2,99 €', bonus: { drop: 0.05, bag: 1, chest: 1 } },
-  draghetto: { name: 'Draghetto di Brace', astri: 5000,     bonus: { capture: 0.10, bag: 1, chest: 1 } },
+  draghetto: { name: 'Draghetto di Brace', astri: 1000,     bonus: { capture: 0.05, bag: 2, chest: 2 } },
 };
 function petB(s, k) { let t = 0; for (const id in (s.pets || {})) { const b = PETS[id] && PETS[id].bonus[k]; if (b) t += b; } return t; }
 function buyPet(s, id) { const p = PETS[id]; if (!p || (s.pets && s.pets[id])) return false; if (p.astri) { if (s.astri < p.astri) return false; s.astri -= p.astri; } s.pets = s.pets || {}; s.pets[id] = 1; return true; } // in euro: versione di prova, gratis
@@ -744,7 +744,7 @@ function nextSlotZone(s) { return SLOT_UNLOCKS.find(z => s.cleared < z && z <= M
 function creaturesInTeam(s) { return s.team.filter(id => !isHero(id)).length; }
 function teamFull(s) { return creaturesInTeam(s) >= slotCount(s); }
 // Eroi extra in vendita (prezzi in euro; nella versione di prova si sbloccano gratis)
-const HERO_SHOP = [{ id: 'hero_arc', price: '1,99 €' }, { id: 'hero_mag', price: '4,99 €' }];
+const HERO_SHOP = [{ id: 'hero_arc', price: '1,99 €', space: 2 }, { id: 'hero_mag', price: '4,99 €', space: 5 }]; // space: posti in più in zaino e forziere
 const PASS_PRICE = '9,99 € / mese';
 // Astri gratuiti ogni giorno: si riscuotono una volta, si rinnovano a mezzanotte (ora locale)
 const DAILY_ASTRI = 20;
@@ -1114,7 +1114,7 @@ const FREE_MAX_FILTER = 1; // gratis: si vendono solo i comuni
 // Zaino e forziere: 20 posti ciascuno, il doppio col Pass. Le rune non occupano posto.
 const BAG_BASE = 20;
 const HERO_SPACE = 2; // ogni eroe comprato: +2 zaino e +2 forziere
-function heroSpace(s) { return HERO_SHOP.filter(h => s.roster[h.id]).length * HERO_SPACE; }
+function heroSpace(s) { return HERO_SHOP.filter(h => s.roster[h.id]).reduce((t, h) => t + h.space, 0); }
 function bagCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraBag || 0) + B(s, 'bag') + heroSpace(s); }
 function chestCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraChest || 0) + B(s, 'chest') + heroSpace(s); }
 // Spazi extra nello Shop: per sempre, ma se ne possono comprare pochi ogni mese
@@ -1870,7 +1870,7 @@ function runeBar() { return `<div class="runebar">${Object.keys(F.RUNE).map(k =>
 function ownedHTML() {
   const rows = [], lab = { gold: 'oro', xp: 'esperienza', drop: 'drop', capture: 'soggiogamento' };
   for (const k of Object.keys(S.pets || {})) { const p = F.PETS[k]; if (!p) continue; const b = p.bonus; rows.push([sprite('pet_' + k, 2), p.name, Object.keys(b).filter(x => x !== 'bag' && x !== 'chest').map(x => `+${Math.round(b[x] * 100)}% ${lab[x]}`).concat(`+${b.bag} zaino`, `+${b.chest} forziere`).join(' · ')]); }
-  for (const h of F.HERO_SHOP) if (S.roster[h.id]) { const sp = F.SPECIES[h.id]; rows.push([sprite(h.id, 2), sp.name, `${sp.cls} in squadra, senza occupare posti · +${F.HERO_SPACE} zaino · +${F.HERO_SPACE} forziere`]); }
+  for (const h of F.HERO_SHOP) if (S.roster[h.id]) { const sp = F.SPECIES[h.id]; rows.push([sprite(h.id, 2), sp.name, `${sp.cls} in squadra, senza occupare posti · +${h.space} zaino · +${h.space} forziere`]); }
   if (F.hasPass(S)) rows.push([ipx('collana', 22), 'Pass Astrale', `×2 oro ed esperienza, zaino e forziere doppi · scade il ${new Date(S.pass).toLocaleDateString('it-IT')}`]);
   if (S.extraBag || S.extraChest) rows.push([icon('bag', '#F2C14E', 20), 'Spazio extra', `+${S.extraBag || 0} zaino · +${S.extraChest || 0} forziere`]);
   if (S.welcomePack) rows.push([icon('gem', '#F49AC1', 20), 'Pacchetto Benvenuto', '500 Astri + un pet']);
@@ -1884,7 +1884,7 @@ function pShop() {
   <div class="note" style="color:#9BFFB8;text-align:center">Versione di prova: per ora gli acquisti sono gratis, nessun pagamento reale.</div>
   <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min.`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
   <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
-  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr">${sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub" style="color:#9BFFB8">+${F.HERO_SPACE} zaino · +${F.HERO_SPACE} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
+  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr">${sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub" style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
   <div class="ph" id="shop-pet"><h2 style="font-size:13px">Pet</h2><span>non combattono · i bonus si sommano</span></div>
   ${S.welcomePack || !Object.keys(F.PETS).some(k => !F.PETS[k].astri && !(S.pets && S.pets[k])) ? '' : `<div class="card welcome"><b>Pacchetto Benvenuto · 4,99 €</b><div class="msub">500 ${icon('gem', '#F49AC1', 11)} + un pet a scelta · una sola volta</div>
    <div class="wpick">${Object.keys(F.PETS).filter(k => !F.PETS[k].astri && !(S.pets && S.pets[k])).map(k => `<button class="sb" data-act="welcome" data-k="${k}">${sprite('pet_' + k, 2)}<span>${F.PETS[k].name}</span></button>`).join('')}</div></div>`}
@@ -2051,7 +2051,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 13:03</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 13:08</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {

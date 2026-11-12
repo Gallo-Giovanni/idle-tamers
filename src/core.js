@@ -215,7 +215,7 @@ const PETS = {
   micio:     { name: 'Pipistrello Stellare',       price: '2,99 €', bonus: { gold: 0.05, bag: 1, chest: 1 } },
   volpe:     { name: 'Volpe Lunare',       price: '2,99 €', bonus: { xp: 0.05, bag: 1, chest: 1 } },
   gufo:      { name: 'Gufo Astrale',       price: '2,99 €', bonus: { drop: 0.05, bag: 1, chest: 1 } },
-  draghetto: { name: 'Draghetto di Brace', astri: 5000,     bonus: { capture: 0.10, bag: 1, chest: 1 } },
+  draghetto: { name: 'Draghetto di Brace', astri: 1000,     bonus: { capture: 0.05, bag: 2, chest: 2 } },
 };
 function petB(s, k) { let t = 0; for (const id in (s.pets || {})) { const b = PETS[id] && PETS[id].bonus[k]; if (b) t += b; } return t; }
 function buyPet(s, id) { const p = PETS[id]; if (!p || (s.pets && s.pets[id])) return false; if (p.astri) { if (s.astri < p.astri) return false; s.astri -= p.astri; } s.pets = s.pets || {}; s.pets[id] = 1; return true; } // in euro: versione di prova, gratis
@@ -300,7 +300,7 @@ function nextSlotZone(s) { return SLOT_UNLOCKS.find(z => s.cleared < z && z <= M
 function creaturesInTeam(s) { return s.team.filter(id => !isHero(id)).length; }
 function teamFull(s) { return creaturesInTeam(s) >= slotCount(s); }
 // Eroi extra in vendita (prezzi in euro; nella versione di prova si sbloccano gratis)
-const HERO_SHOP = [{ id: 'hero_arc', price: '1,99 €' }, { id: 'hero_mag', price: '4,99 €' }];
+const HERO_SHOP = [{ id: 'hero_arc', price: '1,99 €', space: 2 }, { id: 'hero_mag', price: '4,99 €', space: 5 }]; // space: posti in più in zaino e forziere
 const PASS_PRICE = '9,99 € / mese';
 // Astri gratuiti ogni giorno: si riscuotono una volta, si rinnovano a mezzanotte (ora locale)
 const DAILY_ASTRI = 20;
@@ -670,7 +670,7 @@ const FREE_MAX_FILTER = 1; // gratis: si vendono solo i comuni
 // Zaino e forziere: 20 posti ciascuno, il doppio col Pass. Le rune non occupano posto.
 const BAG_BASE = 20;
 const HERO_SPACE = 2; // ogni eroe comprato: +2 zaino e +2 forziere
-function heroSpace(s) { return HERO_SHOP.filter(h => s.roster[h.id]).length * HERO_SPACE; }
+function heroSpace(s) { return HERO_SHOP.filter(h => s.roster[h.id]).reduce((t, h) => t + h.space, 0); }
 function bagCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraBag || 0) + B(s, 'bag') + heroSpace(s); }
 function chestCap(s) { return BAG_BASE * (hasPass(s) ? 2 : 1) + (s.extraChest || 0) + B(s, 'chest') + heroSpace(s); }
 // Spazi extra nello Shop: per sempre, ma se ne possono comprare pochi ogni mese
