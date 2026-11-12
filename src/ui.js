@@ -358,7 +358,7 @@ function hud() {
   const maxId = S.inventory.reduce((x, it) => Math.max(x, it.id), 0); if (tab === 'zaino') S.bagSeen = Math.max(S.bagSeen || 0, maxId); const zb = document.querySelector('[data-tab=zaino]'); if (zb) zb.classList.toggle('dot', maxId > (S.bagSeen || 0));
   $('#gold').textContent = cfmt(S.gold); $('#astri').textContent = cfmt(S.astri);
   const pl = F.planetOf(S.zone); $('#ptitle').textContent = pl.name; $('#where').textContent = `Zona ${S.zone} · Battaglia ${S.battle}/30`;
-  scene().classList.toggle('p1', pl === F.PLANETS[0]); scene().classList.toggle('p2', pl === F.PLANETS[1]); scene().classList.toggle('p3', pl === F.PLANETS[2]); scene().classList.toggle('p4', pl === F.PLANETS[3]);
+  scene().classList.toggle('p1', pl === F.PLANETS[0]); for (const k of [1, 2, 3]) scene().classList.toggle('bg' + k, pl === F.PLANETS[0] && (S.zone - 1) % 3 + 1 === k); scene().classList.toggle('p2', pl === F.PLANETS[1]); scene().classList.toggle('p3', pl === F.PLANETS[2]); scene().classList.toggle('p4', pl === F.PLANETS[3]);
   $('#prog').style.width = (100 * S.battle / 30) + '%';
   $('#testbadge').hidden = !S.settings.test;
 }
