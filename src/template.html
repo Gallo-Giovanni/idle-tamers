@@ -205,7 +205,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .chatmod{display:flex;flex-direction:column;max-height:86vh}
 .chatlist{flex:1;overflow-y:auto;min-height:200px;max-height:52vh;display:flex;flex-direction:column;gap:4px;padding:4px 0}
 .cmsg{background:#10143A;border:1px solid var(--line);border-radius:10px;padding:5px 8px;font-size:12.5px;line-height:1.35;word-break:break-word}
-.cmsg.me{border-color:#5BD8E6;background:#122046}.cmsg .cn{font-weight:700;color:#7FE3FF;margin-right:6px}.cmsg time{float:right;font-size:10px;color:var(--muted);margin-left:6px}
+.cmsg.me{position:static;border-color:#5BD8E6;background:#122046}.cmsg .cn{font-weight:700;color:#7FE3FF;margin-right:6px}.cmsg time{float:right;font-size:10px;color:var(--muted);margin-left:6px}
 .cmsg .rep{background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;padding:0 0 0 6px;float:right}
 .chatform{display:flex;gap:6px;margin-top:6px}.chatform input{flex:1;min-width:0;min-height:40px;background:#10143A;border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:0 10px;font-size:14px}
 .dropg{display:flex;align-items:center;gap:8px;font-size:12px}
@@ -297,7 +297,7 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .snode2.slk{filter:grayscale(1);opacity:.6}.snode2.ssel{box-shadow:0 0 0 2px #F2C14E,0 0 18px #F2C14E88}
 .snode2 .sic svg{width:16px!important;height:16px!important}
 .it .ilv{position:absolute;bottom:1px;right:3px;font-style:normal;font-size:8.5px;font-weight:700;color:#A9B0D6;background:none;padding:0}
-.toprow{display:flex;align-items:center;gap:8px}.tpos{width:24px;text-align:center}.tpow{color:var(--gold)}
+.toprow{display:flex;align-items:center;gap:8px}.tpos{width:24px;text-align:center}.tpow{color:var(--gold);margin-left:auto;white-space:nowrap}.toprow .cn{white-space:nowrap}.toprow .msub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .skywrap{position:relative;border-radius:14px;overflow:hidden;background:radial-gradient(circle,#1d2563 0,#10143c 60%,#0b0e24 100%);margin:6px 0}
 .skyzoom{position:absolute;right:6px;top:6px;display:flex;flex-direction:column;gap:4px}
 .legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:10.5px;color:var(--muted);margin:4px 0}.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px}
