@@ -1152,7 +1152,7 @@ function buyRune(s, k) { const c = RUNE_BUY[k]; if (!c || s.astri < c) return fa
 const GOLD_PACKS = [{ astri: 30, hours: 2, name: "Secchio d'oro" }, { astri: 120, hours: 10, name: "Carro d'oro" }, { astri: 300, hours: 30, name: "Montagna d'oro" }];
 function goldPack(s, i) { const p = GOLD_PACKS[i]; return Math.round(p.hours * 500 * enemyScale(s.maxZone, s.maxZone === s.zone ? s.maxBattle : 30) * (1 + B(s, 'gold'))); }
 // Astri con soldi veri (per ora versione di prova: si ottengono gratis)
-const ASTRI_PACKS = [{ astri: 100, price: '0,99 €', name: 'Manciata di Astri' }, { astri: 550, price: '4,99 €', name: 'Borsa di Astri' }, { astri: 1200, price: '9,99 €', name: 'Scrigno di Astri' }, { astri: 2600, price: '19,99 €', name: 'Pioggia di Astri' }];
+const ASTRI_PACKS = [{ astri: 100, price: '0,99 €', name: 'Manciata di Astri' }, { astri: 320, price: '2,99 €', name: 'Sacchetto di Astri' }, { astri: 550, price: '4,99 €', name: 'Borsa di Astri' }, { astri: 1200, price: '9,99 €', name: 'Scrigno di Astri' }, { astri: 1850, price: '14,99 €', name: 'Forziere di Astri' }, { astri: 2600, price: '19,99 €', name: 'Pioggia di Astri' }];
 function astriFirst(s, i) { return !(s.astriBought || {})[i]; } // il primo acquisto di ogni pacchetto vale doppio
 function buyAstri(s, i) { const p = ASTRI_PACKS[i]; if (!p) return 0; const n = p.astri * (astriFirst(s, i) ? 2 : 1); s.astriBought = s.astriBought || {}; s.astriBought[i] = 1; s.astri += n; return n; }
 function buyGold(s, i) { const p = GOLD_PACKS[i]; if (!p || s.astri < p.astri) return 0; const g = goldPack(s, i); s.astri -= p.astri; s.gold += g; return g; }
@@ -1991,7 +1991,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 11:52</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 12:00</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {

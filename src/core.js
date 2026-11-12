@@ -720,7 +720,7 @@ function buyRune(s, k) { const c = RUNE_BUY[k]; if (!c || s.astri < c) return fa
 const GOLD_PACKS = [{ astri: 30, hours: 2, name: "Secchio d'oro" }, { astri: 120, hours: 10, name: "Carro d'oro" }, { astri: 300, hours: 30, name: "Montagna d'oro" }];
 function goldPack(s, i) { const p = GOLD_PACKS[i]; return Math.round(p.hours * 500 * enemyScale(s.maxZone, s.maxZone === s.zone ? s.maxBattle : 30) * (1 + B(s, 'gold'))); }
 // Astri con soldi veri (per ora versione di prova: si ottengono gratis)
-const ASTRI_PACKS = [{ astri: 100, price: '0,99 €', name: 'Manciata di Astri' }, { astri: 550, price: '4,99 €', name: 'Borsa di Astri' }, { astri: 1200, price: '9,99 €', name: 'Scrigno di Astri' }, { astri: 2600, price: '19,99 €', name: 'Pioggia di Astri' }];
+const ASTRI_PACKS = [{ astri: 100, price: '0,99 €', name: 'Manciata di Astri' }, { astri: 320, price: '2,99 €', name: 'Sacchetto di Astri' }, { astri: 550, price: '4,99 €', name: 'Borsa di Astri' }, { astri: 1200, price: '9,99 €', name: 'Scrigno di Astri' }, { astri: 1850, price: '14,99 €', name: 'Forziere di Astri' }, { astri: 2600, price: '19,99 €', name: 'Pioggia di Astri' }];
 function astriFirst(s, i) { return !(s.astriBought || {})[i]; } // il primo acquisto di ogni pacchetto vale doppio
 function buyAstri(s, i) { const p = ASTRI_PACKS[i]; if (!p) return 0; const n = p.astri * (astriFirst(s, i) ? 2 : 1); s.astriBought = s.astriBought || {}; s.astriBought[i] = 1; s.astri += n; return n; }
 function buyGold(s, i) { const p = GOLD_PACKS[i]; if (!p || s.astri < p.astri) return 0; const g = goldPack(s, i); s.astri -= p.astri; s.gold += g; return g; }
