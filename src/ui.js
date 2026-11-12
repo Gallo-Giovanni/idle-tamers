@@ -862,7 +862,9 @@ function showWelcome() {
   </div>`;
   m$.hidden = false; setTimeout(() => { const i = $('#wnick'); if (i) i.focus(); }, 50);
 }
+let tutOn = false;
 function showTutorial(i) {
+  tutOn = true;
   const [t, d] = TUT[i], m$ = $('#modal'), last = i === TUT.length - 1;
   m$.innerHTML = `<div class="mod cap" role="dialog" aria-modal="true" aria-labelledby="ttit">
    <div class="kick">TUTORIAL ${i + 1}/${TUT.length}</div><h2 id="ttit">${t}</h2>
@@ -1085,8 +1087,8 @@ document.addEventListener('click', e => {
   else if (a === 'close') { closeModal(); }
   else if (a === 'cmppick') { showCmpPick(id); return; }
   else if (a === 'cmp') { showCmp(t.dataset.a, t.dataset.b); return; }
-  else if (a === 'tutnext') { const i = +t.dataset.i + 1; if (i < TUT.length) { showTutorial(i); return; } S.tutorial = 1; save(); closeModal(); }
-  else if (a === 'tutskip') { S.tutorial = 1; save(); closeModal(); }
+  else if (a === 'tutnext') { const i = +t.dataset.i + 1; if (i < TUT.length) { showTutorial(i); return; } S.tutorial = 1; tutOn = false; save(); closeModal(); }
+  else if (a === 'tutskip') { S.tutorial = 1; tutOn = false; save(); closeModal(); }
   else if (a === 'tutshow') { showTutorial(0); return; }
   else if (a === 'lockm' || a === 'autoeq' || a === 'test' || a === 'minr' || a === 'prot' || a === 'sound' || a === 'vol') return; // gestiti da change
   if (a === 'tree' || a === 'treereset') { /* stelle cambiano le statistiche */ B.party.forEach(() => {}); }
@@ -1115,7 +1117,7 @@ let last = performance.now(), saveAt = 0, achAt = 0, renderAt = 0;
 function frame(now) {
   let dt = Math.min(0.1, (now - last) / 1000); last = now;
   S.stats.played += dt;
-  const speed = S.settings.test ? 5 : 1; let left = S.net ? dt * speed : 0; // senza nickname il gioco resta fermo
+  const speed = S.settings.test ? 5 : 1; let left = S.net && !tutOn ? dt * speed : 0; // fermo finché non c'è il nickname e durante il tutorial
   const ev = [];
   while (left > 0) { const d = Math.min(0.05, left); F.step(S, B, d, ev); left -= d; }
   handle(ev); updateScene(); hud();
