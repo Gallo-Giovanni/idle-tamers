@@ -384,6 +384,9 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
 .chatbar input{flex:1;min-width:0;background:none;border:none;color:var(--txt);font-size:15px;min-height:40px;outline:none}
 .csend{width:40px;height:40px;border-radius:50%;border:none;background:var(--gold);color:#1B1F3B;font-size:17px;cursor:pointer}
 
+.plus{width:17px;height:17px;margin-left:3px;border-radius:50%;border:none;background:var(--gold);color:#1B1F3B;font-weight:800;font-size:13px;line-height:17px;padding:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.sgrid.astri4{grid-template-columns:repeat(2,1fr)}
+.x2{display:inline-block;background:#1f6b3a;color:#9BFFB8;border:1px solid #3fcf74;border-radius:6px;padding:0 6px;font-size:10.5px;font-weight:700;margin:2px auto}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -398,9 +401,9 @@ canvas{width:100%;height:auto;display:block;margin-top:6px}
  <div class="hrow">
   <div><div class="title"><span id="ptitle">Prati Stellari</span><span id="testbadge" hidden>TEST</span></div><div id="where"></div></div>
   <div class="res">
-   <div class="pill"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F2C14E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Oro"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4"/></svg><span id="gold">0</span></div>
+   <div class="pill"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F2C14E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Oro"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4"/></svg><span id="gold">0</span><button class="plus" data-act="goshop" data-v="oro" aria-label="Compra oro">+</button></div>
    
-   <div class="pill"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F49AC1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Astri"><path d="M6 4h12l3 5-9 11L3 9z"/><path d="M3 9h18M9 4l3 16M15 4l-3 16"/></svg><span id="astri">0</span></div>
+   <div class="pill"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F49AC1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Astri"><path d="M6 4h12l3 5-9 11L3 9z"/><path d="M3 9h18M9 4l3 16M15 4l-3 16"/></svg><span id="astri">0</span><button class="plus" data-act="goshop" data-v="astri" aria-label="Compra astri">+</button></div>
    <button class="pill chatbtn" id="chatbtn" data-chat="open" aria-label="Chat globale"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7FE3FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></button>
   </div>
  </div>
@@ -1146,8 +1149,12 @@ function upgradeSlot(s, id, sl) { const m = s.roster[id]; if (!m) return false; 
 const RUNE_BUY = { epica: 100, leggendaria: 250, mitico: 500, astrale: 1000, arcano: 2000 }; // verde e blu non si vendono: si trovano spesso
 function buyRune(s, k) { const c = RUNE_BUY[k]; if (!c || s.astri < c) return false; s.astri -= c; s.runes[k]++; return true; }
 // Oro per Astri nello Shop: la quantità segue la zona più lontana raggiunta (= ore di combattimento lì)
-const GOLD_PACKS = [{ astri: 30, hours: 2 }, { astri: 120, hours: 10 }, { astri: 300, hours: 30 }];
+const GOLD_PACKS = [{ astri: 30, hours: 2, name: "Secchio d'oro" }, { astri: 120, hours: 10, name: "Carro d'oro" }, { astri: 300, hours: 30, name: "Montagna d'oro" }];
 function goldPack(s, i) { const p = GOLD_PACKS[i]; return Math.round(p.hours * 500 * enemyScale(s.maxZone, s.maxZone === s.zone ? s.maxBattle : 30) * (1 + B(s, 'gold'))); }
+// Astri con soldi veri (per ora versione di prova: si ottengono gratis)
+const ASTRI_PACKS = [{ astri: 100, price: '0,99 €', name: 'Manciata di Astri' }, { astri: 550, price: '4,99 €', name: 'Borsa di Astri' }, { astri: 1200, price: '9,99 €', name: 'Scrigno di Astri' }, { astri: 2600, price: '19,99 €', name: 'Pioggia di Astri' }];
+function astriFirst(s, i) { return !(s.astriBought || {})[i]; } // il primo acquisto di ogni pacchetto vale doppio
+function buyAstri(s, i) { const p = ASTRI_PACKS[i]; if (!p) return 0; const n = p.astri * (astriFirst(s, i) ? 2 : 1); s.astriBought = s.astriBought || {}; s.astriBought[i] = 1; s.astri += n; return n; }
 function buyGold(s, i) { const p = GOLD_PACKS[i]; if (!p || s.astri < p.astri) return 0; const g = goldPack(s, i); s.astri -= p.astri; s.gold += g; return g; }
 function sellRunes(s, k, n) { n = Math.min(n, s.runes[k]); s.runes[k] -= n; const g = n * RUNE[k].value; s.astri += g; return g; }
 // Negozio: 6 oggetti, rinnovati alle 0, 8 e 16 (ora locale), rarità con le stesse probabilità dei drop
@@ -1267,7 +1274,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
@@ -1823,10 +1830,12 @@ function pShop() {
   const left = Math.max(0, F.nextMidnight(Date.now()) - Date.now()), h = Math.floor(left / 3600000), mi = Math.floor(left % 3600000 / 60000), ready = F.dailyReady(S);
   return `<div class="ph"><h2>Shop</h2><span>${icon('gem', '#F49AC1', 14)} ${fmt(S.astri)} Astri</span></div>
   <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min.`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
+  <div class="ph" id="shop-astri"><h2 style="font-size:13px">Astri</h2><span>la moneta dello Shop</span></div>
+  <div class="sgrid astri4">${F.ASTRI_PACKS.map((p, i) => `<div class="card sitem">${icon('gem', '#F49AC1', 26)}<b style="color:#F49AC1">${fmt(p.astri)} Astri</b>${F.astriFirst(S, i) ? '<span class="x2">×2 al primo acquisto</span>' : ''}<span>${p.name}</span><button class="pb" data-act="buyastri" data-i="${i}">${p.price} · prova gratis</button></div>`).join('')}</div>
+  <div class="ph" id="shop-oro"><h2 style="font-size:13px">Oro</h2><span>con gli Astri · cresce con la zona più lontana raggiunta</span></div>
+  <div class="sgrid gold3">${F.GOLD_PACKS.map((p, i) => `<div class="card sitem">${icon('coin', '#F2C14E', 26)}<b style="color:var(--gold)">${cfmt(F.goldPack(S, i))}</b><span>${p.name}<br>≈ ${p.hours} ore di battaglie</span><button class="pb" data-act="buygold" data-i="${i}" ${S.astri < p.astri ? 'disabled' : ''}>${p.astri} ${icon('gem', '#1B1F3B', 11)}</button></div>`).join('')}</div>
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>si pagano in Astri</span></div>
   <div class="sgrid runes4">${Object.keys(F.RUNE_BUY).map(k => { const r = F.RUNE[k]; return `<div class="card sitem" style="border-color:${r.color}">${icon('rune', r.color, 24)}<b style="color:${r.color}">${r.label.replace('Runa ', '')}</b><span>→ ${F.ITEM_RARITY.find(x => x.key === k).label}</span><span>hai ${fmt(S.runes[k])}</span><button class="pb" data-act="buyrune" data-k="${k}" ${S.astri < F.RUNE_BUY[k] ? 'disabled' : ''}>${F.RUNE_BUY[k]} ${icon('gem', '#1B1F3B', 11)}</button></div>`; }).join('')}</div>
-  <div class="ph"><h2 style="font-size:13px">Oro</h2><span>cresce con la zona più lontana raggiunta</span></div>
-  <div class="sgrid gold3">${F.GOLD_PACKS.map((p, i) => `<div class="card sitem">${icon('coin', '#F2C14E', 26)}<b style="color:var(--gold)">${cfmt(F.goldPack(S, i))}</b><span>≈ ${p.hours} ore di battaglie</span><button class="pb" data-act="buygold" data-i="${i}" ${S.astri < p.astri ? 'disabled' : ''}>${p.astri} ${icon('gem', '#1B1F3B', 11)}</button></div>`).join('')}</div>
   <div class="ph"><h2 style="font-size:13px">Spazio</h2><span>+${F.SPACE_PACK.n} posti per sempre · max ${F.SPACE_PACK.perMonth} al mese</span></div>
   <div class="sgrid">${[['bag', 'Zaino', 'Posti zaino', F.bagCap(S)], ['chest', 'Forziere', 'Posti forziere', F.chestCap(S)]].map(([k, n, l, cap]) => { const left = F.spaceLeft(S, k); return `<div class="card sitem"><b>+${F.SPACE_PACK.n} ${l.toLowerCase()}</b><span>${n} ora: ${cap} posti</span><span>Questo mese: ancora ${left}</span><button class="pb" data-act="buyspace" data-k="${k}" ${left < 1 || S.astri < F.SPACE_PACK.cost ? 'disabled' : ''}>${left < 1 ? 'Finiti per questo mese' : F.SPACE_PACK.cost + ' Astri'}</button></div>`; }).join('')}</div>
   <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
@@ -1982,7 +1991,7 @@ function pAltro() {
   <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
   <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 11:39</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>12/11 11:52</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -2292,6 +2301,8 @@ document.addEventListener('click', e => {
   else if (a === 'skycenter') { skyView = { x: 0, y: 0, k: 34 }; }
   else if (a === 'buyback') { if (F.buyBack(S, +t.dataset.i)) toast('Oggetto riacquistato', '#7ED36F'); }
   else if (a === 'buyslot') { if (F.buySlot(S)) { toast('Nuovo posto in squadra!', '#F2C14E'); rebuild(); } }
+  else if (a === 'buyastri') { const n = F.buyAstri(S, +t.dataset.i); if (n) { snd('coin'); toast(`+${fmt(n)} Astri`, '#F49AC1'); } }
+  else if (a === 'goshop') { tab = 'shop'; selItem = null; selRune = null; selShop = null; render(); const el = document.getElementById('shop-' + t.dataset.v); if (el) el.scrollIntoView({ block: 'start' }); return; }
   else if (a === 'buygold') { const g = F.buyGold(S, +t.dataset.i); if (g) toast(`+${cfmt(g)} oro`, '#F2C14E'); }
   else if (a === 'buyspace') { if (F.buySpace(S, t.dataset.k)) toast(`+${F.SPACE_PACK.n} posti ${t.dataset.k === 'bag' ? 'nello zaino' : 'nel forziere'}`, '#F2C14E'); }
   else if (a === 'buyrune') { if (F.buyRune(S, t.dataset.k)) toast(`+1 ${F.RUNE[t.dataset.k].label.toLowerCase()}`, F.RUNE[t.dataset.k].color); }

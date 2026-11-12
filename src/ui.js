@@ -546,10 +546,12 @@ function pShop() {
   const left = Math.max(0, F.nextMidnight(Date.now()) - Date.now()), h = Math.floor(left / 3600000), mi = Math.floor(left % 3600000 / 60000), ready = F.dailyReady(S);
   return `<div class="ph"><h2>Shop</h2><span>${icon('gem', '#F49AC1', 14)} ${fmt(S.astri)} Astri</span></div>
   <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min.`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
+  <div class="ph" id="shop-astri"><h2 style="font-size:13px">Astri</h2><span>la moneta dello Shop</span></div>
+  <div class="sgrid astri4">${F.ASTRI_PACKS.map((p, i) => `<div class="card sitem">${icon('gem', '#F49AC1', 26)}<b style="color:#F49AC1">${fmt(p.astri)} Astri</b>${F.astriFirst(S, i) ? '<span class="x2">×2 al primo acquisto</span>' : ''}<span>${p.name}</span><button class="pb" data-act="buyastri" data-i="${i}">${p.price} · prova gratis</button></div>`).join('')}</div>
+  <div class="ph" id="shop-oro"><h2 style="font-size:13px">Oro</h2><span>con gli Astri · cresce con la zona più lontana raggiunta</span></div>
+  <div class="sgrid gold3">${F.GOLD_PACKS.map((p, i) => `<div class="card sitem">${icon('coin', '#F2C14E', 26)}<b style="color:var(--gold)">${cfmt(F.goldPack(S, i))}</b><span>${p.name}<br>≈ ${p.hours} ore di battaglie</span><button class="pb" data-act="buygold" data-i="${i}" ${S.astri < p.astri ? 'disabled' : ''}>${p.astri} ${icon('gem', '#1B1F3B', 11)}</button></div>`).join('')}</div>
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>si pagano in Astri</span></div>
   <div class="sgrid runes4">${Object.keys(F.RUNE_BUY).map(k => { const r = F.RUNE[k]; return `<div class="card sitem" style="border-color:${r.color}">${icon('rune', r.color, 24)}<b style="color:${r.color}">${r.label.replace('Runa ', '')}</b><span>→ ${F.ITEM_RARITY.find(x => x.key === k).label}</span><span>hai ${fmt(S.runes[k])}</span><button class="pb" data-act="buyrune" data-k="${k}" ${S.astri < F.RUNE_BUY[k] ? 'disabled' : ''}>${F.RUNE_BUY[k]} ${icon('gem', '#1B1F3B', 11)}</button></div>`; }).join('')}</div>
-  <div class="ph"><h2 style="font-size:13px">Oro</h2><span>cresce con la zona più lontana raggiunta</span></div>
-  <div class="sgrid gold3">${F.GOLD_PACKS.map((p, i) => `<div class="card sitem">${icon('coin', '#F2C14E', 26)}<b style="color:var(--gold)">${cfmt(F.goldPack(S, i))}</b><span>≈ ${p.hours} ore di battaglie</span><button class="pb" data-act="buygold" data-i="${i}" ${S.astri < p.astri ? 'disabled' : ''}>${p.astri} ${icon('gem', '#1B1F3B', 11)}</button></div>`).join('')}</div>
   <div class="ph"><h2 style="font-size:13px">Spazio</h2><span>+${F.SPACE_PACK.n} posti per sempre · max ${F.SPACE_PACK.perMonth} al mese</span></div>
   <div class="sgrid">${[['bag', 'Zaino', 'Posti zaino', F.bagCap(S)], ['chest', 'Forziere', 'Posti forziere', F.chestCap(S)]].map(([k, n, l, cap]) => { const left = F.spaceLeft(S, k); return `<div class="card sitem"><b>+${F.SPACE_PACK.n} ${l.toLowerCase()}</b><span>${n} ora: ${cap} posti</span><span>Questo mese: ancora ${left}</span><button class="pb" data-act="buyspace" data-k="${k}" ${left < 1 || S.astri < F.SPACE_PACK.cost ? 'disabled' : ''}>${left < 1 ? 'Finiti per questo mese' : F.SPACE_PACK.cost + ' Astri'}</button></div>`; }).join('')}</div>
   <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
@@ -1015,6 +1017,8 @@ document.addEventListener('click', e => {
   else if (a === 'skycenter') { skyView = { x: 0, y: 0, k: 34 }; }
   else if (a === 'buyback') { if (F.buyBack(S, +t.dataset.i)) toast('Oggetto riacquistato', '#7ED36F'); }
   else if (a === 'buyslot') { if (F.buySlot(S)) { toast('Nuovo posto in squadra!', '#F2C14E'); rebuild(); } }
+  else if (a === 'buyastri') { const n = F.buyAstri(S, +t.dataset.i); if (n) { snd('coin'); toast(`+${fmt(n)} Astri`, '#F49AC1'); } }
+  else if (a === 'goshop') { tab = 'shop'; selItem = null; selRune = null; selShop = null; render(); const el = document.getElementById('shop-' + t.dataset.v); if (el) el.scrollIntoView({ block: 'start' }); return; }
   else if (a === 'buygold') { const g = F.buyGold(S, +t.dataset.i); if (g) toast(`+${cfmt(g)} oro`, '#F2C14E'); }
   else if (a === 'buyspace') { if (F.buySpace(S, t.dataset.k)) toast(`+${F.SPACE_PACK.n} posti ${t.dataset.k === 'bag' ? 'nello zaino' : 'nel forziere'}`, '#F2C14E'); }
   else if (a === 'buyrune') { if (F.buyRune(S, t.dataset.k)) toast(`+1 ${F.RUNE[t.dataset.k].label.toLowerCase()}`, F.RUNE[t.dataset.k].color); }
