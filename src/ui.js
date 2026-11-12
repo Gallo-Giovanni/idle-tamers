@@ -694,6 +694,7 @@ function pAltro() {
   <div class="ph"><h2>Achievement</h2><span>${Object.keys(S.ach).length}/${F.ACH.length}</span></div>
   ${F.ACH.map(a => `<div class="card arow${S.ach[a.id] ? ' done' : ''}">${S.ach[a.id] ? icon('check', '#7ED36F', 20) : icon('lock', '#7C84BC', 20)}<div><b>${a.name}</b><div class="msub">${a.desc} · +${a.astri} Astri</div></div></div>`).join('')}
   <div class="ph"><h2>Impostazioni</h2></div>
+  <button class="sb" data-act="tutshow" style="width:100%;margin-bottom:6px">Rivedi il tutorial</button>
   <label class="tg"><input type="checkbox" data-act="sound" ${S.settings.sound !== false ? 'checked' : ''}> Suoni</label>
   <div class="row2"><label for="vol">Volume</label><input id="vol" type="range" min="0" max="1" step="0.1" value="${S.settings.volume ?? 0.5}" data-act="vol" style="flex:1"></div>
   <label class="tg"><input type="checkbox" data-act="test" ${S.settings.test ? 'checked' : ''}> Modalità test: velocità ×5 e catture ×200</label>
@@ -807,6 +808,38 @@ function skipTime(hours) {
   };
   setTimeout(run, 30);
 }
+
+// ---------- benvenuto: nickname + breve tutorial ----------
+const TUT = [
+  ['La squadra combatte da sola', 'I tuoi personaggi avanzano e combattono in automatico, anche quando chiudi il gioco (fino a 4 ore, 8 col Pass). Tu decidi come farli crescere.'],
+  ['Cattura le creature', 'Ogni nemico sconfitto può unirsi a te. Le creature catturate entrano in squadra: le trovi in Squadra e nel Bestiario.'],
+  ['Equipaggia e vendi', 'Gli oggetti finiscono nello Zaino. Equipaggia i migliori e vendi il resto al Mercante: con lo zaino pieno gli oggetti nuovi vanno persi.'],
+  ['Punti e stelle', 'A ogni livello hai 5 punti da assegnare nella scheda del personaggio. Con l\'oro accendi le stelle delle Costellazioni: bonus per tutta la squadra.'],
+  ['Zone e boss', 'Ogni zona ha 30 battaglie e un boss alla fine. Sconfiggilo per aprire la zona successiva. Se la squadra cade, torna più forte e riprova.'],
+  ['Shop', 'Ogni giorno nello Shop c\'è un regalo di Astri gratis. Buon viaggio, ' + '{nick}' + '!'],
+];
+function showWelcome() {
+  const m$ = $('#modal');
+  m$.innerHTML = `<div class="mod cap" role="dialog" aria-modal="true" aria-labelledby="wtit">
+   <div class="kick">BENVENUTO</div><h2 id="wtit">Idle Tamers</h2>
+   <p class="quote">Scegli il nome con cui ti vedranno gli altri giocatori in chat e in classifica.</p>
+   <form id="welcomeform" class="wform"><label for="wnick">Nickname</label><input id="wnick" maxlength="16" minlength="3" autocomplete="off" placeholder="3-16 caratteri" value="${esc(S.nick || '')}"><button class="pb" type="submit">Inizia</button></form>
+  </div>`;
+  m$.hidden = false; setTimeout(() => { const i = $('#wnick'); if (i) i.focus(); }, 50);
+}
+function showTutorial(i) {
+  const [t, d] = TUT[i], m$ = $('#modal'), last = i === TUT.length - 1;
+  m$.innerHTML = `<div class="mod cap" role="dialog" aria-modal="true" aria-labelledby="ttit">
+   <div class="kick">TUTORIAL ${i + 1}/${TUT.length}</div><h2 id="ttit">${t}</h2>
+   <p class="quote" style="font-style:normal">${esc(d.replace('{nick}', S.nick || (S.net && S.net.nick) || 'Domatore'))}</p>
+   <div class="row2">${last ? '' : '<button class="sb" data-act="tutskip">Salta</button>'}<button class="pb wide" data-act="tutnext" data-i="${i}">${last ? 'Gioca' : 'Avanti'}</button></div>
+  </div>`;
+  m$.hidden = false;
+}
+async function registerNick(v) {
+  try { const r = await api('rpc/it_register', { p_nickname: v }); S.net = { id: r.id, token: r.token, nick: r.nickname }; S.nick = r.nickname; save(); return 'ok'; }
+  catch (err) { return /taken/.test(err.message) ? 'taken' : /check/.test(err.message) ? 'check' : 'net'; }
+}
 function closeModal() { equipOpen = null; $('#modal').hidden = true; $('#modal').innerHTML = ''; }
 
 // ---------- chat globale e drop rari (Supabase) ----------
@@ -836,7 +869,7 @@ function chatRender() {
   if (chatTab === 'chat') {
     body = `<div class="chatlist" id="chatlist">${chatMsgs.map(m => `<div class="cmsg${m.player_id === me ? ' me' : ''}"><time>${ago(m.created_at)}</time>${m.player_id !== me && me ? `<button class="rep" data-chat="report" data-id="${m.id}" aria-label="Segnala">segnala</button>` : ''}<span class="cn">${esc(m.nickname)}</span>${esc(clean(m.body))}</div>`).join('') || '<div class="note">Ancora nessun messaggio. Rompi il ghiaccio!</div>'}</div>
     ${S.net ? `<form class="chatform" id="chatform"><input id="chatin" maxlength="200" placeholder="Scrivi come ${esc(S.net.nick)}…" autocomplete="off" aria-label="Messaggio"><button class="pb" type="submit">Invia</button></form>`
-      : `<form class="chatform" id="nickform"><input id="nickin" maxlength="16" minlength="3" placeholder="Scegli un nickname (3-16)" autocomplete="off" aria-label="Nickname"><button class="pb" type="submit">Entra</button></form><div class="note">Il nickname sarà visibile a tutti e non si può cambiare. Niente insulti: i messaggi segnalati da 3 giocatori spariscono.</div>`}`;
+      : `<form class="chatform" id="nickform"><input id="nickin" maxlength="16" minlength="3" value="${esc(S.nick || '')}" placeholder="Scegli un nickname (3-16)" autocomplete="off" aria-label="Nickname"><button class="pb" type="submit">Entra</button></form><div class="note">Il nickname sarà visibile a tutti e non si può cambiare. Niente insulti: i messaggi segnalati da 3 giocatori spariscono.</div>`}`;
   } else if (chatTab === 'top') {
     const me = S.net && S.net.id;
     body = `<div class="note">Potenza totale: la somma del potere di tutti i tuoi personaggi (squadra e riserva).${S.net ? '' : ' Entra in chat con un nickname per comparire.'}</div><div class="chatlist">${chatTop.map((r, i) => `<div class="cmsg toprow${r.player_id === me ? ' me' : ''}"><b class="tpos">${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</b><span class="cn" style="flex:1">${esc(r.nickname)}</span><span class="msub">zona ${r.zone} · ${r.creatures} creature</span><b class="tpow">${cfmt(r.power)}</b></div>`).join('') || '<div class="note">Classifica vuota: sii il primo!</div>'}</div>`;
@@ -873,6 +906,17 @@ document.addEventListener('click', async e => {
   else if (a === 'report') { try { await api('rpc/it_report', { p_token: S.net.token, p_chat_id: +t.dataset.id }); toast('Segnalazione inviata, grazie'); } catch (err) { toast('Segnalazione non riuscita'); } }
 });
 document.addEventListener('submit', async e => {
+  if (e.target.id === 'welcomeform') {
+    e.preventDefault(); const v = $('#wnick').value.trim();
+    if (v.length < 3) { toast('Il nickname deve avere almeno 3 caratteri'); return; }
+    if (BAD.some(w => v.toLowerCase().includes(w))) { toast('Scegli un nickname senza parolacce'); return; }
+    const res = await registerNick(v);
+    if (res === 'taken') { toast('Nickname già usato, scegline un altro'); return; }
+    if (res === 'check') { toast('Usa solo lettere, numeri, spazi, _ . -'); return; }
+    S.nick = v; save(); // in mancanza di rete il nome resta salvato e si registra in chat più tardi
+    if (!S.tutorial) showTutorial(0); else closeModal();
+    return;
+  }
   if (e.target.id === 'nickform') {
     e.preventDefault(); const v = $('#nickin').value.trim();
     if (v.length < 3) { toast('Il nickname deve avere almeno 3 caratteri'); return; }
@@ -964,6 +1008,9 @@ document.addEventListener('click', e => {
   else if (a === 'capadd') { F.addToTeam(S, id); rebuild(); closeModal(); }
   else if (a === 'share') { const m = S.roster[id], d = F.SPECIES[m.species]; const txt = `Ho catturato ${m.name} (${F.RARITY[d.rarity].label}, ${d.cls}) in Frontiera Arcana dopo ${fmt(m.waitKills)} incontri!`; try { navigator.clipboard.writeText(txt).then(() => { t.textContent = 'Copiato!'; }, () => { t.textContent = 'Copia non riuscita'; }); } catch (err) { t.textContent = 'Copia non riuscita'; } return; }
   else if (a === 'close') { closeModal(); }
+  else if (a === 'tutnext') { const i = +t.dataset.i + 1; if (i < TUT.length) { showTutorial(i); return; } S.tutorial = 1; save(); closeModal(); }
+  else if (a === 'tutskip') { S.tutorial = 1; save(); closeModal(); }
+  else if (a === 'tutshow') { showTutorial(0); return; }
   else if (a === 'lockm' || a === 'autoeq' || a === 'test' || a === 'minr' || a === 'prot' || a === 'sound' || a === 'vol') return; // gestiti da change
   if (a === 'tree' || a === 'treereset') { /* stelle cambiano le statistiche */ B.party.forEach(() => {}); }
   save(); render(); if (equipOpen && !$('#modal').hidden) { const y = $('#modal .mod') ? $('#modal .mod').scrollTop : 0; showEquip(equipOpen); if ($('#modal .mod')) $('#modal .mod').scrollTop = y; }
@@ -1015,7 +1062,8 @@ window.addEventListener('pagehide', save);
 const had = load();
 F.ensureShop(S, Date.now());
 if (!S.settings) S.settings = { autoEquip: true, test: false };
-if (had) catchUp(); else { B = F.startBattle(S); buildScene(); toast('Benvenuto! La squadra combatte da sola: guarda, potenzia, cattura.', '#F2C14E'); }
+if (had) catchUp(); else { B = F.startBattle(S); buildScene(); }
+if (!S.net && !S.nick) showWelcome(); else if (!had && !S.tutorial) showTutorial(0);
 banner('BATTAGLIA ' + S.battle);
 setScroll(); render(); hud();
 requestAnimationFrame(t => { last = t; frame(t); });
