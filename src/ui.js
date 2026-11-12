@@ -1026,7 +1026,7 @@ document.addEventListener('click', e => {
     else S.settings.minRarity = k >= 2 ? 'noncomune' : 'rara';
     if (F.minKeep(S) > k) { const r = F.sellBelow(S); if (r.n) toast(`Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro`); }
   }
-  else if (a === 'goshop') { closeModal(); tab = 'shop'; selItem = null; render(); $('#panel').scrollTop = 0; return; }
+  else if (a === 'goshop') { closeModal(); tab = 'shop'; selItem = null; selRune = null; selShop = null; render(); const v = t.dataset.v, pn = $('#panel'); pn.scrollTop = 0; if (v) { const go = () => { const el = document.getElementById('shop-' + v); if (el) pn.scrollTop += el.getBoundingClientRect().top - pn.getBoundingClientRect().top - 6; }; go(); requestAnimationFrame(go); } return; }
   else if (a === 'setkeep') { S.settings.minRarity = t.dataset.k; dirty = true; showAutoSell(); return; }
   else if (a === 'pts') { F.addPts(S, id, t.dataset.k, +t.dataset.n); rebuild(); }
   else if (a === 'ptsauto') { F.autoPts(S, id); rebuild(); }
@@ -1070,7 +1070,6 @@ document.addEventListener('click', e => {
   else if (a === 'buypet') { if (F.buyPet(S, t.dataset.k)) { snd('rare'); toast(`${F.PETS[t.dataset.k].name} si unisce a te!`, '#F2C14E'); buildScene(); } }
   else if (a === 'welcome') { if (F.buyWelcome(S, t.dataset.k)) { snd('rare'); toast(`Pacchetto Benvenuto: ${F.PETS[t.dataset.k].name} + 500 Astri`, '#F2C14E'); buildScene(); } }
   else if (a === 'buyastri') { const n = F.buyAstri(S, +t.dataset.i); if (n) { snd('coin'); toast(`+${fmt(n)} Astri`, '#F49AC1'); } }
-  else if (a === 'goshop') { tab = 'shop'; selItem = null; selRune = null; selShop = null; render(); const el = document.getElementById('shop-' + t.dataset.v); if (el) el.scrollIntoView({ block: 'start' }); return; }
   else if (a === 'buygold') { const g = F.buyGold(S, +t.dataset.i); if (g) toast(`+${cfmt(g)} oro`, '#F2C14E'); }
   else if (a === 'buyspace') { if (F.buySpace(S, t.dataset.k)) toast(`+${F.SPACE_PACK.n} posti ${t.dataset.k === 'bag' ? 'nello zaino' : 'nel forziere'}`, '#F2C14E'); }
   else if (a === 'buyrune') { if (F.buyRune(S, t.dataset.k)) toast(`+1 ${F.RUNE[t.dataset.k].label.toLowerCase()}`, F.RUNE[t.dataset.k].color); }
