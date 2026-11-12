@@ -230,7 +230,7 @@ function buildScene() {
   const place = (list) => list.forEach(({ u }, k) => {
     const x = 168 - k * 10 - (F.CLASSES[u.cls].range - 1) * 4, y = 26; // tutti sul pavimento
     const el = document.createElement('div'); el.className = 'u'; el.dataset.x = x; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 20 - (k % 2) * 5;
-    el.innerHTML = `<div class="hpb"><b style="background:#7ED36F"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
+    el.innerHTML = `<div class="hpb"><b style="background:#7ED36F"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : u.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
     sc.appendChild(el); pEls[u.idx] = el;
   });
   place(order);
@@ -308,7 +308,8 @@ function floatText(el, text, cls) {
 }
 const ANIM = { divoratore: 'an-rp' }; // creature con animazione completa
 function animHTML(u) { const k = ANIM[F.SPECIES[u.species].base || u.species]; return k ? `<div class="an ${k}" aria-hidden="true"></div>` : ''; }
-function knAnim(el, k, ms) { const kn = el && el.querySelector('.kn, .an'); if (!kn) return; kn.classList.remove('atk', 'atk2', 'sk', 'dg'); void kn.offsetWidth; kn.classList.add(k); clearTimeout(kn._t); kn._t = setTimeout(() => kn.classList.remove(k), ms); }
+function knAnim(el, k, ms) { const kn = el && el.querySelector('.kn, .an, .mg'); if (!kn) return;
+  if (kn.classList.contains('mg')) { if (k === 'dg') return; k = 'atk'; ms = 700; } kn.classList.remove('atk', 'atk2', 'sk', 'dg'); void kn.offsetWidth; kn.classList.add(k); clearTimeout(kn._t); kn._t = setTimeout(() => kn.classList.remove(k), ms); }
 function lunge(el, dir) { if (!el) return; el.style.setProperty('--dx', dir + 'px'); el.classList.remove('lg'); void el.offsetWidth; el.classList.add('lg'); }
 function banner(text) { const b = $('#banner'); b.textContent = text; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
 
@@ -463,7 +464,7 @@ function showEquip(id) {
     <div class="dtitle"><h2 id="eqt">${esc(m.name)}</h2><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · Lv ${m.lvl} · Potere <b style="color:var(--gold)">${fmt(F.memberPower(S, id))}</b> ${rarTag(m.species)}</div></div>
     <button class="ib" data-act="eqnav" data-d="1" aria-label="Successivo" ${at >= ord.length - 1 ? 'disabled' : ''}>▶</button><button class="ib" data-act="close" aria-label="Chiudi">✕</button></div>
    <div class="dgrid"><div class="dcol">${DOLL_L.map(sl => slotTile(id, sl)).join('')}</div>
-    <div class="dmid"><div class="dspr">${m.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : sprite(m.species, 4)}</div><div class="dpos">${at + 1}/${ord.length}${S.team.includes(id) ? '' : ' · riserva'}</div></div>
+    <div class="dmid"><div class="dspr">${m.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : m.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : sprite(m.species, 4)}</div><div class="dpos">${at + 1}/${ord.length}${S.team.includes(id) ? '' : ' · riserva'}</div></div>
     <div class="dcol">${DOLL_R.map(sl => slotTile(id, sl)).join('')}</div></div>
    <div class="dstats">${mini.map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join('')}</div>
    ${slotDetail(id)}
@@ -602,7 +603,7 @@ function pShop() {
   <div class="note" style="color:#9BFFB8;text-align:center">Versione di prova: per ora gli acquisti sono gratis, nessun pagamento reale.</div>
   <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min.`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
   <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
-  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr">${sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub" style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
+  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr">${h.id === 'hero_mag' ? '<div class="mg mgf" aria-hidden="true"></div>' : sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub" style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
   <div class="ph" id="shop-pet"><h2 style="font-size:13px">Pet</h2><span>non combattono · i bonus si sommano</span></div>
   ${S.welcomePack || !Object.keys(F.PETS).some(k => !F.PETS[k].astri && !(S.pets && S.pets[k])) ? '' : `<div class="card welcome"><b>Pacchetto Benvenuto · 4,99 €</b><div class="msub">500 ${icon('gem', '#F49AC1', 11)} + un pet a scelta · una sola volta</div>
    <div class="wpick">${Object.keys(F.PETS).filter(k => !F.PETS[k].astri && !(S.pets && S.pets[k])).map(k => `<button class="sb" data-act="welcome" data-k="${k}">${sprite('pet_' + k, 2)}<span>${F.PETS[k].name}</span></button>`).join('')}</div></div>`}
