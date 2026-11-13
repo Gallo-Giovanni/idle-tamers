@@ -19,7 +19,7 @@ const RARITY = {
 
 const SPECIES = {
   hero:     { name: 'Eroe',     cls: 'Guerriero', rarity: null, hero: true, quote: '' },
-  hero_arc: { name: 'Eroina Arciera', cls: 'Arciere', rarity: null, hero: true, hb: { crit: 0.15, critDmg: 0.5, atk: 0.15 }, hbText: '+15% prob. critico · +50% danni critici · +15% danni', quote: 'Una freccia, un bersaglio. Mai sprecare un colpo.' },
+  hero_arc: { name: 'Succube', cls: 'Arciere', rarity: null, hero: true, hb: { crit: 0.15, critDmg: 0.5, atk: 0.15 }, hbText: '+15% prob. critico · +50% danni critici · +15% danni', quote: 'Un cuore lanciato non sbaglia mai bersaglio.' },
   hero_mag: { name: 'Eroe Mago',  cls: 'Mago',      rarity: null, hero: true, hb: { atk: 0.45, aspd: 0.2, hp: 0.15 }, hbText: '+45% danni · +20% vel. d\'attacco · +15% vita', quote: 'La magia è solo pazienza molto veloce.' },
   glimmo:   { name: 'Glimmo',   cls: 'Arciere',   rarity: 'comune',    quote: 'Blip! Brillo solo per te.' },
   cometuga: { name: 'Cometuga', cls: 'Guerriero', tough: true,      rarity: 'comune',    quote: 'Piano piano... ma arrivo sempre.' },
@@ -912,6 +912,7 @@ function migrate(s) {
     for (const e of s.sold || []) e.g = Math.max(1, Math.round(e.g * r)); s._nextStar = 0; s._tb = null;
   }
   s.scale2 = 1;
+  if (s.roster && s.roster.hero_arc && s.roster.hero_arc.name === 'Eroina Arciera') s.roster.hero_arc.name = 'Succube'; // l'arciera è diventata la Succube
   if (s.settings && s.settings.test) { s.settings.tFast = s.settings.tCap = true; } if (s.settings) delete s.settings.test; // la vecchia modalità test diventa le due spunte
   untank(s); for (const id in (s.roster || {})) { const m = s.roster[id]; if (SPECIES[m.species] && !SPECIES[m.species].hero) m.name = SPECIES[m.species].name; } // i mostri tengono il loro nome: si rinominano solo gli eroi // la classe Tank non esiste più: armi e creature passano ai Guerrieri
   if (s.zone === undefined) { s.zone = 1; s.maxZone = 1; s.cleared = 0; s.battle = 1; s.maxBattle = 1; s.maxGlobal = 1; delete s.bossCleared; }
