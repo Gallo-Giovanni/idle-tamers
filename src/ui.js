@@ -227,6 +227,10 @@ const MAG_SIDE = h => `<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA
 const PET_ANIM = { micio: 1, volpe: 1 }; // pet con animazione di volo
 const petHTML = (k, p) => PET_ANIM[k] ? `<div class="pa pa-${k}" style="--z:${p * 22}px" aria-hidden="true"></div>` : sprite('pet_' + k, p);
 let partyOrder = [], lastFrame = 0;
+// la prima linea sta oltre metà scena: la squadra ha più spazio (come negli altri idle), i nemici arrivano da destra
+const MID = 205; let FRONT = 240; // squadra centrata un po' a destra del centro, sempre un po' sovrapposta
+const partyStep = n => Math.min(14, 220 / Math.max(1, n - 1));
+const partyFront = n => Math.min(262, MID + (n - 1) * partyStep(n) / 2);
 const deadSeen = new Set(); // membri che hanno già fatto l'animazione di morte
 function buildScene() { setScroll();
   const sc = $('#units'); sc.innerHTML = '';
@@ -234,10 +238,10 @@ function buildScene() { setScroll();
   const isRanged = c => c === 'Arciere' || c === 'Mago' || c === 'Curatore';
   // squadra: mischia davanti, a distanza dietro con uno stacco
   // ognuno si mette alla distanza della sua gittata: prima i Guerrieri, poi Arcieri, Maghi e Curatori
-  const order = orderFront(B.party);
+  const order = orderFront(B.party); FRONT = partyFront(order.length);
   const place = (list) => list.forEach(({ u }, k) => {
-    const step = list.length <= 6 ? 17 : list.length <= 9 ? 13 : 10; // più spazio quando la squadra è piccola, così si riconosce ognuno
-    const x = 168 - k * step - (F.CLASSES[u.cls].range - 1) * 4, y = 26; // tutti sul pavimento
+    const step = partyStep(list.length); // lo spazio si divide tra tutti, così nessuno esce dallo schermo
+    const x = FRONT - k * step - (F.CLASSES[u.cls].range - 1) * 4, y = 26; // tutti sul pavimento
     const el = document.createElement('div'); el.className = 'u pm'; el.dataset.x = x; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 20 - (k % 2) * 5;
     el.innerHTML = `<div class="hpb"><b style="background:#7ED36F"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : u.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : u.species === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
     sc.appendChild(el); pEls[u.idx] = el;
@@ -246,7 +250,7 @@ function buildScene() { setScroll();
   // chi era caduto: se è tornato in vita rientra correndo da dietro, se è ancora a terra resta nascosto
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el || !deadSeen.has(u.id)) return; if (u.hp > 0) { deadSeen.delete(u.id); el.classList.add('revive'); setTimeout(() => el.classList.remove('revive'), 1300); } else { el._gone = 1; el.classList.add('dead', 'gone'); } });
   // pet: volano sopra l'eroe, così restano sempre in vista
-  const hu = B.party.find(u => u.id === 'hero'), heroEl = hu && pEls[hu.idx], hx = heroEl ? +heroEl.dataset.x : 168;
+  const hu = B.party.find(u => u.id === 'hero'), heroEl = hu && pEls[hu.idx], hx = heroEl ? +heroEl.dataset.x : FRONT;
   Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (hx - 18 - i * 28) + 'px'; el.style.bottom = (82 + (i % 2) * 10) + 'px'; el.innerHTML = petHTML(k, 2); sc.appendChild(el); });
   // nemici: quelli da mischia si ammassano sul primo bersaglio, quelli a distanza restano indietro
   let mk = 0, rk = 0;
@@ -305,15 +309,15 @@ function updateScene() {
     if (u.hp <= 0 && !el._gone) { el._gone = 1; const again = deadSeen.has(u.id); deadSeen.add(u.id); if (again) el.classList.add('gone'); else setTimeout(() => el.classList.add('gone'), 2500); } });
   // chi cade resta dove è caduto (scorre via col terreno); gli altri avanzano a prendere il suo posto
   { const now = performance.now(), dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0; lastFrame = now;
-    const n = partyOrder.length, step = n <= 6 ? 17 : n <= 9 ? 13 : 10; let k = 0;
+    const n = partyOrder.length, step = partyStep(n); let k = 0;
     partyOrder.forEach(({ u }) => { const el = pEls[u.idx]; if (!el) return;
-      if (u.hp > 0) { const bx = 168 - k * step - (F.CLASSES[u.cls].range - 1) * 4; k++; el._wx = undefined; el.style.left = (bx + (F.CLASSES[u.cls].range === 1 ? (adv(u) - cam) * 15 : 0)) + 'px'; return; }
+      if (u.hp > 0) { const bx = FRONT - k * step - (F.CLASSES[u.cls].range - 1) * 4; k++; el._wx = undefined; el.style.left = (bx + (F.CLASSES[u.cls].range === 1 ? (adv(u) - cam) * 15 : 0)) + 'px'; return; }
       if (el._wx === undefined) { el._wx = parseFloat(el.style.left) || +el.dataset.x; el._cam0 = cam; el.classList.remove('pm'); }
       if (marching) el._wx -= dt * 75 * F.moveSpeed(S);
       el.style.left = (el._wx - (cam - el._cam0) * 15) + 'px'; }); }
   { const bb = $('#bossbar'), fb = B.enemies.find(u => u.boss && (F.SPECIES[u.species].base || u.species) === 'divoratore'); // barra grande solo per il boss finale
     if (bb) { const on = !!fb && fb.hp > 0 && !(fb.arrive > 0); bb.hidden = !on; if (on) { bb.firstChild.style.width = (148 * fb.hp / fb.maxHp) + 'px'; const nm = F.SPECIES[fb.species].name; if (bb.lastChild.textContent !== nm) bb.lastChild.textContent = nm; } } }
-  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (196 + (u.pos - 1) * 15 + tx - B._cam * 15) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
+  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (FRONT + 28 + (u.pos - 1) * 15 + tx - B._cam * 15) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
   updateLog();
 }
 // frecce degli arcieri che restano conficcate nel nemico (al massimo 5, spariscono con lui)

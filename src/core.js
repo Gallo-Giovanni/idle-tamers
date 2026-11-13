@@ -552,7 +552,8 @@ function step(s, b, dt, ev) {
     if (u.side === 'e') { // ogni nemico si ferma esattamente alla sua gittata dal primo alleato in piedi; se quello cade, avanza fino al successivo
       const ft = frontTarget(s, b.party), want = (ft ? ft.pos : 0) + rangeOf(u);
       if (u.pos > want + 1e-3) { u.pos = Math.max(want, u.pos - ENEMY_V[u.cls] * moveSpeed(s) * dt); }
-      u.arrive = u.pos > want + 1e-3 ? 1 : 0; if (u.arrive) continue;
+      const was = u.arrive; u.arrive = u.pos > want + 1e-3 ? 1 : 0; if (u.arrive) continue;
+      if (was) u.t = 0; // appena arrivato a tiro attacca subito, senza attesa
     }
     if (u.mark > 0) u.mark -= dt;
     if (u.side === 'p' && u.cls === 'Curatore') {
@@ -571,8 +572,10 @@ function step(s, b, dt, ev) {
     u.t -= dt;
     if (u.side === 'p' && rangeOf(u) === 1) { // chi combatte in mischia deve prima raggiungere il bersaglio
       const tg = frontTarget(s, u.side === 'p' ? b.enemies : b.party);
-      if (tg) { const gap = Math.abs(u.pos - tg.pos); if (gap > 2.01) { u.pos += (tg.pos > u.pos ? 1 : -1) * Math.min(MELEE_STEP * dt, gap - 2); continue; } }
+      if (tg) { const gap = Math.abs(u.pos - tg.pos); if (gap > 2.01) { u.pos += (tg.pos > u.pos ? 1 : -1) * Math.min(MELEE_STEP * dt, gap - 2); if (u.t < 0) u.t = 0; continue; } }
     }
+    // la squadra tiene il colpo pronto mentre aspetta: appena il nemico è a tiro attacca subito, senza attesa
+    if (u.side === 'p' && u.t <= 0 && !frontTarget(s, b.enemies)) { u.t = 0; continue; }
     if (u.t <= 0) { u.t += u.spd; attack(s, b, u, ev); }
   }
   if (!alive(b.enemies).length) { b.over = 'win'; b.pause = 1.0 / moveSpeed(s); }
