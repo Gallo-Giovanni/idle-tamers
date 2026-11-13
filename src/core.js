@@ -102,6 +102,13 @@ const RAR_MULT = { comune: 1, noncomune: 1.05, rara: 1.10, boss: 1.15 }; // le c
 const SECRET_SPECIES = [];
 const TOUGH = { hp: 1.5, def: 1.5, atk: 0.65 }; // Guerrieri robusti (gli ex Tank): più vita e difesa, meno attacco
 for (let z = 1; z <= MAX_ZONE; z++) { const k = ZONE_BOSS[z], sk = k + '_s'; if (SPECIES[sk]) continue; SPECIES[sk] = { name: SPECIES[k].name + ' Gigante', cls: SPECIES[k].cls, tough: SPECIES[k].tough, rarity: 'segreto', secret: true, base: k, quote: 'Pochi mi hanno visto. Nessuno mi aveva mai battuto.' }; SECRET_SPECIES.push(sk); }
+// Guardiani del portale: versione astrale del boss di ogni pianeta, si cattura solo nel portale (5%)
+const PORTAL_SPECIES = [], PORTAL_MULT = 1.25, PORTAL_CAPTURE = 0.05;
+for (const z of [5, 10, 15, 20]) { const k = ZONE_BOSS[z]; if (!k || !SPECIES[k]) continue; const pk = k + '_p'; SPECIES[pk] = { name: SPECIES[k].name + ' Astrale', cls: SPECIES[k].cls, tough: SPECIES[k].tough, rarity: 'boss', portal: true, base: k, quote: 'Ho attraversato le stelle per arrivare fin qui.' }; PORTAL_SPECIES.push(pk); }
+// Forzieri del portale: non attaccano, se li apri danno oro o (più di rado) Astri
+SPECIES.scrigno = { name: 'Forziere d\'oro', cls: 'Guerriero', rarity: 'comune', chest: 'gold', quote: '' };
+SPECIES.scrigno_astri = { name: 'Forziere astrale', cls: 'Guerriero', rarity: 'comune', chest: 'astri', quote: '' };
+const CHEST_GOLD = 40, CHEST_ASTRI = 10;
 const ALL_SPECIES = PLANETS.flatMap(p => p.species);
 function planetOf(z) { return PLANETS.find(p => z >= p.zones[0] && z <= p.zones[1]); }
 function zoneOf(sp) { if (SPECIES[sp] && SPECIES[sp].base) sp = SPECIES[sp].base; for (let z = 1; z <= MAX_ZONE; z++) if (ZONES[z].pool.includes(sp) || ZONES[z].boss === sp) return z; return 1; }
@@ -205,7 +212,9 @@ function skyRingOpen(s, r) { return s.cleared >= (SKY_GATES[r] || 0); }
 function skyCanBuy(s, id) { const o = SKY[id], own = skyOwned(s); if (!o || own.includes(id) || !skyRingOpen(s, o.r)) return false; return o.adj.some(a => own.includes(a)); }
 // Il prezzo cresce con le stelle già accese (non con l'anello): a fine gioco resta circa metà cielo da accendere
 let SKY_G = 1.145; if (typeof process !== 'undefined' && process.env && process.env.SKYG2) SKY_G = +process.env.SKYG2;
-function skyCost(s, id) { const n = Math.max(0, skyOwned(s).length - 1); return Math.round(SKY_COST0 * Math.pow(SKY_G, n) * (SKY[id].special ? 3 : 1)); }
+// il prezzo cresce forte fino a circa un terzo delle stelle (quanto serve per finire il gioco), poi sale piano: le altre si completano in circa un mese di farm
+let SKY_CAP = 257, SKY_LIN = 800; if (typeof process !== 'undefined' && process.env && process.env.SKYCAP) SKY_CAP = +process.env.SKYCAP;
+function skyCost(s, id) { const n = Math.max(0, skyOwned(s).length - 1), c = n <= SKY_CAP ? SKY_COST0 * Math.pow(SKY_G, n) : SKY_COST0 * Math.pow(SKY_G, SKY_CAP) * (1 + (n - SKY_CAP) / SKY_LIN); return Math.round(c * (SKY[id].special ? 3 : 1)); }
 function skyBuy(s, id) { const c = skyCost(s, id); if (!skyCanBuy(s, id) || s.gold < c) return false; s.gold -= c; s.skySpent = (s.skySpent || 0) + c; s.sky.push(id); s._tb = null; return true; }
 function skyReset(s) { let back = s.skySpent; if (back === undefined) { back = 0; for (const id of skyOwned(s)) back += SKY[id].cost; } s.sky = [0]; s.skySpent = 0; s.gold += back; s._tb = null; return back; }
 // somma dei bonus delle stelle accese (in cache)
@@ -401,7 +410,7 @@ function classCounts(s) { const c = { Guerriero: 0, Arciere: 0, Mago: 0, Curator
 
 function memberStats(s, id) {
   const m = s.roster[id], cls = SPECIES[m.species].cls, b = CLASSES[cls];
-  const lm = (1 + 0.35 * (m.lvl - 1)) * (SPECIES[m.species].secret ? SECRET_MULT : (RAR_MULT[SPECIES[m.species].rarity] || 1)), tg = SPECIES[m.species].tough ? TOUGH : null;
+  const lm = (1 + 0.35 * (m.lvl - 1)) * (SPECIES[m.species].secret ? SECRET_MULT : SPECIES[m.species].portal ? PORTAL_MULT : (RAR_MULT[SPECIES[m.species].rarity] || 1)), tg = SPECIES[m.species].tough ? TOUGH : null;
   let hp = b.hp * lm * (tg ? tg.hp : 1), atk = b.atk * lm * (tg ? tg.atk : 1), def = b.def * lm * (tg ? tg.def : 1), crit = 0.05, critDmg = 1.5;
   let aspd = 0, block = b.block || 0, dodge = 0, move = 0;
   const hb = SPECIES[m.species].hb; // bonus propri degli eroi acquistabili
@@ -446,7 +455,23 @@ function enemiesLeft(z, n) { let t = 0; for (let k = n + 1; k <= BOSS_BATTLE; k+
 const ENEMY_START = 14, ENEMY_SPACING = 4, ENEMY_GAP = 0.5, ENEMY_V = { Guerriero: 6, Arciere: 4.5, Mago: 4.5, Curatore: 4 };
 // i nemici aspettano in fila fuori schermo, uno dietro l'altro: ognuno parte verso la squadra dalla sua posizione col suo passo
 function arriveTime(i, cls) { return (ENEMY_START + i * ENEMY_SPACING - CLASSES[cls].range) / ENEMY_V[cls]; } // secondi per entrare in scena: i nemici arrivano insieme, in gruppo, alla stessa velocità
+// ---------------- Portale ----------------
+// Si apre di rado (in media una volta ogni 2,5 giorni di gioco) e resta aperto 12 ore: 3 ondate e il Guardiano del pianeta
+const PORTAL_EVERY = 2.5 * 86400, PORTAL_OPEN = 12 * 3600, PORTAL_WAVES = 3, PORTAL_GOLD = 8, PORTAL_ASTRI = 50;
+function portalGuardian(s) { const p = planetOf(s.maxZone); return ZONE_BOSS[p.zones[1]] + '_p'; }
+function enterPortal(s) { if (!s.portal || s.portalRun) return false; s.portal = null; s.portalRun = { wave: 1 }; s.runHp = {}; s.deadAt = {}; return true; }
+function makePortalEnemies(s) {
+  const z = s.maxZone, Z = ZONES[z], f = enemyScale(z, BOSS_BATTLE - 3) * 1.2, w = s.portalRun.wave, last = w === PORTAL_WAVES;
+  const list = []; for (let i = 0; i < 5 + w; i++) list.push(pickWeighted(s, Z.pool, k => RARITY[SPECIES[k].rarity].weight));
+  { const r = rnd(s); if (r < 0.15) list.splice(1 + Math.floor(rnd(s) * 3), 0, 'scrigno_astri'); else if (r < 0.75) list.splice(1 + Math.floor(rnd(s) * 3), 0, 'scrigno'); } // a volte un forziere tra i nemici
+  if (last) list.push(portalGuardian(s));
+  s.seen = s.seen || {}; for (const sp of list) if (!SPECIES[sp].chest) s.seen[sp] = 1;
+  return list.map((sp, i) => { const cls = SPECIES[sp].cls, b = CLASSES[cls], boss = last && i === list.length - 1;
+    const ch = SPECIES[sp].chest, hp = Math.round(b.hp * 0.45 * f * (boss ? 10 : ch ? 2 : 1));
+    return { side: 'e', idx: i, species: sp, cls, boss, portal: true, chest: ch, hp, maxHp: hp, atk: b.atk * 0.46 * f * (boss ? 1.6 : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: 1, pos: ENEMY_START + i * ENEMY_SPACING, pos0: ENEMY_START + i * ENEMY_SPACING }; });
+}
 function makeEnemies(s) {
+  if (s.portalRun) return makePortalEnemies(s);
   const n = s.battle, Z = ZONES[s.zone], f = enemyScale(s.zone, n), pool = Z.pool;
   const list = [];
   const count = enemyCount(s.zone, n) - (n === BOSS_BATTLE ? 1 : 0);
@@ -497,6 +522,7 @@ function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
 }
 
 function attack(s, b, u, ev) {
+  if (u.chest) return; // i forzieri non attaccano
   const foes = u.side === 'p' ? b.enemies : b.party;
   const tgt = frontTarget(s, foes); // entrambe le parti colpiscono chi è più vicino
   if (!tgt) return;
@@ -519,6 +545,8 @@ function step(s, b, dt, ev) {
   s.clock = (s.clock || 0) + dt;
   if (b.over) { b.pause -= dt; if (b.pause <= 0) finishBattle(s, b, ev); return; }
   b.time += dt;
+  if (!s.portal && !s.portalRun && s.cleared >= 1 && rnd(s) < dt / PORTAL_EVERY) { s.portal = { until: s.clock + PORTAL_OPEN }; if (ev) ev.push({ type: 'portal' }); }
+  else if (s.portal && s.clock > s.portal.until) s.portal = null;
   for (const u of b.party.concat(b.enemies)) {
     if (u.hp <= 0) continue;
     if (u.side === 'e') { // ogni nemico si ferma esattamente alla sua gittata dal primo alleato in piedi; se quello cade, avanza fino al successivo
@@ -559,6 +587,13 @@ function finishBattle(s, b, ev) {
     if (s.deadAt[u.id] === undefined) s.deadAt[u.id] = s.clock;
     if (s.clock - s.deadAt[u.id] >= RESPAWN_TIME) { s.runHp[u.id] = 1; delete s.deadAt[u.id]; if (ev) ev.push({ type: 'respawn', id: u.id }); } else s.runHp[u.id] = 0;
   }
+  if (s.portalRun) { // nel portale la campagna resta ferma: si torna alla zona dove si era
+    const w = s.portalRun.wave;
+    if (b.over === 'win' && w < PORTAL_WAVES) s.portalRun.wave++;
+    else { const win = b.over === 'win'; if (win) { s.astri += PORTAL_ASTRI; s.runes.epica = (s.runes.epica || 0) + 1; } s.portalRun = null; s.runHp = {}; s.deadAt = {}; if (ev) ev.push({ type: 'portalend', win, astri: win ? PORTAL_ASTRI : 0 }); }
+    if (ev) ev.push({ type: 'battle', result: b.over });
+    const nb = startBattle(s); Object.assign(b, nb); return;
+  }
   if (b.over === 'win') {
     s.stats.wins++;
     if (s.battle === BOSS_BATTLE) {
@@ -588,15 +623,20 @@ function finishBattle(s, b, ev) {
 function onKill(s, b, e, ev) {
   const f = enemyScale(s.zone, s.battle);
   s.stats.kills++;
+  if (e.chest) { // forziere aperto
+    if (e.chest === 'astri') { s.astri += CHEST_ASTRI; if (ev) ev.push({ type: 'chest', kind: 'astri', n: CHEST_ASTRI, idx: e.idx }); }
+    else { const g = Math.round(CHEST_GOLD * f * (1 + B(s, 'gold')) * (hasPass(s) ? 2 : 1)); s.gold += g; s.stats.gold += g; if (ev) ev.push({ type: 'chest', kind: 'gold', n: g, idx: e.idx }); }
+    return;
+  }
   s.kills = s.kills || {}; s.kills[e.species] = (s.kills[e.species] || 0) + 1;
   const pass = hasPass(s) ? 2 : 1; // Pass: oro ed esperienza doppi
-  const gold = Math.round(1 * f * (e.boss ? 10 : 1) * (1 + B(s, 'gold')) * pass);
+  const gold = Math.round(1 * f * (e.boss ? 10 : 1) * (1 + B(s, 'gold')) * pass * (e.portal ? PORTAL_GOLD : 1));
   s.gold += gold; s.stats.gold += gold; trackMinute(s, 1, gold);
   const xp = Math.round(3 * f * (e.boss ? 8 : 1) * pass * (1 + B(s, 'xp')));
   for (const u of b.party) if (u.hp > 0) gainXp(s, u.id, xp, ev); // solo chi è vivo in campo prende PE
   if (ev) ev.push({ type: 'kill', idx: e.idx, gold });
   // drop
-  const firstBoss = e.boss && s.zone > s.cleared;
+  const firstBoss = e.boss && !e.portal && s.zone > s.cleared;
   const dropP = (e.boss ? (firstBoss ? 1 : 0.1) : 0.007) * (1 + B(s, 'drop'));
   if (rnd(s) < dropP) dropItem(s, e.boss, ev);
   // rune
@@ -613,6 +653,10 @@ function tryCapture(s, e, ev) {
     const m = newMember(sp, 1); m.waitKills = 1; s.roster[sp] = m; if (!teamFull(s)) s.team.push(sp);
     s.stats.secrets = (s.stats.secrets || 0) + 1;
     if (ev) ev.push({ type: 'capture', species: sp, secret: true }); return;
+  }
+  if (SPECIES[sp].portal) { // Guardiano del portale: 5% di catturarlo quando lo sconfiggi
+    if (rnd(s) < PORTAL_CAPTURE * (s.settings.test ? 20 : 1)) { const m = newMember(sp, 1); m.waitKills = 1; s.roster[sp] = m; if (!teamFull(s)) s.team.push(sp); if (ev) ev.push({ type: 'capture', species: sp, secret: true }); }
+    return;
   }
   s.hunt[sp] = (s.hunt[sp] || 0) + 1;
   let p = RARITY[SPECIES[sp].rarity].p * (1 + Math.min(0.5, B(s, 'capture')));
@@ -880,7 +924,7 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;

@@ -54,6 +54,8 @@ const SPR = {
   hero_arc: [{ R: '#7ED36F', S: '#C9D3E6', B: '#3F8F4A', K: '#1B1F3B', C: '#F2C14E', W: '#C9935A', G: '#F2C14E' }, ['....RRR.....', '...SSSSS....', '..SSSSSSS...', '..SKKKKKS...', '..SKCCCKS...', '..SSSSSSS...', '.BBBBGBBBB.W', 'BBBSBBBSBBWW', 'BB.BBBBB.BW.', 'SS.BBGBB.S..', '...BBBBB....', '...BB.BB....', '..KKK.KKK...']],
   hero_mag: [{ R: '#B07CF0', S: '#C9D3E6', B: '#6A3FB8', K: '#1B1F3B', C: '#F49AC1', W: '#7FE3FF', G: '#F2C14E' }, ['....RRR.....', '...SSSSS....', '..SSSSSSS...', '..SKKKKKS...', '..SKCCCKS...', '..SSSSSSS...', '.BBBBGBBBB.W', 'BBBSBBBSBBWW', 'BB.BBBBB.BW.', 'SS.BBGBB.S..', '...BBBBB....', '...BB.BB....', '..KKK.KKK...']],
   hero: [{ R: '#E2504A', S: '#C9D3E6', B: '#3E6FD8', K: '#1B1F3B', C: '#5BD8E6', W: '#F4F7FF', G: '#F2C14E' }, ['....RRR.....', '...SSSSS....', '..SSSSSSS...', '..SKKKKKS...', '..SKCCCKS...', '..SSSSSSS...', '.BBBBGBBBB.W', 'BBBSBBBSBBWW', 'BB.BBBBB.BW.', 'SS.BBGBB.S..', '...BBBBB....', '...BB.BB....', '..KKK.KKK...']],
+  scrigno: [{ K: '#2A1A0E', L: '#C88A3C', G: '#F2C14E', B: '#8A5A2B', D: '#6A421E', Y: '#FFE27A' }, ['..KKKKKKKK..', '.KLLLLLLLLK.', 'KLLLLLLLLLLK', 'KGGGGGGGGGGK', 'KBBBBYYBBBBK', 'KBBBBYYBBBBK', 'KBBBBBBBBBBK', 'KBBBBBBBBBBK', 'KDDDDDDDDDDK', '.KKKKKKKKKK.']],
+  scrigno_astri: [{ K: '#1B1240', L: '#8E64FF', G: '#7FE3F0', B: '#4B2FA8', D: '#33207A', Y: '#FFFFFF' }, ['..KKKKKKKK..', '.KLLLLLLLLK.', 'KLLLLLLLLLLK', 'KGGGGGGGGGGK', 'KBBBBYYBBBBK', 'KBBBBYYBBBBK', 'KBBBBBBBBBBK', 'KBBBBBBBBBBK', 'KDDDDDDDDDDK', '.KKKKKKKKKK.']],
   glimmo: [{ Y: '#FFE27A', C: '#7FE3F0', D: '#3FB3C8', K: '#1B1F3B', W: '#FFFFFF', P: '#F49AC1' }, ['.....Y......', '....YCY.....', '...CCCCC....', '..CCCCCCCC..', '.CCWKCCWKCC.', '.CCKKCCKKCC.', 'CCCCCCCCCCCC', 'CCPCCPPCCPCC', 'CCCCCCCCCCCC', '.DDDDDDDDDD.']],
   cometuga: [{ O: '#F28B3C', Y: '#FFE27A', G: '#5A9E6F', H: '#3F7A52', L: '#A8D88F', K: '#1B1F3B' }, ['YO............', 'YYOO..........', '.YOOO.........', '...OOGGGGG....', '....GHGGHGG...', '...GGGGGGGGG..', '..GHGGHGGHGGLL', '..GGGGGGGGGLKL', '...LL....LLLL.', '...LL....LL...']],
   sporello: [{ R: '#6E7BE8', W: '#E8ECFF', S: '#F1E3C8', K: '#1B1F3B', P: '#F49AC1' }, ['...RRRRRR...', '..RRWRRRWR..', '.RRRRRRRRRR.', 'RRWRRRRRRWRR', 'RRRRRRRRRRRR', '....SSSS....', '...SKSSKS...', '...SSSSSS...', '...SSPPSS...', '....SSSS....', '...SS..SS...']],
@@ -251,7 +253,7 @@ function buildScene() { setScroll();
   B.enemies.forEach(u => {
     const bp = u.secret ? 4 : u.boss ? 3 : 2, r = isRanged(u.cls);
     const x = 0, y = 26; mk++; // i nemici si sovrappongono: ognuno sta esattamente alla sua gittata
-    const el = document.createElement('div'); el.className = 'u' + (u.secret ? ' secret' : '') + (ANIM[(F.SPECIES[u.species].base || u.species)] ? ' anim' : ''); el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
+    const el = document.createElement('div'); el.className = 'u' + (u.secret ? ' secret' : '') + (F.SPECIES[u.species].portal ? ' astral' : '') + (ANIM[(F.SPECIES[u.species].base || u.species)] ? ' anim' : ''); el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
     el.innerHTML = `<div class="hpb"><b style="background:#FF5A6E"></b></div><div class="mk">${icon('dust', '#7ED36F', 10)}</div>${animHTML(u) || sprite(u.species, bp, { flip: true })}`;
     sc.appendChild(el); eEls[u.idx] = el;
   });
@@ -298,7 +300,7 @@ function updateScene() {
   const cam = B.party.reduce((x, u) => Math.max(x, adv(u)), 0), moving = cam > (B._cam || 0) + 1e-6; B._cam = cam;
   const m = B.over === 'win' || moving || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
-  { const left = en.length, fc = $('#foes'); if (fc && fc.dataset.n !== String(left)) { fc.dataset.n = left; fc.textContent = 'Nemici rimasti ' + left; } }
+  { const left = en.length, fc = $('#foes'); const ft = (S.portalRun ? 'Portale · ondata ' + S.portalRun.wave + '/' + F.PORTAL_WAVES + ' · ' : '') + 'Nemici rimasti ' + left; if (fc && fc.dataset.n !== ft) { fc.dataset.n = ft; fc.textContent = ft; } }
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0);
     if (u.hp <= 0 && !el._gone) { el._gone = 1; const again = deadSeen.has(u.id); deadSeen.add(u.id); if (again) el.classList.add('gone'); else setTimeout(() => el.classList.add('gone'), 2500); } });
   // chi cade resta dove è caduto (scorre via col terreno); gli altri avanzano a prendere il suo posto
@@ -364,6 +366,9 @@ function handle(ev) {
     else if (e.type === 'kill') { snd('kill'); dirty = true; }
     else if (e.type === 'drop') { const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); if (e.item.rarity !== 'comune') toast(`Trovato: <b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${esc(F.itemName(e.item))}</b> · ${r.label}`, r.color); dirty = true; }
     else if (e.type === 'level') { const now = Date.now(); if (now - lvlToastAt > 4000) { lvlToastAt = now; snd('level'); toast(`${esc(S.roster[e.id].name)} sale al livello ${e.lvl}`); } dirty = true; }
+    else if (e.type === 'chest') { const el = eEls[e.idx]; floatText(el, e.kind === 'astri' ? '+' + e.n + ' Astri' : '+' + cfmt(e.n) + ' oro', 'crit'); }
+    else if (e.type === 'portal') { toast('<b>Si è aperto un portale astrale!</b> Toccalo sopra la battaglia per entrare.', '#B48CFF'); dirty = true; }
+    else if (e.type === 'portalend') { toast(e.win ? `<b>Portale completato!</b> +${e.astri} Astri e una runa epica` : '<b>Il portale si è chiuso.</b> Tieni l\'oro delle ondate vinte.', '#B48CFF'); dirty = true; }
     else if (e.type === 'capture') { snd('capture'); capQueue.push(e.species); dirty = true; }
     else if (e.type === 'rare') { snd('rare'); setTimeout(shareDrops, 500); const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); banner('DROP ' + r.label.toUpperCase() + '!'); toast(`<b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}!</b> ${esc(F.itemName(e.item))}`, r.color); dirty = true; }
     else if (e.type === 'lost') { if (!window._lostAt || Date.now() - window._lostAt > 20000) { window._lostAt = Date.now(); toast('<b style="color:#FF8A96">Zaino pieno:</b> gli oggetti nuovi vanno persi', '#FF8A96'); } }
@@ -383,6 +388,8 @@ function sceneEdge() { const sc = $('#scene'), md = $('#modal'); if (!sc || !md 
 window.addEventListener('resize', sceneEdge);
 function hud() {
   sceneEdge();
+  { const pb = $('#portalbtn'), on = !!S.portal && !S.portalRun; if (pb) { pb.hidden = !on; if (on) { const h = Math.max(0, (S.portal.until - (S.clock || 0)) / 3600); pb.title = 'Portale aperto ancora ' + (h >= 1 ? Math.floor(h) + ' h' : Math.ceil(h * 60) + ' min'); } }
+    scene().classList.toggle('inportal', !!S.portalRun); }
   if (!S.dmgLog || S.dmgLog.zone !== S.zone) S.dmgLog = { since: S.clock || 0, by: {}, zone: S.zone }; // i danni per membro ripartono a ogni zona
   const mr = F.missionsReady(S), bt = document.querySelector('[data-tab=bestiario]'); if (bt) bt.classList.toggle('dot', mr > 0); if (tab === 'altro') S.achNew = 0; const stb = document.querySelector('[data-tab=altro]'); if (stb) stb.classList.toggle('dot', (S.achNew || 0) > 0);
   const shb = document.querySelector('[data-tab=shop]'); if (tab === 'shop') S.shopSeen = SHOP_VER; if (shb) shb.classList.toggle('dot', F.dailyReady(S) || S.shopSeen !== SHOP_VER);
@@ -682,7 +689,26 @@ function pBestiario() {
     const mis = missionHTML(k);
     if (m) return `<div class="card best"><div class="bspr">${sprite(k, 3)}</div><b>${esc(m.name)}</b><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span><em>${rarTag(k)}</em><small>Zona ${z} · dopo ${fmt(m.waitKills)} incontri</small>${mis}</div>`;
     return `<div class="card best"><div class="bspr">${sprite(k, 3, (S.seen && S.seen[k]) || (S.kills && S.kills[k]) ? undefined : { sil: true })}</div><b>???</b><span>&nbsp;</span><em>${rar}</em><small>${z <= S.maxZone ? 'Zona ' + z + ' · incontri ' + fmt(S.hunt[k] || 0) : 'Zona ' + z + ' (bloccata)'}</small>${mis}</div>`; }).join('')}</div>`).join('')}
-  ${secretHTML()}`;
+  ${secretHTML()}${portalHTML()}`;
+}
+
+function showPortal() {
+  if (!S.portal || S.portalRun) return;
+  const g = F.SPECIES[F.portalGuardian(S)], h = Math.max(0, (S.portal.until - (S.clock || 0)) / 3600);
+  $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-label="Portale astrale"><div class="eqhead"><h2 style="margin:0;font-size:18px;color:#C9A8FF">Portale astrale</h2><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
+    <div class="pvbig"><div class="pvortex"></div></div>
+    <div class="note">Dall'altra parte ti aspettano <b>${F.PORTAL_WAVES} ondate</b> di creature più forti della tua zona migliore e, alla fine, il <b style="color:#C9A8FF">${g.name}</b>.</div>
+    <div class="stbox"><div class="srow2"><span>Oro</span><b>×8 per ogni nemico</b></div><div class="srow2"><span>Se vinci</span><b>+${F.PORTAL_ASTRI} Astri e 1 runa epica</b></div><div class="srow2"><span>Cattura del Guardiano</span><b>5%</b></div></div>
+    <div class="msub">La campagna resta ferma dove sei. Se la squadra cade, il portale si chiude ma tieni l'oro. Resta aperto ancora ${h >= 1 ? Math.floor(h) + ' ore' : Math.ceil(h * 60) + ' minuti'}.</div>
+    <div class="row2" style="margin-top:10px"><button class="pb" style="flex:1" data-act="enterportal">Entra nel portale</button><button class="sb" data-act="close">Più tardi</button></div></div>`;
+  $('#modal').hidden = false;
+}
+function portalHTML() {
+  const L = F.PORTAL_SPECIES, n = L.filter(k => S.roster[k]).length;
+  return `<div class="ph"><h2 style="font-size:13px;color:#C9A8FF">Guardiani del portale</h2><span>${n}/${L.length}</span></div>
+  <div class="note">Ogni tanto si apre un portale astrale: alla fine c'è il Guardiano del tuo pianeta, che si unisce a te nel 5% dei casi, più forte del 25%.</div>
+  <div class="bgrid">${L.map(k => { const sp = F.SPECIES[k], m = S.roster[k], seen = (S.seen && S.seen[k]) || (S.kills && S.kills[k]);
+    return `<div class="card best"><div class="bspr astral">${sprite(k, 3, m || seen ? undefined : { sil: true })}</div><b>${m ? esc(m.name) : '???'}</b><span style="color:${CC(sp.cls)}">${m ? sp.cls : '&nbsp;'}</span><em style="color:#C9A8FF">Portale</em><small>${m ? 'Catturato' : seen ? 'Incontrato' : 'Mai visto'}</small></div>`; }).join('')}</div>`;
 }
 function secretHTML() {
   const L = F.SECRET_SPECIES, n = L.filter(k => S.roster[k]).length;
@@ -1139,6 +1165,8 @@ document.addEventListener('click', e => {
   else if (a === 'pts') { F.addPts(S, id, t.dataset.k, +t.dataset.n); rebuild(); }
   else if (a === 'ptsauto') { F.autoPts(S, id); rebuild(); }
   else if (a === 'ptsreset') { F.resetPts(S, id); rebuild(); }
+  else if (a === 'portal') { showPortal(); return; }
+  else if (a === 'enterportal') { if (F.enterPortal(S)) { closeModal(); save(); B = F.startBattle(S); buildScene(); } return; }
   else if (a === 'preview') { showPreview(t.dataset.kind, t.dataset.id); return; }
   else if (a === 'rropen') { rrOpen = t.dataset.item; }
   else if (a === 'rrlock') { const i = +t.dataset.i; rrLocks = rrLocks.includes(i) ? rrLocks.filter(x => x !== i) : rrLocks.concat(i); }

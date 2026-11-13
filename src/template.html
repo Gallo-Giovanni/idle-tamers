@@ -505,6 +505,14 @@ body.bigscene #scene{height:50vh}
 .pvbig .mspr{transform:scale(2.6);transform-origin:50% 100%;margin:0 0 30px!important}
 .pvt{text-align:center;margin:4px 0 0;font-size:20px}
 .mspr[data-act],.pspr[data-act]{cursor:zoom-in}
+
+/* portale astrale */
+#portalbtn{position:absolute;right:8px;top:26px;z-index:8;width:40px;height:40px;border:0;padding:0;border-radius:50%;background:radial-gradient(circle,#fff 0 8%,#C9A8FF 18%,#7B4DFF 40%,#2B1670 62%,transparent 68%);box-shadow:0 0 14px 4px #8E64FFaa;animation:pspin 2.4s linear infinite,ppulse 1.6s ease-in-out infinite;cursor:pointer}
+#portalbtn::after{content:'';position:absolute;inset:4px;border-radius:50%;border:2px dashed #E3D2FFcc;animation:pspin 3s linear infinite reverse}
+@keyframes pspin{to{transform:rotate(360deg)}}@keyframes ppulse{50%{box-shadow:0 0 22px 8px #8E64FFcc}}
+.pvortex{width:110px;height:110px;margin:auto auto 10px;border-radius:50%;background:radial-gradient(circle,#fff 0 8%,#C9A8FF 18%,#7B4DFF 40%,#2B1670 62%,transparent 68%);box-shadow:0 0 30px 10px #8E64FF88;animation:pspin 2.4s linear infinite}
+#scene.inportal::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:4;background:radial-gradient(ellipse at 50% 40%,transparent 40%,#5b2dbf55 100%),linear-gradient(#6a3cff22,#6a3cff22)}
+.astral .spr,.astral .an,.bspr.astral .spr{filter:hue-rotate(210deg) saturate(1.5) drop-shadow(0 0 4px #A57CFF)}
 </style>
 </head>
 <body>
@@ -524,7 +532,7 @@ body.bigscene #scene{height:50vh}
 <div id="scene" aria-label="Battaglia in corso (tocca per ingrandire o ridurre)" data-act="bigscene">
  <div id="stage"><div class="planet" aria-hidden="true"></div><div class="bgl cloud" aria-hidden="true"></div><div class="ring" aria-hidden="true"></div>
  <div class="bgl mount" aria-hidden="true"></div><div class="hills" aria-hidden="true"></div><div class="ground" aria-hidden="true"></div>
- <div class="bgl tufts" aria-hidden="true"></div><div id="units"></div></div><div id="foes" aria-live="off"></div><div id="bossbar" hidden aria-label="Vita del boss"><i></i><span></span></div><div id="fx"></div><div id="banner" aria-live="polite"></div>
+ <div class="bgl tufts" aria-hidden="true"></div><div id="units"></div></div><div id="foes" aria-live="off"></div><div id="bossbar" hidden aria-label="Vita del boss"><i></i><span></span></div><div id="fx"></div><div id="banner" aria-live="polite"></div><button id="portalbtn" hidden data-act="portal" aria-label="Portale astrale aperto"></button>
 </div>
 <div id="log" aria-label="Vita del gruppo e danni"></div>
 <div id="toasts" aria-live="polite"></div>
