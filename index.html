@@ -733,6 +733,8 @@ const STARMAP = {
 
 // ===== Albero delle costellazioni (grande): anelli di stelle intorno al centro =====
 // Si accende una stella collegata a una già accesa. Gli anelli esterni si aprono con i boss.
+let SKY_CK = 0.05; if (typeof process !== 'undefined' && process.env && process.env.SKYCK) SKY_CK = +process.env.SKYCK; // scala delle stelle di combattimento (danni, vita, difesa, danni critici, cure)
+const SKY_COMBAT = ['atk', 'hp', 'def', 'critDmg', 'heal'];
 let SKY_VMULT = 5.3; if (typeof process !== 'undefined' && process.env && process.env.SKYV) SKY_VMULT = +process.env.SKYV; // stelle più forti: se ne accendono circa metà
 let SKY_RINGS = 15, SKY_COST0 = 20, SKY_COSTG = 3.0;
 if (typeof process !== 'undefined' && process.env && process.env.SKYG) { SKY_COSTG = +process.env.SKYG; SKY_COST0 = +(process.env.SKY0 || SKY_COST0); }
@@ -756,7 +758,7 @@ const SKY = (() => {
       const special = r % 3 === 0 && j === Math.floor(per / 2);
       let kind, v, label, ic;
       if (special) { const sp = SKY_SPECIAL[(r / 3 - 1 + sec) % SKY_SPECIAL.length]; kind = sp[0]; v = kind === 'offline' ? OFFLINE_STAR[r] : sp[1]; label = sp[2]; ic = sp[3]; }
-      else { const kd = SKY_SECTORS[sec].kinds[(i + r) % 3]; kind = kd[0]; v = +(kd[1] * SKY_VMULT * (1 + 0.15 * (r - 1))).toFixed(4); label = kd[2]; ic = SKY_SECTORS[sec].ic; }
+      else { const kd = SKY_SECTORS[sec].kinds[(i + r) % 3]; kind = kd[0]; v = +(kd[1] * SKY_VMULT * (1 + 0.15 * (r - 1)) * (SKY_COMBAT.includes(kind) ? SKY_CK : 1)).toFixed(4); label = kd[2]; ic = SKY_SECTORS[sec].ic; }
       nodes.push({ id: nodes.length, r, i, n, x: Math.cos(a) * r, y: Math.sin(a) * r, sec, kind, v, label, ic, special, cost: Math.round(SKY_COST0 * Math.pow(SKY_COSTG, r - 1) * (special ? 3 : 1)), adj: [] });
     }
   }
@@ -775,7 +777,10 @@ function skyCanBuy(s, id) { const o = SKY[id], own = skyOwned(s); if (!o || own.
 let SKY_G = 1.145; if (typeof process !== 'undefined' && process.env && process.env.SKYG2) SKY_G = +process.env.SKYG2;
 // il prezzo cresce forte fino a circa un terzo delle stelle (quanto serve per finire il gioco), poi sale piano: le altre si completano in circa un mese di farm
 let SKY_CAP = 257, SKY_LIN = 800; if (typeof process !== 'undefined' && process.env && process.env.SKYCAP) SKY_CAP = +process.env.SKYCAP;
-function skyCost(s, id) { const n = Math.max(0, skyOwned(s).length - 1), c = n <= SKY_CAP ? SKY_COST0 * Math.pow(SKY_G, n) : SKY_COST0 * Math.pow(SKY_G, SKY_CAP) * (1 + (n - SKY_CAP) / SKY_LIN); return Math.round(c * (SKY[id].special ? 3 : 1)); }
+// prezzo delle stelle per numero di stelle già accese (una tacca ogni 20), tarato in simulazione: circa un terzo per finire il gioco, il resto in un mese di farm
+const SKY_PRICE = [15.8, 237, 680, 1080, 4480, 19400, 122000, 351000, 581000, 1160000, 4930000, 10200000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 14900000, 15100000, 15300000, 15600000, 15800000, 16000000, 16300000, 16300000];
+function skyPrice(n) { const i = Math.min(SKY_PRICE.length - 2, Math.floor(n / 20)), t = Math.min(1, (n - i * 20) / 20), a = SKY_PRICE[i], b = SKY_PRICE[i + 1]; return a * Math.pow(b / a, t); }
+function skyCost(s, id) { const n = Math.max(0, skyOwned(s).length - 1); return Math.max(1, Math.round(skyPrice(n) * (SKY[id].special ? 3 : 1))); }
 function skyBuy(s, id) { const c = skyCost(s, id); if (!skyCanBuy(s, id) || s.gold < c) return false; s.gold -= c; s.skySpent = (s.skySpent || 0) + c; s.sky.push(id); s._tb = null; return true; }
 function skyReset(s) { let back = s.skySpent; if (back === undefined) { back = 0; for (const id of skyOwned(s)) back += SKY[id].cost; } s.sky = [0]; s.skySpent = 0; s.gold += back; s._tb = null; return back; }
 // somma dei bonus delle stelle accese (in cache)
@@ -845,7 +850,7 @@ function newState() {
     tree: { forza: 0, vita: 0, branco: 0, scudo: 0, lama: 0, furia: 0, tesoro: 0, saggezza: 0, commercio: 0, cometa: 0, richiamo: 0 },
     hunt: {}, // uccisioni per specie non ancora catturata
     stats: { kills: 0, gold: 0, items: 0, legendary: 0, wins: 0, losses: 0, played: 0, perMin: [] },
-    ach: {}, settings: { autoEquip: false, test: false }, lastSeen: Date.now(),
+    ach: {}, settings: { autoEquip: false, test: false }, lastSeen: Date.now(), scale2: 1,
   };
 }
 function newMember(species, lvl) {
@@ -892,12 +897,14 @@ const BONUS_DEF = { atk: 0.12, hp: 0.8, def: 0.04, crit: 0.02, critDmg: 0.08, as
 const SUFFIX = { atk: 'della Furia', hp: 'del Gigante', def: 'della Roccia', crit: 'del Falco', critDmg: 'della Tempesta', aspd: 'del Vento', block: 'del Bastione', dodge: "dell'Ombra", move: 'della Cometa' };
 const BONUS_COUNT = { comune: 0, noncomune: 1, rara: 2, epica: 3, leggendaria: 4, mitico: 4, astrale: 4, arcano: 5, eterno: 5, segreto: 5 };
 const rarMult = k => ITEM_RARITY.find(r => r.key === k).mult;
+let RAR_P = 0.5; if (typeof process !== 'undefined' && process.env && process.env.RARP) RAR_P = +process.env.RARP; // peso della rarità sulle statistiche principali degli oggetti
+let LV_K = 0.12; if (typeof process !== 'undefined' && process.env && process.env.LVK) LV_K = +process.env.LVK; // crescita delle statistiche per livello
 // Livello oggetto = livello di zona (1-20): nella zona N cadono oggetti di livello da 1 a N
 const MAX_ITEM_LEVEL = 20;
-let ITEM_G = 3.2; if (typeof process !== 'undefined' && process.env && process.env.IG) ITEM_G = +process.env.IG; // crescita del potere per livello di oggetto
+let ITEM_G = 1.1; if (typeof process !== 'undefined' && process.env && process.env.IG) ITEM_G = +process.env.IG; // crescita del potere per livello di oggetto
 function itemLevel(it) { return it.lvl || 1; }
 function rollItemLevel(s, zone) { return 1 + Math.floor(rnd(s) * Math.min(zone, MAX_ITEM_LEVEL)); }
-function itemBase(it) { return 4 * Math.pow(ITEM_G, itemLevel(it) - 1) * rarMult(it.rarity) * (1 + 0.1 * (it.up || 0)); }
+function itemBase(it) { return 4 * Math.pow(ITEM_G, itemLevel(it) - 1) * Math.pow(rarMult(it.rarity), RAR_P) * (1 + 0.1 * (it.up || 0)); }
 function pctScale(it) { return Math.sqrt(rarMult(it.rarity)) * (1 + itemLevel(it) / 20); }
 function mainStats(it) {
   const P = itemBase(it), q = pctScale(it), c = it.cls, o = {};
@@ -944,7 +951,7 @@ function itemPower(it) { return Math.round(itemBase(it) * (1 + 0.12 * ((it.bonus
 function itemName(it) { const base = it.slot === 'arma' ? WEAPON[it.cls] : it.slot === 'secondaria' ? SECONDARY[it.cls] : ITEM_NAME[it.slot]; const b = it.bonus && it.bonus[0]; return b ? base + ' ' + SUFFIX[b.k] : base; }
 function upgradeCost(it) { return Math.round(itemPower(it) * 6 * (1 + it.up)); }
 let _sellBonus = 0; // impostato dallo stato attivo (stella Commercio)
-function sellValue(it, s) { const c = s ? B(s, 'sell') : 0; return Math.round(itemPower(it) * 1.5 * (1 + c)); }
+function sellValue(it, s) { const c = s ? B(s, 'sell') : 0, L = Math.min(MAX_ZONE, itemLevel(it)), old = 4 * Math.pow(3.2, itemLevel(it) - 1) * rarMult(it.rarity) * (1 + 0.1 * (it.up || 0)) * (1 + 0.12 * ((it.bonus || []).length)); return Math.max(1, Math.round(old * 1.5 * (1 + c) * goldScale(L, 1) / enemyScale(L, 1))); } // vendita: come prima, nella scala dell'oro della zona dell'oggetto
 function canUse(m, it) { return (it.slot !== 'arma' && it.slot !== 'secondaria') || it.cls === SPECIES[m.species].cls; }
 // posto in cui va l'oggetto: quello libero o il più debole tra quelli del suo tipo
 function targetSlot(m, it) { let best = null, bp = Infinity; for (const sl of SLOTS) { if (kindOf(sl) !== it.slot) continue; const c = m.eq[sl], p = c ? itemPower(c) : -1; if (p < bp) { bp = p; best = sl; } } return best; }
@@ -971,7 +978,7 @@ function classCounts(s) { const c = { Guerriero: 0, Arciere: 0, Mago: 0, Curator
 
 function memberStats(s, id) {
   const m = s.roster[id], cls = SPECIES[m.species].cls, b = CLASSES[cls];
-  const lm = (1 + 0.35 * (m.lvl - 1)) * (SPECIES[m.species].secret ? SECRET_MULT : SPECIES[m.species].portal ? PORTAL_MULT : (RAR_MULT[SPECIES[m.species].rarity] || 1)), tg = SPECIES[m.species].tough ? TOUGH : null;
+  const lm = (1 + LV_K * (m.lvl - 1)) * (SPECIES[m.species].secret ? SECRET_MULT : SPECIES[m.species].portal ? PORTAL_MULT : (RAR_MULT[SPECIES[m.species].rarity] || 1)), tg = SPECIES[m.species].tough ? TOUGH : null;
   let hp = b.hp * lm * (tg ? tg.hp : 1), atk = b.atk * lm * (tg ? tg.atk : 1), def = b.def * lm * (tg ? tg.def : 1), crit = 0.05, critDmg = 1.5;
   let aspd = 0, block = b.block || 0, dodge = 0, move = 0;
   const hb = SPECIES[m.species].hb; // bonus propri degli eroi acquistabili
@@ -1007,6 +1014,16 @@ let ZONE_K = [0, 0, 1.3, 1.3, 1.3, 1.3, 1.45, 1.45, 1.45, 1.45, 1.45, 1.85, 1.85
 if (typeof process !== 'undefined' && process.env && process.env.ZK) ZONE_K = JSON.parse(process.env.ZK);
 const ZONE_BASE = [0, 1]; for (let z = 2; z <= MAX_ZONE; z++) ZONE_BASE[z] = ZONE_BASE[z - 1] * withinZone(30, z - 1) * ZONE_K[z]; // passo base tra zone (fisso), indipendente dalla crescita dentro la zona
 function enemyScale(z, n) { return ZONE_BASE[z] * withinZone(n, z); }
+// Numeri ridimensionati (potere massimo ~10k): i nemici hanno una curva propria, piccola e sempre in salita.
+// Per ogni zona [valore alla battaglia 1, crescita per battaglia], tarati zona per zona su una partita simulata: fine gioco in circa un mese come prima.
+// enemyScale resta la vecchia scala e serve solo per l'esperienza (i livelli si guadagnano come prima).
+let E_HP = [null, [0.8548, 1.003], [0.9464, 1.003], [1.254, 1.003], [2.039, 1.003], [2.039, 1.003], [2.291, 1.003], [4.1, 1.003], [4.584, 1.003], [7.727, 1.003], [9.587, 1.003], [9.587, 1.003], [9.587, 1.003], [10.9, 1.003], [14.78, 1.003], [15.84, 1.003], [15.84, 1.003], [22.57, 1.003], [23.67, 1.003], [27.63, 1.003], [28.98, 1.003]], E_ATK = [null, [0.9701, 1.003], [1.145, 1.003], [1.649, 1.003], [3.257, 1.003], [3.257, 1.003], [3.257, 1.003], [8.012, 1.003], [14.48, 1.003], [20.1, 1.003], [29.62, 1.003], [37.06, 1.003], [53.77, 1.003], [66.32, 1.003], [75.81, 1.003], [81.22, 1.003], [81.22, 1.003], [115.8, 1.003], [121.3, 1.003], [141.7, 1.003], [148.6, 1.003]];
+if (typeof process !== 'undefined' && process.env && process.env.ENEMYT) { const k = JSON.parse(process.env.ENEMYT); E_HP = k.EH; E_ATK = k.EA; }
+let END_GOLD = 2.5; if (typeof process !== 'undefined' && process.env && process.env.ENDG) END_GOLD = +process.env.ENDG; // gioco finito: l'oro dei nemici sale, così le stelle rimaste si completano in circa un mese
+let BOSS_HP = [1.5, 2], BOSS_ATK = [1.12, 1.25]; if (typeof process !== 'undefined' && process.env && process.env.BOSSM) { const k = JSON.parse(process.env.BOSSM); BOSS_HP = k[0]; BOSS_ATK = k[1]; } // [boss normale, boss di fine area]
+function enemyHpScale(z, n) { const e = E_HP[z]; return e[0] * Math.pow(e[1], n - 1); } // vita e difesa dei nemici
+function enemyAtkScale(z, n) { const e = E_ATK[z]; return e[0] * Math.pow(e[1], n - 1); } // attacco dei nemici
+function goldScale(z, n) { return enemyHpScale(z, n); } // oro: segue la vita dei nemici
 
 const MELEE_STEP = 2; // velocità con cui la mischia raggiunge chi sta dietro (unità di gittata al secondo)
 // Nemici per battaglia: si parte da 3 e si sale verso l'ultima battaglia della zona (5 nella zona 1, 15 nella zona 20)
@@ -1022,18 +1039,18 @@ const PORTAL_EVERY = 2.5 * 86400, PORTAL_OPEN = 12 * 3600, PORTAL_WAVES = 3, POR
 function portalGuardian(s) { const p = planetOf(s.maxZone); return ZONE_BOSS[p.zones[1]] + '_p'; }
 function enterPortal(s) { if (!s.portal || s.portalRun) return false; s.portal = null; s.portalRun = { wave: 1 }; s.runHp = {}; s.deadAt = {}; return true; }
 function makePortalEnemies(s) {
-  const z = s.maxZone, Z = ZONES[z], f = enemyScale(z, BOSS_BATTLE - 3) * 1.2, w = s.portalRun.wave, last = w === PORTAL_WAVES;
+  const z = s.maxZone, Z = ZONES[z], f = enemyHpScale(z, BOSS_BATTLE - 3) * 1.2, fa = enemyAtkScale(z, BOSS_BATTLE - 3) * 1.2, w = s.portalRun.wave, last = w === PORTAL_WAVES;
   const list = []; for (let i = 0; i < 5 + w; i++) list.push(pickWeighted(s, Z.pool, k => RARITY[SPECIES[k].rarity].weight));
   { const r = rnd(s); if (r < 0.15) list.splice(1 + Math.floor(rnd(s) * 3), 0, 'scrigno_astri'); else if (r < 0.75) list.splice(1 + Math.floor(rnd(s) * 3), 0, 'scrigno'); } // a volte un forziere tra i nemici
   if (last) list.push(portalGuardian(s));
   s.seen = s.seen || {}; for (const sp of list) if (!SPECIES[sp].chest) s.seen[sp] = 1;
   return list.map((sp, i) => { const cls = SPECIES[sp].cls, b = CLASSES[cls], boss = last && i === list.length - 1;
-    const ch = SPECIES[sp].chest, hp = Math.round(b.hp * 0.45 * f * (boss ? 10 : ch ? 2 : 1));
-    return { side: 'e', idx: i, species: sp, cls, boss, portal: true, chest: ch, hp, maxHp: hp, atk: b.atk * 0.46 * f * (boss ? 1.6 : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: 1, pos: ENEMY_START + i * ENEMY_SPACING, pos0: ENEMY_START + i * ENEMY_SPACING }; });
+    const ch = SPECIES[sp].chest, hp = Math.round(b.hp * 0.45 * f * (boss ? BOSS_HP[1] * 1.25 : ch ? 2 : 1));
+    return { side: 'e', idx: i, species: sp, cls, boss, portal: true, chest: ch, hp, maxHp: hp, atk: b.atk * 0.46 * fa * (boss ? BOSS_ATK[1] : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: 1, pos: ENEMY_START + i * ENEMY_SPACING, pos0: ENEMY_START + i * ENEMY_SPACING }; });
 }
 function makeEnemies(s) {
   if (s.portalRun) return makePortalEnemies(s);
-  const n = s.battle, Z = ZONES[s.zone], f = enemyScale(s.zone, n), pool = Z.pool;
+  const n = s.battle, Z = ZONES[s.zone], f = enemyHpScale(s.zone, n), fa = enemyAtkScale(s.zone, n), pool = Z.pool;
   const list = [];
   const count = enemyCount(s.zone, n) - (n === BOSS_BATTLE ? 1 : 0);
   for (let i = 0; i < count; i++) list.push(pickWeighted(s, pool, k => RARITY[SPECIES[k].rarity].weight));
@@ -1042,8 +1059,8 @@ function makeEnemies(s) {
   return list.map((sp, i) => {
     const cls = SPECIES[sp].cls, boss = n === BOSS_BATTLE && i === list.length - 1, b = CLASSES[cls], sec = boss && secret;
     const big = s.zone % 5 === 0; // i boss di pianeta (zone 5 e 10) sono più duri
-    const hp = Math.round(b.hp * 0.45 * f * (boss ? (big ? 8 : 4) : 1) * (sec ? 1.5 : 1));
-    return { side: 'e', idx: i, species: sp, cls, boss, secret: sec, hp, maxHp: hp, atk: b.atk * 0.46 * f * (boss ? (big ? 1.6 : 1.3) : 1) * (sec ? 1.15 : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: 1, pos: ENEMY_START + i * ENEMY_SPACING, pos0: ENEMY_START + i * ENEMY_SPACING };
+    const hp = Math.round(b.hp * 0.45 * f * (boss ? (big ? BOSS_HP[1] : BOSS_HP[0]) : 1) * (sec ? 1.15 : 1)); // boss: con i numeri piccoli bastano moltiplicatori piccoli
+    return { side: 'e', idx: i, species: sp, cls, boss, secret: sec, hp, maxHp: hp, atk: b.atk * 0.46 * fa * (boss ? (big ? BOSS_ATK[1] : BOSS_ATK[0]) : 1) * (sec ? 1.05 : 1), def: b.def * 0.5 * f, spd: b.spd * 1.15, crit: 0.05, critDmg: 1.5, t: rnd(s) * b.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0, arrive: 1, pos: ENEMY_START + i * ENEMY_SPACING, pos0: ENEMY_START + i * ENEMY_SPACING };
   });
 }
 
@@ -1185,16 +1202,16 @@ function finishBattle(s, b, ev) {
 }
 
 function onKill(s, b, e, ev) {
-  const f = enemyScale(s.zone, s.battle);
+  const f = enemyScale(s.zone, s.battle), fg = goldScale(s.zone, s.battle); // f: esperienza (scala vecchia), fg: oro (scala nuova)
   s.stats.kills++;
   if (e.chest) { // forziere aperto
     if (e.chest === 'astri') { s.astri += CHEST_ASTRI; if (ev) ev.push({ type: 'chest', kind: 'astri', n: CHEST_ASTRI, idx: e.idx }); }
-    else { const g = Math.round(CHEST_GOLD * f * (1 + B(s, 'gold')) * (hasPass(s) ? 2 : 1)); s.gold += g; s.stats.gold += g; if (ev) ev.push({ type: 'chest', kind: 'gold', n: g, idx: e.idx }); }
+    else { const g = Math.round(CHEST_GOLD * fg * (1 + B(s, 'gold')) * (hasPass(s) ? 2 : 1)); s.gold += g; s.stats.gold += g; if (ev) ev.push({ type: 'chest', kind: 'gold', n: g, idx: e.idx }); }
     return;
   }
   s.kills = s.kills || {}; s.kills[e.species] = (s.kills[e.species] || 0) + 1;
   const pass = hasPass(s) ? 2 : 1; // Pass: oro ed esperienza doppi
-  const gold = Math.round(1 * f * (e.boss ? 10 : 1) * (1 + B(s, 'gold')) * pass * (e.portal ? PORTAL_GOLD : 1));
+  const gold = Math.round(1 * fg * (s.cleared >= MAX_ZONE ? END_GOLD : 1) * (e.boss ? 10 : 1) * (1 + B(s, 'gold')) * pass * (e.portal ? PORTAL_GOLD : 1));
   s.gold += gold; s.stats.gold += gold; trackMinute(s, 1, gold);
   const xp = Math.round(3 * f * (e.boss ? 8 : 1) * pass * (1 + B(s, 'xp')));
   for (const u of b.party) if (u.hp > 0) gainXp(s, u.id, xp, ev); // solo chi è vivo in campo prende PE
@@ -1262,29 +1279,30 @@ function dropItem(s, boss, ev) {
 // ---------- strumenti di test: account pronti ----------
 // zona N: costellazioni, livelli ed equipaggiamento di un giocatore normale nel momento in cui batte la zona N (dalla simulazione di gioco)
 // 'full': tutto al massimo
-const TEST_PROF = [null, [28, 1, 1], [32, 1, 1.1], [38, 2, 1.5], [43, 2, 1.7], [52, 3, 2.1], [62, 4, 2.7], [81, 6, 3.2], [103, 8, 4.3], [124, 10, 5.1], [144, 11, 6.9],
-  [159, 13, 7.6], [174, 14, 8.9], [187, 15, 10.2], [202, 17, 11.7], [217, 17, 13.2], [230, 19, 14.6], [244, 20, 15.8], [255, 21, 16.8], [270, 22, 17.8], [324, 22, 18.3]]; // [stelle, livello, livello oggetti]
-const TEST_ILV_PLUS = 2; // la simulazione equipaggia sempre i pezzi migliori: con la media secca la squadra resta un filo sotto
-const TEST_RAR = [['comune', 47], ['noncomune', 29], ['rara', 8], ['epica', 10], ['leggendaria', 4.5], ['mitico', 1.5]];
+const TEST_PROF = [null, [28, 1, 1, 2], [32, 1, 1.1, 2], [38, 2, 1.5, 3], [43, 2, 1.7, 3], [52, 3, 2.1, 3], [62, 4, 2.7, 4], [81, 6, 3.2, 6], [103, 8, 4.3, 7], [124, 10, 5.1, 7], [144, 11, 6.9, 8], [159, 13, 7.6, 10], [174, 14, 8.9, 10], [187, 15, 10.2, 10], [202, 17, 11.7, 10], [217, 17, 13.2, 11], [230, 19, 14.6, 11], [244, 20, 15.8, 11], [255, 21, 16.8, 11], [270, 22, 17.8, 11], [324, 22, 18.3, 12]]; // [stelle, livello, livello oggetti, creature in squadra]
+// equipaggiamento fisso (niente fortuna): stessa rarità media della simulazione
+const TEST_RAR = ['comune', 'noncomune', 'comune', 'epica', 'comune', 'noncomune', 'rara', 'comune', 'noncomune', 'leggendaria', 'comune', 'noncomune', 'comune', 'epica', 'comune', 'noncomune', 'rara', 'comune', 'noncomune', 'comune'];
+// forza dell'account per area (1 = giocatore medio), tarata in simulazione: la squadra batte il boss finale dell'area a malapena
+const TEST_Q = { 5: 0.7, 10: 1.1, 15: 1.2, 20: 1.2 };
 function testAccount(s, kind) {
   const full = kind === 'full', z = full ? MAX_ZONE : Math.max(1, Math.min(MAX_ZONE, +kind)), pr = TEST_PROF[z];
-  if (full) for (const id of Object.keys(SPECIES).filter(isHero)) buyHero(s, id);
+  for (const id of Object.keys(SPECIES).filter(isHero)) buyHero(s, id); // gli eroi ci sono sempre: così la squadra è la stessa per tutti
   const pool = full ? ALL_SPECIES : [...new Set(ZONES.slice(1, z + 1).flatMap(q => q.pool))];
   for (const sp of pool) if (!s.roster[sp] && !isHero(sp)) { s.roster[sp] = newMember(sp, 1); s.roster[sp].waitKills = 0; }
   if (full) { s.pets = s.pets || {}; for (const k in PETS) s.pets[k] = 1; s.boughtSlots = CREATURE_SLOTS; }
   s.cleared = full ? MAX_ZONE : z - 1; s.maxZone = z; s.zone = z; s.battle = 1; s.maxBattle = 1; s.maxGlobal = gIndex(z, 1);
   s.runHp = {}; s.deadAt = {}; s.portalRun = null; s.zoneStart = s.clock || 0;
-  const tot = TEST_RAR.reduce((t, r) => t + r[1], 0), pick = () => { let x = rnd(s) * tot; for (const [k, w] of TEST_RAR) if ((x -= w) < 0) return k; return 'comune'; };
-  const ilv = () => full ? MAX_ITEM_LEVEL : Math.max(1, Math.min(MAX_ITEM_LEVEL, Math.floor(pr[2] + TEST_ILV_PLUS) + (rnd(s) < (pr[2] + TEST_ILV_PLUS) % 1 ? 1 : 0)));
-  for (const id in s.roster) { const m = s.roster[id]; m.lvl = full ? LEVEL_CAP : pr[1]; m.xp = 0; m.pts = { atk: 0, hp: 0, def: 0, crit: 0 }; autoPts(s, id);
-    for (const sl of SLOTS) { const k = kindOf(sl), cls = k === 'arma' || k === 'secondaria' ? SPECIES[m.species].cls : null;
-      m.eq[sl] = finishItem(s, { id: s.nextId++, slot: k, cls, rarity: full ? ITEM_RARITY[ITEM_RARITY.length - 1].key : pick(), lvl: ilv(), up: 0 });
-      m.slv[sl] = full ? 10 : 0; } }
+  const q = typeof process !== 'undefined' && process.env && process.env.TQ !== undefined ? +process.env.TQ : (TEST_Q[z] || 1);
+  const lv = full ? MAX_ITEM_LEVEL : Math.max(1, pr[2] * q), lo = Math.max(1, Math.min(MAX_ITEM_LEVEL, Math.floor(lv))), nUp = Math.round((lv - Math.floor(lv)) * SLOTS.length); let ri = 0;
+  for (const id in s.roster) { const m = s.roster[id]; m.lvl = full ? LEVEL_CAP : Math.max(1, Math.min(LEVEL_CAP, Math.round(pr[1] * q))); m.xp = 0; m.pts = { atk: 0, hp: 0, def: 0, crit: 0 }; autoPts(s, id);
+    SLOTS.forEach((sl, j) => { const k = kindOf(sl), cls = k === 'arma' || k === 'secondaria' ? SPECIES[m.species].cls : null;
+      m.eq[sl] = finishItem(s, { id: s.nextId++, slot: k, cls, rarity: full ? ITEM_RARITY[ITEM_RARITY.length - 1].key : TEST_RAR[ri++ % TEST_RAR.length], lvl: full ? MAX_ITEM_LEVEL : Math.min(MAX_ITEM_LEVEL, lo + (j < nUp ? 1 : 0)), up: 0 });
+      m.slv[sl] = full ? 10 : 0; }); }
   // squadra: eroi + le creature più forti
   const heroes = Object.keys(s.roster).filter(isHero), crea = Object.keys(s.roster).filter(id => !isHero(id)).sort((a, b) => memberPower(s, b) - memberPower(s, a));
-  s.team = heroes.concat(crea.slice(0, slotCount(s)));
+  s.team = heroes.concat(crea.slice(0, full ? slotCount(s) : Math.min(slotCount(s), pr[3])));
   // costellazioni: si riparte da zero e si comprano come autoSky, senza toccare l'oro del giocatore
-  const gold = s.gold, target = full ? SKY.length : pr[0]; s.sky = [0]; s._tb = null; s.gold = Infinity;
+  const gold = s.gold, target = full ? SKY.length : Math.max(1, Math.round(pr[0] * q)); s.sky = [0]; s._tb = null; s.gold = Infinity;
   while (skyOwned(s).length < target) { let best = null; for (const o of SKY) if (skyCanBuy(s, o.id) && (!best || (o.special ? 0 : 1) > (best.special ? 0 : 1))) best = o; if (!best) break; skyBuy(s, best.id); }
   s.gold = gold; s.skySpent = 0;
 }
@@ -1391,7 +1409,7 @@ const RUNE_BUY = { epica: 100, leggendaria: 250, mitico: 500, astrale: 1000, arc
 function buyRune(s, k) { const c = RUNE_BUY[k]; if (!c || s.astri < c) return false; s.astri -= c; s.runes[k]++; return true; }
 // Oro per Astri nello Shop: la quantità segue la zona più lontana raggiunta (= ore di combattimento lì)
 const GOLD_PACKS = [{ astri: 30, hours: 2, name: "Secchio d'oro" }, { astri: 120, hours: 10, name: "Carro d'oro" }, { astri: 300, hours: 30, name: "Montagna d'oro" }];
-function goldPack(s, i) { const p = GOLD_PACKS[i]; return Math.round(p.hours * 500 * enemyScale(s.maxZone, s.maxZone === s.zone ? s.maxBattle : 30) * (1 + B(s, 'gold'))); }
+function goldPack(s, i) { const p = GOLD_PACKS[i]; return Math.round(p.hours * 500 * goldScale(s.maxZone, s.maxZone === s.zone ? s.maxBattle : 30) * (1 + B(s, 'gold'))); }
 // Astri con soldi veri (per ora versione di prova: si ottengono gratis)
 const ASTRI_PACKS = [{ astri: 100, price: '0,99 €', name: 'Manciata di Astri' }, { astri: 320, price: '2,99 €', name: 'Sacchetto di Astri' }, { astri: 550, price: '4,99 €', name: 'Borsa di Astri' }, { astri: 1200, price: '9,99 €', name: 'Scrigno di Astri' }, { astri: 1850, price: '14,99 €', name: 'Forziere di Astri' }, { astri: 2600, price: '19,99 €', name: 'Pioggia di Astri' }];
 function astriFirst(s, i) { return !(s.astriBought || {})[i]; } // il primo acquisto di ogni pacchetto vale doppio
@@ -1444,6 +1462,12 @@ function moveSpeed(s) { return 1 + B(s, 'move') + (s.mvTeam || 0); }
 function teamMove(s) { if (!s.team || !s.team.length) return 0; let t = 0; for (const id of s.team) t += memberStats(s, id).move || 0; return Math.min(MOVE_CAP, t / s.team.length); }
 function untank(o) { if (!o || typeof o !== 'object') return; if (o.cls === 'Tank') o.cls = 'Guerriero'; for (const k in o) untank(o[k]); }
 function migrate(s) {
+  if (!s.scale2 && s.zone !== undefined) { // numeri ridimensionati: l'oro del vecchio salvataggio passa alla nuova scala (stesso valore in stelle)
+    const z = Math.max(1, Math.min(MAX_ZONE, s.maxZone || 1)), n = s.cleared >= z ? BOSS_BATTLE : Math.max(1, s.maxBattle || 1), r = goldScale(z, n) / enemyScale(z, n);
+    s.gold = Math.round((s.gold || 0) * r); if (s.skySpent) s.skySpent = Math.round(s.skySpent * r); if (s.stats && s.stats.gold) s.stats.gold = Math.round(s.stats.gold * r);
+    for (const e of s.sold || []) e.g = Math.max(1, Math.round(e.g * r)); s._nextStar = 0; s._tb = null;
+  }
+  s.scale2 = 1;
   untank(s); for (const id in (s.roster || {})) { const m = s.roster[id]; if (SPECIES[m.species] && !SPECIES[m.species].hero) m.name = SPECIES[m.species].name; } // i mostri tengono il loro nome: si rinominano solo gli eroi // la classe Tank non esiste più: armi e creature passano ai Guerrieri
   if (s.zone === undefined) { s.zone = 1; s.maxZone = 1; s.cleared = 0; s.battle = 1; s.maxBattle = 1; s.maxGlobal = 1; delete s.bossCleared; }
   if (typeof s.runes !== 'object' || s.runes === null) s.runes = { noncomune: s.runes || 0, rara: 0, epica: 0, leggendaria: 0 };
@@ -1517,7 +1541,8 @@ function simulateOffline(s, seconds, noCap) {
   return { seconds, gold: s.gold - before.gold, kills: s.stats.kills - before.kills, items: s.stats.items - before.items, lost: (s.stats.lost || 0) - before.lost, byRar: Object.fromEntries(ITEM_RARITY.map(r => [r.key, ((s.stats.byRar || {})[r.key] || 0) - (before.byRar[r.key] || 0)])), runes: Object.fromEntries(Object.keys(s.runes).map(k => [k, s.runes[k] - before.runes[k]])), levels: lv, events: caps };
 }
 
-const api = { enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+function setEnemyTable(EH, EA) { E_HP = EH; E_ATK = EA; } // solo per la taratura
+const api = { setEnemyTable, enemyHpScale, enemyAtkScale, goldScale, enemyScale, enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   testAccount, autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
@@ -2253,7 +2278,7 @@ function pImpost() {
   <div class="tzgrid">${[5, 10, 15, 20].map(z => `<button class="sb" data-act="testacc" data-k="${z}">Zona ${z}</button>`).join('')}</div>
   <button class="sb" data-act="testacc" data-k="full" style="width:100%;margin-top:6px">Tutto completo (massimo di tutto)</button>
   <div class="ph"><h2>Salvataggio</h2></div>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>13/11 13:31</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>13/11 18:38</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function pBestiario() {
