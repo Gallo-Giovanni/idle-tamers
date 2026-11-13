@@ -722,7 +722,9 @@ function pImpost() {
   <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
   <div class="note">Portale astrale: di solito si apre una volta ogni 2-3 giorni.</div>
   <button class="sb" data-act="spawnportal" style="width:100%" ${S.portal || S.portalRun ? 'disabled' : ''}>${S.portalRun ? 'Sei già nel portale' : S.portal ? 'Il portale è già aperto' : 'Fai comparire il portale'}</button>
-  $('#modal').hidden = false;
+  <div class="note">Account pronto per un'area: livelli, equipaggiamento e costellazioni giusti per battere quella zona (come un giocatore normale in quel momento). Sostituisce equipaggiamento e costellazioni.</div>
+  <div class="tzgrid">${[5, 10, 15, 20].map(z => `<button class="sb" data-act="testacc" data-k="${z}">Zona ${z}</button>`).join('')}</div>
+  <button class="sb" data-act="testacc" data-k="full" style="width:100%;margin-top:6px">Tutto completo (massimo di tutto)</button>
   <div class="ph"><h2>Salvataggio</h2></div>
   <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>/*BUILD*/</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
@@ -1214,6 +1216,7 @@ document.addEventListener('click', e => {
   else if (a === 'ptsauto') { F.autoPts(S, id); rebuild(); }
   else if (a === 'ptsreset') { F.resetPts(S, id); rebuild(); }
   else if (a === 'portal') { showPortal(); return; }
+  else if (a === 'testacc') { F.testAccount(S, t.dataset.k); save(); B = F.startBattle(S); buildScene(); render(); toast(t.dataset.k === 'full' ? '<b>Account completo</b>: tutto al massimo' : `<b>Pronto per la zona ${t.dataset.k}</b>`, '#F2C14E'); return; }
   else if (a === 'spawnportal') { if (!S.portal && !S.portalRun) { S.portal = { until: (S.clock || 0) + 12 * 3600 }; save(); toast('<b>Portale aperto!</b> Lo trovi sopra la battaglia.', '#B48CFF'); } return; }
   else if (a === 'enterportal') { if (F.enterPortal(S)) { closeModal(); save(); B = F.startBattle(S); buildScene(); } return; }
   else if (a === 'preview') { showPreview(t.dataset.kind, t.dataset.id); return; }

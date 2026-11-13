@@ -698,6 +698,35 @@ function dropItem(s, boss, ev) {
 }
 
 // Equipaggia tutto: dal più forte, al primo membro (in ordine di squadra) che può usarlo e migliora
+// ---------- strumenti di test: account pronti ----------
+// zona N: costellazioni, livelli ed equipaggiamento di un giocatore normale nel momento in cui batte la zona N (dalla simulazione di gioco)
+// 'full': tutto al massimo
+const TEST_PROF = [null, [28, 1, 1], [32, 1, 1.1], [38, 2, 1.5], [43, 2, 1.7], [52, 3, 2.1], [62, 4, 2.7], [81, 6, 3.2], [103, 8, 4.3], [124, 10, 5.1], [144, 11, 6.9],
+  [159, 13, 7.6], [174, 14, 8.9], [187, 15, 10.2], [202, 17, 11.7], [217, 17, 13.2], [230, 19, 14.6], [244, 20, 15.8], [255, 21, 16.8], [270, 22, 17.8], [324, 22, 18.3]]; // [stelle, livello, livello oggetti]
+const TEST_ILV_PLUS = 2; // la simulazione equipaggia sempre i pezzi migliori: con la media secca la squadra resta un filo sotto
+const TEST_RAR = [['comune', 47], ['noncomune', 29], ['rara', 8], ['epica', 10], ['leggendaria', 4.5], ['mitico', 1.5]];
+function testAccount(s, kind) {
+  const full = kind === 'full', z = full ? MAX_ZONE : Math.max(1, Math.min(MAX_ZONE, +kind)), pr = TEST_PROF[z];
+  if (full) for (const id of Object.keys(SPECIES).filter(isHero)) buyHero(s, id);
+  const pool = full ? ALL_SPECIES : [...new Set(ZONES.slice(1, z + 1).flatMap(q => q.pool))];
+  for (const sp of pool) if (!s.roster[sp] && !isHero(sp)) { s.roster[sp] = newMember(sp, 1); s.roster[sp].waitKills = 0; }
+  if (full) { s.pets = s.pets || {}; for (const k in PETS) s.pets[k] = 1; s.boughtSlots = CREATURE_SLOTS; }
+  s.cleared = full ? MAX_ZONE : z - 1; s.maxZone = z; s.zone = z; s.battle = 1; s.maxBattle = 1; s.maxGlobal = gIndex(z, 1);
+  s.runHp = {}; s.deadAt = {}; s.portalRun = null; s.zoneStart = s.clock || 0;
+  const tot = TEST_RAR.reduce((t, r) => t + r[1], 0), pick = () => { let x = rnd(s) * tot; for (const [k, w] of TEST_RAR) if ((x -= w) < 0) return k; return 'comune'; };
+  const ilv = () => full ? MAX_ITEM_LEVEL : Math.max(1, Math.min(MAX_ITEM_LEVEL, Math.floor(pr[2] + TEST_ILV_PLUS) + (rnd(s) < (pr[2] + TEST_ILV_PLUS) % 1 ? 1 : 0)));
+  for (const id in s.roster) { const m = s.roster[id]; m.lvl = full ? LEVEL_CAP : pr[1]; m.xp = 0; m.pts = { atk: 0, hp: 0, def: 0, crit: 0 }; autoPts(s, id);
+    for (const sl of SLOTS) { const k = kindOf(sl), cls = k === 'arma' || k === 'secondaria' ? SPECIES[m.species].cls : null;
+      m.eq[sl] = finishItem(s, { id: s.nextId++, slot: k, cls, rarity: full ? ITEM_RARITY[ITEM_RARITY.length - 1].key : pick(), lvl: ilv(), up: 0 });
+      m.slv[sl] = full ? 10 : 0; } }
+  // squadra: eroi + le creature più forti
+  const heroes = Object.keys(s.roster).filter(isHero), crea = Object.keys(s.roster).filter(id => !isHero(id)).sort((a, b) => memberPower(s, b) - memberPower(s, a));
+  s.team = heroes.concat(crea.slice(0, slotCount(s)));
+  // costellazioni: si riparte da zero e si comprano come autoSky, senza toccare l'oro del giocatore
+  const gold = s.gold, target = full ? SKY.length : pr[0]; s.sky = [0]; s._tb = null; s.gold = Infinity;
+  while (skyOwned(s).length < target) { let best = null; for (const o of SKY) if (skyCanBuy(s, o.id) && (!best || (o.special ? 0 : 1) > (best.special ? 0 : 1))) best = o; if (!best) break; skyBuy(s, best.id); }
+  s.gold = gold; s.skySpent = 0;
+}
 function autoEquip(s, withReserve) {
   if (withReserve === undefined) withReserve = !!(s.settings && s.settings.eqReserve);
   const who = withReserve ? s.team.concat(Object.keys(s.roster).filter(id => !s.team.includes(id))) : s.team;
@@ -929,6 +958,6 @@ function simulateOffline(s, seconds, noCap) {
 
 const api = { enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
-  autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
+  testAccount, autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
 })(this);
