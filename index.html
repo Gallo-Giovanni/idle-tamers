@@ -2184,6 +2184,20 @@ function pBestiario() {
   ${secretHTML()}${portalHTML()}`;
 }
 
+
+function showTestTools() {
+  $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-label="Strumenti di test"><div class="eqhead"><h2 style="margin:0;font-size:18px">Strumenti di test</h2><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
+  <label class="tg"><input type="checkbox" data-act="test" ${S.settings.test ? 'checked' : ''}> Modalità test: velocità ×5 e catture ×200</label>
+  <div class="note">Fa avanzare il gioco come se fosse passato questo tempo (senza il limite di ore offline).</div>
+  <div class="skips">${[[1, '1 h'], [6, '6 h'], [12, '12 h'], [24, '1 g'], [168, '7 g']].map(([h, l]) => `<button class="sb" data-act="skip" data-h="${h}">+${l}</button>`).join('')}</div>
+  <div class="note">Aggiungi risorse per provare il gioco.</div>
+  <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
+  <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
+  <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
+  <div class="note">Portale astrale: di solito si apre una volta ogni 2-3 giorni.</div>
+  <button class="sb" data-act="spawnportal" style="width:100%" ${S.portal || S.portalRun ? 'disabled' : ''}>${S.portalRun ? 'Sei già nel portale' : S.portal ? 'Il portale è già aperto' : 'Fai comparire il portale'}</button></div>`;
+  $('#modal').hidden = false;
+}
 function showPortal() {
   if (!S.portal || S.portalRun) return;
   const g = F.SPECIES[F.portalGuardian(S)], h = Math.max(0, (S.portal.until - (S.clock || 0)) / 3600);
@@ -2308,15 +2322,8 @@ function pAltro() {
   <button class="sb" data-act="tutshow" style="width:100%;margin-bottom:6px">Rivedi il tutorial</button>
   <label class="tg"><input type="checkbox" data-act="sound" ${S.settings.sound !== false ? 'checked' : ''}> Suoni</label>
   <div class="row2"><label for="vol">Volume</label><input id="vol" type="range" min="0" max="1" step="0.1" value="${S.settings.volume ?? 0.5}" data-act="vol" style="flex:1"></div>
-  <label class="tg"><input type="checkbox" data-act="test" ${S.settings.test ? 'checked' : ''}> Modalità test: velocità ×5 e catture ×200</label>
-  <div class="ph"><h2>Strumenti di test</h2></div>
-  <div class="note">Fa avanzare il gioco come se fosse passato questo tempo (senza il limite di ore offline).</div>
-  <div class="skips">${[[1, '1 h'], [6, '6 h'], [12, '12 h'], [24, '1 g'], [168, '7 g']].map(([h, l]) => `<button class="sb" data-act="skip" data-h="${h}">+${l}</button>`).join('')}</div>
-  <div class="note">Aggiungi risorse per provare il gioco.</div>
-  <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
-  <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
-  <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>13/11 08:11</b></div>
+  <button class="sb wide" data-act="testtools" style="width:100%;margin:6px 0">Strumenti di test</button>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>13/11 08:22</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function drawChart() {
@@ -2658,6 +2665,8 @@ document.addEventListener('click', e => {
   else if (a === 'ptsauto') { F.autoPts(S, id); rebuild(); }
   else if (a === 'ptsreset') { F.resetPts(S, id); rebuild(); }
   else if (a === 'portal') { showPortal(); return; }
+  else if (a === 'testtools') { showTestTools(); return; }
+  else if (a === 'spawnportal') { if (!S.portal && !S.portalRun) { S.portal = { until: (S.clock || 0) + 12 * 3600 }; save(); toast('<b>Portale aperto!</b> Lo trovi sopra la battaglia.', '#B48CFF'); } closeModal(); return; }
   else if (a === 'enterportal') { if (F.enterPortal(S)) { closeModal(); save(); B = F.startBattle(S); buildScene(); } return; }
   else if (a === 'preview') { showPreview(t.dataset.kind, t.dataset.id); return; }
   else if (a === 'rropen') { rrOpen = t.dataset.item; }
