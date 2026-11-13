@@ -513,6 +513,8 @@ body.bigscene #scene{height:50vh}
 .pvortex{width:110px;height:110px;margin:auto auto 10px;border-radius:50%;background:radial-gradient(circle,#fff 0 8%,#C9A8FF 18%,#7B4DFF 40%,#2B1670 62%,transparent 68%);box-shadow:0 0 30px 10px #8E64FF88;animation:pspin 2.4s linear infinite}
 #scene.inportal::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:4;background:radial-gradient(ellipse at 50% 40%,transparent 40%,#5b2dbf55 100%),linear-gradient(#6a3cff22,#6a3cff22)}
 .astral .spr,.astral .an,.bspr.astral .spr{filter:hue-rotate(210deg) saturate(1.5) drop-shadow(0 0 4px #A57CFF)}
+
+.guide{padding:8px 10px;margin-bottom:6px}.guide summary{cursor:pointer;list-style:none;font-size:13px}.guide summary::-webkit-details-marker{display:none}.guide summary::after{content:'+';float:right;color:var(--gold)}.guide[open] summary::after{content:'−'}.guide .msub{margin-top:6px;font-size:12px;line-height:1.45}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -548,10 +550,10 @@ body.bigscene #scene{height:50vh}
  <button class="tab" data-tab="zaino"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l1 12H5zM9 8V6a3 3 0 0 1 6 0v2"/></svg>Zaino</button>
  <button class="tab" data-tab="mappa"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>Mappa</button>
  <button class="tab" data-tab="negozio"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9l1.5-5h13L20 9M4 9h16v11H4zM4 9c0 1.7 1.8 3 4 3s4-1.3 4-3c0 1.7 1.8 3 4 3s4-1.3 4-3"/></svg>Mercante</button>
- <button class="tab" data-tab="bestiario"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M9 7h6"/></svg>Bestiario</button>
+ 
  <button class="tab" data-tab="stelle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="17" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="19" cy="14" r="1.6"/><path d="M6.3 16l4.5-8.6M13.4 6.8l4.6 6.2"/></svg>Stelle</button>
  <button class="tab" data-tab="altro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Stats</button>
- <button class="tab" data-tab="shop"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M12 9v12"/></svg>Shop</button>
+ <button class="tab" data-tab="shop"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M12 9v12"/></svg>Shop</button><button class="tab" data-tab="impost"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Opzioni</button>
 </nav>
 <div id="modal" hidden></div>
 </div>
@@ -1883,7 +1885,7 @@ function hud() {
   { const pb = $('#portalbtn'), on = !!S.portal && !S.portalRun; if (pb) { pb.hidden = !on; if (on) { const h = Math.max(0, (S.portal.until - (S.clock || 0)) / 3600); pb.title = 'Portale aperto ancora ' + (h >= 1 ? Math.floor(h) + ' h' : Math.ceil(h * 60) + ' min'); } }
     scene().classList.toggle('inportal', !!S.portalRun); }
   if (!S.dmgLog || S.dmgLog.zone !== S.zone) S.dmgLog = { since: S.clock || 0, by: {}, zone: S.zone }; // i danni per membro ripartono a ogni zona
-  const mr = F.missionsReady(S), bt = document.querySelector('[data-tab=bestiario]'); if (bt) bt.classList.toggle('dot', mr > 0); if (tab === 'altro') S.achNew = 0; const stb = document.querySelector('[data-tab=altro]'); if (stb) stb.classList.toggle('dot', (S.achNew || 0) > 0);
+  const mr = F.missionsReady(S), bt = document.querySelector('.tab[data-tab=mappa]'); if (bt) bt.classList.toggle('dot', mr > 0); if (tab === 'altro') S.achNew = 0; const stb = document.querySelector('[data-tab=altro]'); if (stb) stb.classList.toggle('dot', (S.achNew || 0) > 0);
   const shb = document.querySelector('[data-tab=shop]'); if (tab === 'shop') S.shopSeen = SHOP_VER; if (shb) shb.classList.toggle('dot', F.dailyReady(S) || S.shopSeen !== SHOP_VER);
   const maxId = S.inventory.reduce((x, it) => Math.max(x, it.id), 0); if (tab === 'zaino') S.bagSeen = Math.max(S.bagSeen || 0, maxId); const zb = document.querySelector('[data-tab=zaino]'); if (zb) zb.classList.toggle('dot', maxId > (S.bagSeen || 0));
   $('#gold').textContent = cfmt(S.gold); $('#astri').textContent = cfmt(S.astri);
@@ -2171,9 +2173,53 @@ function pNegozio() {
   ${S.sold.map((e, i) => { const r = F.ITEM_RARITY.find(x => x.key === e.it.rarity); return `<div class="card srow"><div style="display:flex;align-items:center;gap:8px">${itemIcon(e.it.slot, e.it.cls, r.color, 22)}<div><b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${esc(F.itemName(e.it))}</b><div class="msub">${r.label} · Lv ${F.itemLevel(e.it)}</div></div></div><button class="sb" data-act="buyback" data-i="${i}" ${S.gold < e.g || S.inventory.length >= F.bagCap(S) ? 'disabled' : ''}>${cfmt(e.g)} oro</button></div>`; }).join('')}` : ''}
 `;
 }
+// guida completa, dalla cosa più importante alla meno importante
+const guideOpen = new Set(); // le voci aperte restano aperte anche quando il pannello si ridisegna
+document.addEventListener('toggle', e => { const d = e.target; if (d.classList && d.classList.contains('guide')) { const i = +d.dataset.g; if (d.open) guideOpen.add(i); else guideOpen.delete(i); } }, true);
+const GUIDE = [
+  ['Battaglie e zone', 'La squadra combatte da sola, anche a gioco chiuso. Ogni zona ha 30 battaglie e un boss: sconfiggilo per aprire la zona dopo. Le zone già finite servono per farmare. Se la squadra cade, la zona riparte dalla battaglia 1.'],
+  ['Squadra e classi', 'Guerrieri davanti a prendere i colpi, Arcieri, Maghi e Curatori dietro. Ogni classe ha la sua gittata e un\'abilità. Più classi uguali danno un bonus, e con tutte e 4 le classi in squadra hai +8% a tutti. Ogni 5 zone completate si apre un posto in più.'],
+  ['Cattura delle creature', 'Ogni nemico sconfitto ha una piccola probabilità di unirsi a te: le creature più rare sono più difficili da prendere ma più forti. Ogni creatura si cattura una sola volta.'],
+  ['Equipaggiamento e zaino', 'Gli oggetti cadono dai nemici e finiscono nello Zaino. Il triangolo verde indica che migliora qualcuno della squadra. Con lo zaino pieno gli oggetti nuovi vanno persi, quindi equipaggia e vendi spesso.'],
+  ['Livelli e punti', 'Le creature salgono di livello combattendo (solo chi è vivo prende esperienza). A ogni livello hai punti da assegnare a danni, vita, difesa o critico nella scheda del personaggio.'],
+  ['Costellazioni', 'Con l\'oro accendi le stelle: bonus permanenti per tutta la squadra, anche più tempo offline. Ogni stella costa più della precedente: un terzo basta per finire il gioco, le altre sono per chi continua a farmare.'],
+  ['Gioco offline', 'Quando chiudi il gioco la squadra continua a combattere fino a 6 ore (fino a 10 con le stelle). Al ritorno vedi il riepilogo di oro, oggetti e catture.'],
+  ['Rarità, rune e Mercante', 'Gli oggetti vanno da Comune a Segreto. Con le rune puoi alzare la rarità di un oggetto, con le pietre rimescolarne i bonus. Al Mercante vendi gli oggetti e compri rune e oggetti.'],
+  ['Scarto automatico e protezioni', 'Puoi far vendere da solo gli oggetti comuni (dalla zona 10, subito col Pass) e i non comuni (col Pass). Blocca gli oggetti che vuoi tenere e spunta le rarità da non vendere mai.'],
+  ['Boss segreti', 'Molto di rado al posto del boss di zona compare la sua versione gigante: se la sconfiggi si unisce subito a te, più forte del 30%.'],
+  ['Portale astrale', 'Ogni 2-3 giorni compare un portale sopra la battaglia: 3 ondate più forti, forzieri d\'oro e di Astri e il Guardiano del pianeta, che ogni tanto si cattura.'],
+  ['Bestiario e missioni', 'Dalla Mappa apri il Bestiario: tutte le creature, dove trovarle e le missioni per ognuna. Sconfiggendone tante ricevi Astri e rune.'],
+  ['Velocità di movimento', 'Stivali e gambali (e alcuni bonus) fanno camminare la squadra più in fretta: battaglie più veloci, farm più rapido.'],
+  ['Astri e potenziamenti', 'Gli Astri si guadagnano col regalo giornaliero, gli achievement, le missioni, il portale e vendendo le rune. Servono a potenziare gli slot dell\'equipaggiamento e nello Shop.'],
+  ['Shop, eroi e pet', 'Nello Shop trovi eroi con talenti propri, pet che volano sopra la squadra con bonus cumulabili, il Pass Astrale (oro ed esperienza doppi, zaino più grande) e pacchetti di Astri e oro.'],
+  ['Achievement, classifica e chat', 'Gli achievement danno Astri. In Stats trovi le tue statistiche, il contributo di ogni membro e la classifica; la chat è in alto a destra.'],
+];
+function pImpost() {
+  return `<div class="ph"><h2>Guida al gioco</h2></div>
+  <div class="note">Tutte le funzioni del gioco, dalla più importante. Tocca per leggere.</div>
+  ${GUIDE.map(([t, d], i) => `<details class="card guide" data-g="${i}"${guideOpen.has(i) ? ' open' : ''}><summary><b>${i + 1}. ${t}</b></summary><div class="msub">${d}</div></details>`).join('')}
+  <div class="ph"><h2>Impostazioni</h2></div>
+  <button class="sb" data-act="tutshow" style="width:100%;margin-bottom:6px">Rivedi il tutorial</button>
+  <label class="tg"><input type="checkbox" data-act="sound" ${S.settings.sound !== false ? 'checked' : ''}> Suoni</label>
+  <div class="row2"><label for="vol">Volume</label><input id="vol" type="range" min="0" max="1" step="0.1" value="${S.settings.volume ?? 0.5}" data-act="vol" style="flex:1"></div>
+  <div class="ph"><h2>Strumenti di test</h2></div>
+  <label class="tg"><input type="checkbox" data-act="test" ${S.settings.test ? 'checked' : ''}> Modalità test: velocità ×5 e catture ×200</label>
+  <div class="note">Fa avanzare il gioco come se fosse passato questo tempo (senza il limite di ore offline).</div>
+  <div class="skips">${[[1, '1 h'], [6, '6 h'], [12, '12 h'], [24, '1 g'], [168, '7 g']].map(([h, l]) => `<button class="sb" data-act="skip" data-h="${h}">+${l}</button>`).join('')}</div>
+  <div class="note">Aggiungi risorse per provare il gioco.</div>
+  <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
+  <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
+  <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
+  <div class="note">Portale astrale: di solito si apre una volta ogni 2-3 giorni.</div>
+  <button class="sb" data-act="spawnportal" style="width:100%" ${S.portal || S.portalRun ? 'disabled' : ''}>${S.portalRun ? 'Sei già nel portale' : S.portal ? 'Il portale è già aperto' : 'Fai comparire il portale'}</button>
+  $('#modal').hidden = false;
+  <div class="ph"><h2>Salvataggio</h2></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>13/11 08:31</b></div>
+  <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
+}
 function pBestiario() {
   const n = F.capturedCount(S), tot = F.ALL_SPECIES.length, ready = F.missionsReady(S);
-  return `<div class="ph"><h2>Bestiario</h2><span>${n}/${tot}${ready ? ` · <b style="color:var(--gold)">${ready} missioni da riscuotere</b>` : ''}</span></div>
+  return `<button class="sb" data-tab="mappa" style="margin-bottom:6px">← Mappa</button><div class="ph"><h2>Bestiario</h2><span>${n}/${tot}${ready ? ` · <b style="color:var(--gold)">${ready} missioni da riscuotere</b>` : ''}</span></div>
   <div class="bar"><b style="width:${100 * n / tot}%"></b></div>
   <div class="note">Ogni creatura si cattura una sola volta. Quelle già incontrate si vedono a colori, il nome si scopre con la cattura. Torna nella zona indicata per cercare quelle che mancano.</div>
   ${F.PLANETS.map(pl => `<div class="ph"><h2 style="font-size:13px">${pl.name}</h2><span>${pl.species.filter(k => S.roster[k]).length}/${pl.species.length} · zone ${pl.zones[0]}-${pl.zones[1]}</span></div>
@@ -2185,19 +2231,6 @@ function pBestiario() {
 }
 
 
-function showTestTools() {
-  $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-label="Strumenti di test"><div class="eqhead"><h2 style="margin:0;font-size:18px">Strumenti di test</h2><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>
-  <label class="tg"><input type="checkbox" data-act="test" ${S.settings.test ? 'checked' : ''}> Modalità test: velocità ×5 e catture ×200</label>
-  <div class="note">Fa avanzare il gioco come se fosse passato questo tempo (senza il limite di ore offline).</div>
-  <div class="skips">${[[1, '1 h'], [6, '6 h'], [12, '12 h'], [24, '1 g'], [168, '7 g']].map(([h, l]) => `<button class="sb" data-act="skip" data-h="${h}">+${l}</button>`).join('')}</div>
-  <div class="note">Aggiungi risorse per provare il gioco.</div>
-  <div class="skips">${[[1e4, '10K'], [1e6, '1M'], [1e8, '100M'], [1e10, '10B']].map(([v, l]) => `<button class="sb" data-act="givegold" data-v="${v}">${icon('coin', '#F2C14E', 12)} +${l}</button>`).join('')}</div>
-  <div class="skips">${[100, 1000, 10000].map(v => `<button class="sb" data-act="giveastri" data-v="${v}">${icon('gem', '#F49AC1', 12)} +${fmt(v)}</button>`).join('')}</div>
-  <form class="giveform row2"><input id="givev" type="number" min="1" inputmode="numeric" placeholder="Cifra a scelta" aria-label="Cifra"><button class="sb" type="submit" data-give="gold">Oro</button><button class="sb" type="submit" data-give="astri">Astri</button></form>
-  <div class="note">Portale astrale: di solito si apre una volta ogni 2-3 giorni.</div>
-  <button class="sb" data-act="spawnportal" style="width:100%" ${S.portal || S.portalRun ? 'disabled' : ''}>${S.portalRun ? 'Sei già nel portale' : S.portal ? 'Il portale è già aperto' : 'Fai comparire il portale'}</button></div>`;
-  $('#modal').hidden = false;
-}
 function showPortal() {
   if (!S.portal || S.portalRun) return;
   const g = F.SPECIES[F.portalGuardian(S)], h = Math.max(0, (S.portal.until - (S.clock || 0)) / 3600);
@@ -2249,7 +2282,9 @@ function pMappa() {
       ${locked ? `<div class="lockc">${icon('lock', '#7C84BC', 11)} Sconfiggi il boss precedente</div>` : here ? `<div class="herel">Sei qui · battaglia ${S.battle}/${F.BOSS_BATTLE}</div>` : `<button class="sb go" data-act="zone" data-z="${z}">Combatti qui</button>`}
     </div>`;
   };
-  return `<div class="ph"><h2>Mappa</h2><span>zone completate ${S.cleared}/${F.MAX_ZONE}</span></div>
+  const mr = F.missionsReady(S);
+  return `<button class="sb wide bestbtn${mr ? ' dot' : ''}" data-tab="bestiario" style="width:100%;margin-bottom:8px">Bestiario · ${F.capturedCount(S)}/${F.ALL_SPECIES.length} creature${mr ? ` · <b style="color:var(--gold)">${mr} missioni</b>` : ''}</button>
+  <div class="ph"><h2>Mappa</h2><span>zone completate ${S.cleared}/${F.MAX_ZONE}</span></div>
   <div class="note">La campagna avanza solo nella zona più lontana raggiunta; quelle precedenti servono per farmare e catturare le creature mancanti.</div>
   ${F.PLANETS.map((pl, pi) => `<div class="planetmap p${pi}"><div class="pmhead"><span class="pmglobe g${pi}"></span><b>${pl.name}</b></div>
    <svg class="path" viewBox="0 0 100 500" preserveAspectRatio="none" aria-hidden="true"><path d="M28 40 C 90 90, 90 110, 72 140 S 10 200, 28 240 S 90 300, 72 340 S 10 400, 28 440" fill="none" stroke="#6B7BD1" stroke-width="1.2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/></svg>
@@ -2318,13 +2353,7 @@ function pAltro() {
   <div class="card"><div class="msub">Nemici sconfitti al minuto, ultimi 30 minuti</div><canvas id="chart" width="680" height="220" role="img" aria-label="Grafico dei nemici sconfitti al minuto"></canvas></div>
   <div class="ph"><h2>Achievement</h2><span>${Object.keys(S.ach).length}/${F.ACH.length}</span></div>
   ${F.ACH.map(a => `<div class="card arow${S.ach[a.id] ? ' done' : ''}">${S.ach[a.id] ? icon('check', '#7ED36F', 20) : icon('lock', '#7C84BC', 20)}<div><b>${a.name}</b><div class="msub">${a.desc} · +${a.astri} Astri</div></div></div>`).join('')}
-  <div class="ph"><h2>Impostazioni</h2></div>
-  <button class="sb" data-act="tutshow" style="width:100%;margin-bottom:6px">Rivedi il tutorial</button>
-  <label class="tg"><input type="checkbox" data-act="sound" ${S.settings.sound !== false ? 'checked' : ''}> Suoni</label>
-  <div class="row2"><label for="vol">Volume</label><input id="vol" type="range" min="0" max="1" step="0.1" value="${S.settings.volume ?? 0.5}" data-act="vol" style="flex:1"></div>
-  <button class="sb wide" data-act="testtools" style="width:100%;margin:6px 0">Strumenti di test</button>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>13/11 08:22</b></div>
-  <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
+`;
 }
 function drawChart() {
   const cv = $('#chart'); if (!cv) return; const g = cv.getContext('2d'), W = cv.width, H = cv.height;
@@ -2368,10 +2397,10 @@ setTimeout(() => { const p = $('#panel'); if (!p) return; p.addEventListener('sc
 function render() {
   const p = $('#panel');
   const y = p.scrollTop;
-  p.innerHTML = tab === 'squadra' ? pSquadra() : tab === 'zaino' ? pZaino() : tab === 'negozio' ? pNegozio() : tab === 'shop' ? pShop() : tab === 'mappa' ? pMappa() : tab === 'bestiario' ? pBestiario() : tab === 'stelle' ? pStelle() : pAltro();
+  p.innerHTML = tab === 'squadra' ? pSquadra() : tab === 'zaino' ? pZaino() : tab === 'negozio' ? pNegozio() : tab === 'shop' ? pShop() : tab === 'mappa' ? pMappa() : tab === 'bestiario' ? pBestiario() : tab === 'stelle' ? pStelle() : tab === 'impost' ? pImpost() : pAltro();
   placePop(); p.scrollTop = y; // prima il riquadro (allunga la pagina), poi la posizione: niente salti verso l'alto
   if (tab === 'altro') drawChart();
-  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-current', t.dataset.tab === tab ? 'page' : 'false'));
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-current', t.dataset.tab === tab || (tab === 'bestiario' && t.dataset.tab === 'mappa') ? 'page' : 'false'));
   dirty = false;
 }
 
@@ -2665,8 +2694,7 @@ document.addEventListener('click', e => {
   else if (a === 'ptsauto') { F.autoPts(S, id); rebuild(); }
   else if (a === 'ptsreset') { F.resetPts(S, id); rebuild(); }
   else if (a === 'portal') { showPortal(); return; }
-  else if (a === 'testtools') { showTestTools(); return; }
-  else if (a === 'spawnportal') { if (!S.portal && !S.portalRun) { S.portal = { until: (S.clock || 0) + 12 * 3600 }; save(); toast('<b>Portale aperto!</b> Lo trovi sopra la battaglia.', '#B48CFF'); } closeModal(); return; }
+  else if (a === 'spawnportal') { if (!S.portal && !S.portalRun) { S.portal = { until: (S.clock || 0) + 12 * 3600 }; save(); toast('<b>Portale aperto!</b> Lo trovi sopra la battaglia.', '#B48CFF'); } return; }
   else if (a === 'enterportal') { if (F.enterPortal(S)) { closeModal(); save(); B = F.startBattle(S); buildScene(); } return; }
   else if (a === 'preview') { showPreview(t.dataset.kind, t.dataset.id); return; }
   else if (a === 'rropen') { rrOpen = t.dataset.item; }
