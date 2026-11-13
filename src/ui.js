@@ -433,7 +433,7 @@ function snd(kind) {
 function synergyHTML() {
   const cc = F.classCounts(S), all = Object.values(cc).every(x => x > 0);
   const chips = Object.keys(cc).map(c => { const n = cc[c], v = F.SYN_SAME.find(([k]) => n >= k); return `<span class="chip"><i style="background:${CC(c)}"></i>${c} ${n}${v ? ` <em>+${Math.round(v[1] * 100)}%</em>` : ''}</span>`; }).join('');
-  return `<div class="chips">${chips}<span class="chip${all ? '' : ' off'}">${all ? '★' : '☆'} Tutte le classi <em>${all ? '+' + Math.round(F.SYN_ALL * 100) + '%' : ''}</em></span></div><div class="note">Classi uguali: +5% con 2, +12% con 4, +20% con 6 (vita e attacco). Con tutte e 4 le classi in squadra: +8% a tutti.</div>`;
+  return `<div class="chips">${chips}<span class="chip${all ? '' : ' off'}">${all ? '★' : '☆'} Tutte le classi <em>${all ? '+' + Math.round(F.SYN_ALL * 100) + '%' : ''}</em></span></div>`;
 }
 // Statistiche di un oggetto, in stile scheda
 function statsHTML(it, lv) {
@@ -544,12 +544,10 @@ let showDmg = false;
 function pSquadra() {
   const slots = F.slotCount(S), n = F.creaturesInTeam(S);
   const reserve = Object.keys(S.roster).filter(id => !S.team.includes(id));
-  return `<div class="ph"><h2>Squadra</h2><span>creature ${n}/${slots} (max ${F.CREATURE_SLOTS}) · eroi esclusi</span></div>
-  <button class="sb" data-act="dmgtoggle" style="width:100%;margin-bottom:6px">${showDmg ? 'Nascondi il contributo di battaglia' : 'Mostra il contributo di battaglia'}</button>
+  return `<div class="ph"><h2>Squadra</h2><span>creature ${n}/${slots}</span></div>
+  <button class="sb small" data-act="dmgtoggle" style="width:100%;margin-bottom:5px">${showDmg ? 'Nascondi contributo di battaglia' : 'Contributo di battaglia'}</button>
   ${showDmg ? dmgHTML() : ''}
-  <div class="note">8 posti di base, +1 in automatico ogni 5 zone completate: massimo 12 alleati. Gli eroi non occupano posti.</div>
   ${synergyHTML()}
-  <div class="note">L'ordine conta: chi sta più in alto riceve per primo l'equipaggiamento.</div>
   ${S.team.map((id, i) => memberRow(id, true, i)).join('')}
   ${Array.from({ length: Math.max(0, slots - n) }, () => `<div class="card mrow freeslot">${icon('team', '#7C84BC', 18)}<span>Posto libero</span><small>aggiungi una creatura dalla riserva</small></div>`).join('')}
   ${slots < F.CREATURE_SLOTS ? `<div class="card mrow freeslot lock">${icon('lock', '#7C84BC', 16)}<span>Prossimo posto</span><small>alla zona ${F.nextSlotZone ? F.nextSlotZone(S) : ''}</small></div>` : ''}
@@ -621,15 +619,13 @@ function pZaino() {
   const det = inBag ? itemDetail(inBag, 'bag') : inChest ? itemDetail(inChest, 'chest') : '';
   return `<div class="row2"><button class="pb" data-act="equipall">Equipaggia tutto</button><label class="tg eqres"><input type="checkbox" data-act="eqres" ${S.settings.eqReserve ? 'checked' : ''}> anche la riserva</label><button class="sb" data-act="sellrest">Vendi il resto</button><button class="sb" data-act="fuseopen">Fusione</button></div>
   <div class="card autos3"><span class="autol">Scarta in automatico</span>${(() => { const k = F.minKeep(S); return [['comune', 1], ['noncomune', 2]].map(([key, lvl]) => { const r = F.ITEM_RARITY.find(x => x.key === key), on = k >= lvl, needPass = lvl > 1 && !F.hasPass(S), needZone = lvl === 1 && !F.hasPass(S) && S.maxZone < F.FREE_FILTER_ZONE; return `<button class="atog${on ? ' on' : ''}" style="--c:${r.color}" data-act="atog" data-k="${key}"><span>${r.label}</span>${needPass ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : needZone ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} zona ${F.FREE_FILTER_ZONE}</b>` : ''}</button>`; }).join(''); })()}</div>
-  <div class="note" style="margin-top:-2px">Tocca per scartare: gli oggetti barrati si vendono in oro appena cadono. Rune, oggetti bloccati e rarità protette non si vendono mai.</div>
   <div class="card protc"><span class="autol">Non vendere mai</span><div class="protg">${(() => { const ps = F.protectSet(S); return F.ITEM_RARITY.map(r => `<button class="pchip${ps[r.key] ? ' on' : ''}${r.rainbow ? ' rb' : ''}" style="--c:${r.color}" data-act="protk" data-k="${r.key}" aria-pressed="${!!ps[r.key]}" aria-label="${r.label}" title="${r.label}"><i>${ps[r.key] ? '✓' : ''}</i><span>${r.label.slice(0, 3)}</span></button>`).join(''); })()}</div></div>
-  <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio</span></div>
+  <div class="ph"><h2 style="font-size:13px">Rune</h2><span></span></div>
   ${runeTiles()}
   <div class="ph"><h2 style="font-size:13px">Zaino</h2><span${S.inventory.length >= F.bagCap(S) ? ' style="color:#FF8A96"' : ''}>${S.inventory.length}/${F.bagCap(S)}</span></div>
   ${itemGrid(byPower(S.inventory), 'Vuoto. Gli oggetti cadono dai nemici sconfitti.')}
   <div class="ph"><h2 style="font-size:13px">Forziere</h2><span>${S.chest.length}/${F.chestCap(S)}</span></div>
-  ${itemGrid(byPower(S.chest), 'Tocca un oggetto dello zaino e premi "Nel forziere" per conservarlo qui.')}
-  <div class="note">${F.hasPass(S) ? 'Spazio raddoppiato dal Pass Astrale.' : `Col Pass Astrale zaino e forziere raddoppiano (${F.bagCap(S) * 2} posti).`} Le rune non occupano spazio. A zaino pieno i nuovi oggetti vanno persi: libera spazio o attiva la vendita automatica.</div>`;
+  ${itemGrid(byPower(S.chest), 'Tocca un oggetto dello zaino e premi "Nel forziere" per conservarlo qui.')}`;
 }
 function runeBar() { return `<div class="runebar">${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<span title="${r.label}">${icon('rune', r.color, 16, r.label)}<b>${fmt(S.runes[k])}</b></span>`; }).join('')}</div>`; }
 // riepilogo di quello che hai comprato e cosa ti dà
@@ -679,9 +675,9 @@ function pNegozio() {
   return `<div class="ph"><h2>Mercante</h2><span>merce nuova tra ${h} h ${mi} min</span></div>
   <div class="row2"><div class="card wallet" style="flex:1;margin:0">${icon('gem', '#F49AC1', 16)} <b>${fmt(S.astri)}</b> Astri</div><button class="sb" data-act="reroll" ${S.astri < F.REROLL_COST ? 'disabled' : ''}>Rinnova · ${F.REROLL_COST} Astri</button></div>
 
-  <div class="ph"><h2 style="font-size:13px">Rune</h2><span>non occupano spazio · tocca per vendere</span></div>
+  <div class="ph"><h2 style="font-size:13px">Rune</h2><span>tocca per vendere</span></div>
   ${runeTiles()}
-  <div class="ph"><h2 style="font-size:13px">In vendita</h2><span>▲ = migliora uno dei tuoi personaggi</span></div>
+  <div class="ph"><h2 style="font-size:13px">In vendita</h2><span>▲ migliora un tuo personaggio</span></div>
   <div class="igrid shopg">${S.shop.items.map((it, i) => { const r = F.ITEM_RARITY.find(x => x.key === it.rarity);
     return `<button class="it${selShop === i ? ' sel' : ''}${it.sold ? ' sold' : F.rarityIndex(r.key) >= 4 ? ' fx fx-' + r.key : ''}" style="border-color:${it.sold ? 'var(--line)' : r.color};--c:${r.color}" data-act="selshop" data-i="${i}" aria-label="${esc(F.itemName(it))}, ${r.label}, ${it.price} Astri">${itemIcon(it.slot, it.cls, r.color, 24)}<b>${cfmt(F.itemPower(it))}</b><em>${it.sold ? 'venduto' : it.price + ' Astri'}</em>${!it.sold && F.isUpgrade(S, it) ? '<i class="upg" title="Migliora qualcuno">▲</i>' : ''}</button>`; }).join('')}</div>
   <div class="note">Tocca un oggetto per vedere i bonus. Cambia merce alle 0, alle 8 e alle 16, con le stesse probabilità dei drop.</div>
@@ -803,7 +799,6 @@ function pMappa() {
   const mr = F.missionsReady(S);
   return `<button class="sb wide bestbtn${mr ? ' dot' : ''}" data-tab="bestiario" style="width:100%;margin-bottom:8px">Bestiario · ${F.capturedCount(S)}/${F.ALL_SPECIES.length} creature${mr ? ` · <b style="color:var(--gold)">${mr} missioni</b>` : ''}</button>
   <div class="ph"><h2>Mappa</h2><span>zone completate ${S.cleared}/${F.MAX_ZONE}</span></div>
-  <div class="note">La campagna avanza solo nella zona più lontana raggiunta; quelle precedenti servono per farmare e catturare le creature mancanti.</div>
   ${F.PLANETS.map((pl, pi) => `<div class="planetmap p${pi}"><div class="pmhead"><span class="pmglobe g${pi}"></span><b>${pl.name}</b></div>
    <svg class="path" viewBox="0 0 100 500" preserveAspectRatio="none" aria-hidden="true"><path d="M28 40 C 90 90, 90 110, 72 140 S 10 200, 28 240 S 90 300, 72 340 S 10 400, 28 440" fill="none" stroke="#6B7BD1" stroke-width="1.2" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/></svg>
    ${Array.from({ length: pl.zones[1] - pl.zones[0] + 1 }, (_, i) => isl(pl.zones[0] + i, i, pi)).join('')}</div>`).join('')}`;
@@ -935,7 +930,7 @@ function showCapture(sp) {
    <div class="card"><div class="kv"><span>Pianeta</span><b>${F.planetOf(F.zoneOf(sp)).name}</b></div>${d.secret ? `<div class="kv"><span>Bonus</span><b class="rbw">+${Math.round((F.SECRET_MULT - 1) * 100)}% vita, attacco e difesa</b></div>` : `<div class="kv"><span>Incontri prima della cattura</span><b>${fmt(m.waitKills)}</b></div>`}<div class="kv"><span>Abilità</span><b style="color:${CC(cls)}">${F.CLASSES[cls].ability}</b></div>${!d.secret && F.RAR_MULT[d.rarity] > 1 ? `<div class="kv"><span>Rarità</span><b>+${Math.round((F.RAR_MULT[d.rarity] - 1) * 100)}% vita, attacco e difesa</b></div>` : ''}${d.tough ? `<div class="kv"><span>Robusto</span><b>vita e difesa ×${F.TOUGH.hp}, attacco ×${F.TOUGH.atk}</b></div>` : ''}</div>
 
    ${inTeam ? '<div class="note">È già entrata in squadra.</div>' : `<button class="pb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
-   <div class="row2"><button class="discord" data-act="share" data-id="${sp}">Copia per Discord</button><button class="sb" data-act="close">Continua</button></div>
+   <div class="row2"><button class="sb" data-act="close">Continua</button></div>
   </div>`;
   m$.hidden = false;
 }
@@ -1279,7 +1274,6 @@ document.addEventListener('click', e => {
   else if (a === 'treereset') { if (confirmTree > Date.now()) { const b = F.skyReset(S); confirmTree = 0; toast(`Recuperati ${cfmt(b)} oro`); rebuild(); } else confirmTree = Date.now() + 3000; }
   else if (a === 'reset') { if (confirmReset > Date.now()) { const tk = S.net && S.net.token; if (tk) api('rpc/it_unregister', { p_token: tk }).catch(() => {}); S = F.newState(); save(); rebuild(); confirmReset = 0; showWelcome(); } else confirmReset = Date.now() + 3000; }
   else if (a === 'capadd') { F.addToTeam(S, id); rebuild(); closeModal(); }
-  else if (a === 'share') { const m = S.roster[id], d = F.SPECIES[m.species]; const txt = `Ho catturato ${m.name} (${F.RARITY[d.rarity].label}, ${d.cls}) in Frontiera Arcana dopo ${fmt(m.waitKills)} incontri!`; try { navigator.clipboard.writeText(txt).then(() => { t.textContent = 'Copiato!'; }, () => { t.textContent = 'Copia non riuscita'; }); } catch (err) { t.textContent = 'Copia non riuscita'; } return; }
   else if (a === 'close') { closeModal(); }
   else if (a === 'offok') { S.offRep = null; save(); closeModal(); }
   else if (a === 'cmppick') { showCmpPick(id); return; }

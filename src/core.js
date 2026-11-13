@@ -460,16 +460,19 @@ let E_HP = [null, [0.8548, 1.003], [0.9464, 1.003], [1.254, 1.003], [2.039, 1.00
 if (typeof process !== 'undefined' && process.env && process.env.ENEMYT) { const k = JSON.parse(process.env.ENEMYT); E_HP = k.EH; E_ATK = k.EA; }
 let END_GOLD = 2.5; if (typeof process !== 'undefined' && process.env && process.env.ENDG) END_GOLD = +process.env.ENDG; // gioco finito: l'oro dei nemici sale, così le stelle rimaste si completano in circa un mese
 let BOSS_HP = [1.5, 2], BOSS_ATK = [1.12, 1.25]; if (typeof process !== 'undefined' && process.env && process.env.BOSSM) { const k = JSON.parse(process.env.BOSSM); BOSS_HP = k[0]; BOSS_ATK = k[1]; } // [boss normale, boss di fine area]
-function enemyHpScale(z, n) { const e = E_HP[z]; return e[0] * Math.pow(e[1], n - 1); } // vita e difesa dei nemici
-function enemyAtkScale(z, n) { const e = E_ATK[z]; return e[0] * Math.pow(e[1], n - 1); } // attacco dei nemici
-function goldScale(z, n) { return enemyHpScale(z, n); } // oro: segue la vita dei nemici
+let ENEMY_KS = 0.075; if (typeof process !== 'undefined' && process.env && process.env.ENK) ENEMY_KS = +process.env.ENK; // i nemici arrivano uno alla volta (scontri più facili): più si va avanti, più vanno rinforzati per tenere i tempi
+const ENEMY_K = z => 1 + ENEMY_KS * (z - 1);
+function enemyHpScale(z, n) { const e = E_HP[z]; return ENEMY_K(z) * e[0] * Math.pow(e[1], n - 1); } // vita e difesa dei nemici
+function enemyAtkScale(z, n) { const e = E_ATK[z]; return ENEMY_K(z) * e[0] * Math.pow(e[1], n - 1); } // attacco dei nemici
+function goldScale(z, n) { return enemyHpScale(z, n) / ENEMY_K(z); } // oro: segue la vita dei nemici
 
 const MELEE_STEP = 2; // velocità con cui la mischia raggiunge chi sta dietro (unità di gittata al secondo)
 // Nemici per battaglia: si parte da 3 e si sale verso l'ultima battaglia della zona (5 nella zona 1, 15 nella zona 20)
 function enemyCount(z, n) { const top = 5 + (z - 1) * 10 / (MAX_ZONE - 1); return Math.round(3 + (top - 3) * (n - 1) / (BOSS_BATTLE - 1)); }
 function enemiesLeft(z, n) { let t = 0; for (let k = n + 1; k <= BOSS_BATTLE; k++) t += enemyCount(z, k); return t; }
 // I nemici entrano uno alla volta da fuori schermo, ognuno con il suo passo: i Guerrieri corrono, arcieri e maghi arrivano dopo
-const ENEMY_START = 14, ENEMY_SPACING = 4, ENEMY_GAP = 0.5, ENEMY_V = { Guerriero: 6, Arciere: 4.5, Mago: 4.5, Curatore: 4 };
+// i nemici entrano uno alla volta, a qualche secondo l'uno dall'altro e più lenti: all'inizio di ogni battaglia lo scontro è 1 contro 1
+const ENEMY_START = 10, ENEMY_SPACING = 10, ENEMY_GAP = 0.5, ENEMY_V = { Guerriero: 3.6, Arciere: 2.8, Mago: 2.8, Curatore: 2.5 };
 // i nemici aspettano in fila fuori schermo, uno dietro l'altro: ognuno parte verso la squadra dalla sua posizione col suo passo
 function arriveTime(i, cls) { return (ENEMY_START + i * ENEMY_SPACING - CLASSES[cls].range) / ENEMY_V[cls]; } // secondi per entrare in scena: i nemici arrivano insieme, in gruppo, alla stessa velocità
 // ---------------- Portale ----------------
@@ -657,7 +660,8 @@ function onKill(s, b, e, ev) {
   if (ev) ev.push({ type: 'kill', idx: e.idx, gold });
   // drop
   const firstBoss = e.boss && !e.portal && s.zone > s.cleared;
-  const dropP = (e.boss ? (firstBoss ? 1 : 0.1) : 0.007) * (1 + B(s, 'drop'));
+  const early = 1 + Math.max(0, 4 - s.zone) / 3; // prime zone: un po' più oggetti per far provare subito l'equipaggiamento (×2 zona 1, ×1,67 zona 2, ×1,33 zona 3)
+  const dropP = (e.boss ? (firstBoss ? 1 : 0.1) : 0.007 * early) * (1 + B(s, 'drop'));
   if (rnd(s) < dropP) dropItem(s, e.boss, ev);
   // rune
   if (firstBoss) { addRune(s, 'noncomune', 2, ev); addRune(s, 'rara', 1, ev); }
@@ -722,7 +726,7 @@ const TEST_PROF = [null, [28, 1, 1, 2], [32, 1, 1.1, 2], [38, 2, 1.5, 3], [43, 2
 // equipaggiamento fisso (niente fortuna): stessa rarità media della simulazione
 const TEST_RAR = ['comune', 'noncomune', 'comune', 'epica', 'comune', 'noncomune', 'rara', 'comune', 'noncomune', 'leggendaria', 'comune', 'noncomune', 'comune', 'epica', 'comune', 'noncomune', 'rara', 'comune', 'noncomune', 'comune'];
 // forza dell'account per area (1 = giocatore medio), tarata in simulazione: la squadra batte il boss finale dell'area a malapena
-const TEST_Q = { 5: 0.7, 10: 1.1, 15: 1.2, 20: 1.2 };
+const TEST_Q = { 5: 0.5, 10: 1.05, 15: 1.1, 20: 1.2 };
 function testAccount(s, kind) {
   const full = kind === 'full', z = full ? MAX_ZONE : Math.max(1, Math.min(MAX_ZONE, +kind)), pr = TEST_PROF[z];
   for (const id of Object.keys(SPECIES).filter(isHero)) buyHero(s, id); // gli eroi ci sono sempre: così la squadra è la stessa per tutti
