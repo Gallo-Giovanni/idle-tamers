@@ -494,7 +494,7 @@ function makeEnemies(s) {
   const count = enemyCount(s.zone, n) - (n === BOSS_BATTLE ? 1 : 0);
   for (let i = 0; i < count; i++) list.push(pickWeighted(s, pool, k => RARITY[SPECIES[k].rarity].weight));
   let secret = false; s.seen = s.seen || {}; for (const sp of list) s.seen[sp] = 1;
-  if (n === BOSS_BATTLE) { const sk = Z.boss + '_s'; secret = !s.roster[sk] && rnd(s) < SECRET_P * (s.settings && s.settings.test ? 50 : 1); list.push(secret ? sk : Z.boss); s.seen[list[list.length - 1]] = 1; } // il boss aspetta in fondo alla fila
+  if (n === BOSS_BATTLE) { const sk = Z.boss + '_s'; secret = !s.roster[sk] && rnd(s) < SECRET_P * (s.settings && s.settings.tCap ? 10 : 1); list.push(secret ? sk : Z.boss); s.seen[list[list.length - 1]] = 1; } // il boss aspetta in fondo alla fila
   return list.map((sp, i) => {
     const cls = SPECIES[sp].cls, boss = n === BOSS_BATTLE && i === list.length - 1, b = CLASSES[cls], sec = boss && secret;
     const big = s.zone % 5 === 0; // i boss di pianeta (zone 5 e 10) sono più duri
@@ -675,12 +675,12 @@ function tryCapture(s, e, ev) {
     if (ev) ev.push({ type: 'capture', species: sp, secret: true }); return;
   }
   if (SPECIES[sp].portal) { // Guardiano del portale: 5% di catturarlo quando lo sconfiggi
-    if (rnd(s) < PORTAL_CAPTURE * (s.settings.test ? 20 : 1)) { const m = newMember(sp, 1); m.waitKills = 1; s.roster[sp] = m; if (!teamFull(s)) s.team.push(sp); if (ev) ev.push({ type: 'capture', species: sp, secret: true }); }
+    if (rnd(s) < PORTAL_CAPTURE * (s.settings.tCap ? 10 : 1)) { const m = newMember(sp, 1); m.waitKills = 1; s.roster[sp] = m; if (!teamFull(s)) s.team.push(sp); if (ev) ev.push({ type: 'capture', species: sp, secret: true }); }
     return;
   }
   s.hunt[sp] = (s.hunt[sp] || 0) + 1;
   let p = RARITY[SPECIES[sp].rarity].p * (1 + Math.min(0.5, B(s, 'capture')));
-  if (s.settings.test) p *= 200;
+  if (s.settings.tCap) p *= 10; // test: catture ×10
   const tutorial = capturedCount(s) === 0 && sp === 'glimmo' && gIndex(s.zone, s.battle) >= 3;
   if (tutorial || rnd(s) < p) { // nessuna cattura garantita: solo fortuna (tranne la prima del tutorial)
     const m = newMember(sp, 1); m.waitKills = s.hunt[sp]; s.roster[sp] = m; // chi si unisce parte dal livello 1
@@ -907,6 +907,7 @@ function migrate(s) {
     for (const e of s.sold || []) e.g = Math.max(1, Math.round(e.g * r)); s._nextStar = 0; s._tb = null;
   }
   s.scale2 = 1;
+  if (s.settings && s.settings.test) { s.settings.tFast = s.settings.tCap = true; } if (s.settings) delete s.settings.test; // la vecchia modalità test diventa le due spunte
   untank(s); for (const id in (s.roster || {})) { const m = s.roster[id]; if (SPECIES[m.species] && !SPECIES[m.species].hero) m.name = SPECIES[m.species].name; } // i mostri tengono il loro nome: si rinominano solo gli eroi // la classe Tank non esiste più: armi e creature passano ai Guerrieri
   if (s.zone === undefined) { s.zone = 1; s.maxZone = 1; s.cleared = 0; s.battle = 1; s.maxBattle = 1; s.maxGlobal = 1; delete s.bossCleared; }
   if (typeof s.runes !== 'object' || s.runes === null) s.runes = { noncomune: s.runes || 0, rara: 0, epica: 0, leggendaria: 0 };

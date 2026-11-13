@@ -281,7 +281,7 @@ function updateLog() {
   for (const [u] of logRows) { const d = u.dealt - (lastDealt[u.idx] || 0); if (d > 0) acc[u.id] = (acc[u.id] || 0) + d; lastDealt[u.idx] = u.dealt; }
   if (now - dpsAt >= 1000) {
     const sec = (now - dpsAt) / 1000; dpsAt = now;
-    for (const [u] of logRows) { const v = (acc[u.id] || 0) / Math.min(sec, 2) * (S.settings.test ? 0.2 : 1); dps[u.id] = dps[u.id] === undefined ? v : dps[u.id] * 0.85 + v * 0.15; acc[u.id] = 0; }
+    for (const [u] of logRows) { const v = (acc[u.id] || 0) / Math.min(sec, 2) / (S.settings.tFast ? 10 : 1); dps[u.id] = dps[u.id] === undefined ? v : dps[u.id] * 0.85 + v * 0.15; acc[u.id] = 0; }
   }
   if (now - logAt < 250) return; logAt = now;
   let alive = 0; const top = Math.max(1, ...logRows.map(([u]) => dps[u.id] || 0));
@@ -402,7 +402,7 @@ function hud() {
   const pl = F.planetOf(S.zone); $('#ptitle').textContent = pl.name; $('#where').textContent = `Zona ${S.zone} · Battaglia ${S.battle}/30`;
   scene().classList.toggle('p1', pl === F.PLANETS[0]); for (const k of [1, 2, 3]) scene().classList.toggle('bg' + k, pl === F.PLANETS[0] && (S.zone - 1) % 3 + 1 === k); scene().classList.toggle('p2', pl === F.PLANETS[1]); scene().classList.toggle('p3', pl === F.PLANETS[2]); scene().classList.toggle('p4', pl === F.PLANETS[3]);
   $('#prog').style.width = (100 * S.battle / 30) + '%';
-  $('#testbadge').hidden = !S.settings.test;
+  $('#testbadge').hidden = !(S.settings.tFast || S.settings.tCap);
 }
 
 // ---------- pannelli ----------
@@ -713,7 +713,7 @@ function pImpost() {
   <label class="tg"><input type="checkbox" data-act="sound" ${S.settings.sound !== false ? 'checked' : ''}> Suoni</label>
   <div class="row2"><label for="vol">Volume</label><input id="vol" type="range" min="0" max="1" step="0.1" value="${S.settings.volume ?? 0.5}" data-act="vol" style="flex:1"></div>
   <div class="ph"><h2>Strumenti di test</h2></div>
-  <label class="tg"><input type="checkbox" data-act="test" ${S.settings.test ? 'checked' : ''}> Modalità test: velocità ×5 e catture ×200</label>
+  <div class="tgrow"><label class="tg"><input type="checkbox" data-act="tfast" ${S.settings.tFast ? 'checked' : ''}> Velocità ×10</label><label class="tg"><input type="checkbox" data-act="tcap" ${S.settings.tCap ? 'checked' : ''}> Cattura ×10</label></div>
   <div class="note">Fa avanzare il gioco come se fosse passato questo tempo (senza il limite di ore offline).</div>
   <div class="skips">${[[1, '1 h'], [6, '6 h'], [12, '12 h'], [24, '1 g'], [168, '7 g']].map(([h, l]) => `<button class="sb" data-act="skip" data-h="${h}">+${l}</button>`).join('')}</div>
   <div class="note">Aggiungi risorse per provare il gioco.</div>
@@ -1281,7 +1281,7 @@ document.addEventListener('click', e => {
   else if (a === 'tutnext') { const i = +t.dataset.i + 1; if (i < TUT.length) { showTutorial(i); return; } S.tutorial = 1; tutOn = false; save(); closeModal(); }
   else if (a === 'tutskip') { S.tutorial = 1; tutOn = false; save(); closeModal(); }
   else if (a === 'tutshow') { showTutorial(0); return; }
-  else if (a === 'eqres' || a === 'lockm' || a === 'autoeq' || a === 'test' || a === 'minr' || a === 'prot' || a === 'sound' || a === 'vol') return; // gestiti da change
+  else if (a === 'eqres' || a === 'lockm' || a === 'autoeq' || a === 'tfast' || a === 'tcap' || a === 'minr' || a === 'prot' || a === 'sound' || a === 'vol') return; // gestiti da change
   if (a === 'tree' || a === 'treereset') { /* stelle cambiano le statistiche */ B.party.forEach(() => {}); }
   save(); render(); if (equipOpen && !$('#modal').hidden) { const y = $('#modal .mod') ? $('#modal .mod').scrollTop : 0; showEquip(equipOpen); if ($('#modal .mod')) $('#modal .mod').scrollTop = y; }
 });
@@ -1289,7 +1289,8 @@ document.addEventListener('change', e => {
   const t = e.target; const a = t.dataset && t.dataset.act; if (!a) return;
   if (a === 'lockm') S.roster[t.dataset.id].locked = t.checked;
   if (a === 'autoeq') { S.settings.autoEquip = t.checked; if (t.checked) F.autoEquip(S); }
-  if (a === 'test') S.settings.test = t.checked;
+  if (a === 'tfast') S.settings.tFast = t.checked;
+  if (a === 'tcap') S.settings.tCap = t.checked;
   if (a === 'minr') S.settings.minRarity = t.value;
   if (a === 'sound') { S.settings.sound = t.checked; if (t.checked) snd('coin'); }
   if (a === 'vol') { S.settings.volume = +t.value; snd('coin'); }
@@ -1309,7 +1310,7 @@ let last = performance.now(), saveAt = 0, achAt = 0, renderAt = 0;
 function frame(now) {
   let dt = Math.min(0.1, (now - last) / 1000); last = now;
   S.stats.played += dt;
-  const speed = S.settings.test ? 5 : 1; let left = S.net && !tutOn ? dt * speed : 0; // fermo finché non c'è il nickname e durante il tutorial
+  const speed = S.settings.tFast ? 10 : 1; let left = S.net && !tutOn ? dt * speed : 0; // fermo finché non c'è il nickname e durante il tutorial
   const ev = [];
   while (left > 0) { const d = Math.min(0.05, left); F.step(S, B, d, ev); left -= d; }
   handle(ev); updateScene(); hud();
