@@ -522,7 +522,8 @@ function rangeOf(u) { const sp = SPECIES[u.species]; return (sp && sp.range) || 
 function frontTarget(s, list) {
   const a = ready(list); if (!a.length) return null;
   // si colpisce solo il personaggio più vicino: gittata più bassa, poi chi sta più avanti nella fila
-  let best = a[0]; for (const u of a) { const g = rangeOf(u), gb = rangeOf(best); if (g < gb || (g === gb && u.idx < best.idx)) best = u; } return best;
+  let best = a[0]; const pr = u => u.id === 'hero' ? -1 : u.idx; // a parità di gittata il protagonista è il primo (sta in prima fila)
+  for (const u of a) { const g = rangeOf(u), gb = rangeOf(best); if (g < gb || (g === gb && pr(u) < pr(best))) best = u; } return best;
 }
 
 function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
