@@ -343,7 +343,7 @@ const ANIM = { divoratore: 'an-rp' }; // creature con animazione completa
 function animHTML(u) { const k = ANIM[F.SPECIES[u.species].base || u.species]; return k ? `<div class="an ${k}" aria-hidden="true"></div>` : ''; }
 function knAnim(el, k, ms) { const kn = el && el.querySelector('.kn, .an, .mg, .ar'); if (!kn) return;
   if (kn.classList.contains('mg')) { if (k === 'dg') return; k = 'atk'; ms = 600; }
-  else if (kn.classList.contains('kn') || kn.classList.contains('ar')) { if (k === 'dg') return; k = 'atk'; ms = 600; } kn.classList.remove('atk', 'atk2', 'sk', 'dg'); void kn.offsetWidth; kn.classList.add(k); clearTimeout(kn._t); kn._t = setTimeout(() => kn.classList.remove(k), ms); }
+  else if (kn.classList.contains('kn') || kn.classList.contains('ar')) { if (k === 'dg') return; k = 'atk'; ms = 650; } kn.classList.remove('atk', 'atk2', 'sk', 'dg'); void kn.offsetWidth; kn.classList.add(k); clearTimeout(kn._t); kn._t = setTimeout(() => kn.classList.remove(k), ms); }
 function lunge(el, dir) { if (!el) return; el.style.setProperty('--dx', dir + 'px'); el.classList.remove('lg'); void el.offsetWidth; el.classList.add('lg'); }
 function banner(text) { const b = $('#banner'); b.textContent = text; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); }
 
