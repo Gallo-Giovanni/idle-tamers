@@ -1339,6 +1339,7 @@ function frame(now) {
 }
 function catchUp() {
   const away = (Date.now() - (S.lastSeen || Date.now())) / 1000;
+  if (!S.net || !S.tutorial) { S.lastSeen = Date.now(); B = F.startBattle(S); buildScene(); return; } // niente progressi offline prima di aver scelto il nick e finito il tutorial
   if (away > 30) { const id0 = S.nextId; const r = F.simulateOffline(S, away); r.since = id0; F.checkAch(S); save(); showOffline(r); }
   B = F.startBattle(S); buildScene();
 }
