@@ -356,12 +356,14 @@ function toast(html, color) {
 }
 
 // ---------- eventi della simulazione ----------
+// il numero del danno esce nel momento del colpo dell'animazione (fendente, sfera, freccia, scatto della creatura)
+const IMPACT = { kn: 70, mg: 300, ar: 420, an: 300 }, IMPACT_LUNGE = 90;
+function impactDelay(e) { if (e.fs === undefined) return 0; const el = (e.fs === 'p' ? pEls : eEls)[e.fi]; if (!el) return 0; const a = el.querySelector('.kn, .mg, .ar, .an'); return a ? IMPACT[a.classList[0]] || 0 : IMPACT_LUNGE; }
 const capQueue = [];
 let lvlToastAt = 0;
 function handle(ev) {
   for (const e of ev) {
-    if (e.type === 'dmg' && e.side === 'e') snd(e.crit ? 'crit' : 'hit');
-    if (e.type === 'dmg') { const el = (e.side === 'p' ? pEls : eEls)[e.idx]; floatText(el, cfmt(e.dmg), e.crit ? 'crit' : (e.side === 'p' ? 'hurt' : '')); }
+    if (e.type === 'dmg') { const el = (e.side === 'p' ? pEls : eEls)[e.idx], d = impactDelay(e), show = () => { if (e.side === 'e') snd(e.crit ? 'crit' : 'hit'); floatText(el, cfmt(e.dmg), e.crit ? 'crit' : (e.side === 'p' ? 'hurt' : '')); }; if (d) setTimeout(show, d); else show(); }
     else if (e.type === 'atk' && e.side === 'p' && e.tgt !== undefined && B.party[e.idx] && B.party[e.idx].cls === 'Arciere') { stickArrow(eEls[e.tgt]); }
     if (e.type === 'atk') { lunge((e.side === 'p' ? pEls : eEls)[e.idx], e.side === 'p' ? 8 : -8); if (e.side === 'e') knAnim(eEls[e.idx], 'atk', 800); if (e.side === 'p') { const el = pEls[e.idx]; const two = el && (el._k = !el._k); knAnim(el, two ? 'atk2' : 'atk', two ? 400 : 450); } }
     else if (e.type === 'skill') { floatText(pEls[e.idx], e.name, 'skill'); knAnim(pEls[e.idx], 'sk', 450); }

@@ -534,7 +534,7 @@ function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
   const real = Math.min(dmg, dst.hp); src.dealt += real; dst.taken += real;
   if (src.side === 'p') { const d = s.dmgLog || (s.dmgLog = { since: s.clock || 0, by: {} }); d.by[src.id] = (d.by[src.id] || 0) + real; }
   dst.hp -= dmg;
-  if (ev) ev.push({ type: 'dmg', side: dst.side, idx: dst.idx, dmg, crit });
+  if (ev) ev.push({ type: 'dmg', side: dst.side, idx: dst.idx, dmg, crit, fs: src.side, fi: src.idx }); // fs/fi: chi colpisce (per sincronizzare il numero con l'animazione)
   if (dst.hp <= 0) { dst.hp = 0; if (dst.side === 'e') onKill(s, b, dst, ev); }
 }
 
