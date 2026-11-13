@@ -741,6 +741,7 @@ function pImpost() {
   <div class="note">Account pronto per un'area: livelli, equipaggiamento e costellazioni giusti per battere quella zona (come un giocatore normale in quel momento). Sostituisce equipaggiamento e costellazioni.</div>
   <div class="tzgrid">${[5, 10, 15, 20].map(z => `<button class="sb" data-act="testacc" data-k="${z}">Zona ${z}</button>`).join('')}</div>
   <button class="sb" data-act="testacc" data-k="full" style="width:100%;margin-top:6px">Tutto completo (massimo di tutto)</button>
+  <button class="sb" data-act="testcap" style="width:100%;margin-top:6px">Mostra la finestra di cattura</button>
   <div class="ph"><h2>Salvataggio</h2></div>
   <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>/*BUILD*/</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
@@ -935,17 +936,19 @@ function render() {
 // ---------- modali ----------
 function showCapture(sp) {
   const m = S.roster[sp], d = F.SPECIES[sp], cls = d.cls, inTeam = S.team.includes(sp);
-  const m$ = $('#modal');
-  m$.innerHTML = `<div class="mod cap" role="dialog" aria-modal="true" aria-labelledby="capname">
-   <div class="kick${d.secret ? ' rbw' : ''}">${d.secret ? 'BOSS SEGRETO CATTURATO' : 'NUOVA CREATURA'}</div>
-   <div class="halo"><div class="bob">${sprite(sp, 9)}</div></div>
-   <h2 id="capname">${esc(m.name)}</h2>
-   <div class="badges"><span class="rb${d.secret ? ' rbw' : ''}">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}${d.tough ? ' robusto' : ''}</span></div>
+  const RC = { comune: '#A9B0D6', noncomune: '#6CCB5F', rara: '#5B9BFF', boss: '#F2C14E', segreto: '#FF7AD9' }, col = RC[d.rarity] || '#F2C14E';
+  const sparks = Array.from({ length: 14 }, (_, i) => `<i style="--a:${i * 360 / 14}deg;--d:${(i % 4) * 0.18}s;--r:${70 + (i % 3) * 22}px"></i>`).join('');
+  const m$ = $('#modal'); m$.classList.add('capfull');
+  m$.innerHTML = `<div class="capx" role="dialog" aria-modal="true" aria-labelledby="capname" style="--c:${col}">
+   <div class="capkick${d.secret ? ' rbw' : ''}">${d.secret ? 'BOSS SEGRETO CATTURATO!' : 'NUOVA CREATURA!'}</div>
+   <div class="capstage"><div class="caprays"></div><div class="capglow"></div><div class="capsparks">${sparks}</div><div class="capmon"><div class="bob">${sprite(sp, 10)}</div></div><div class="capshadow"></div></div>
+   <h2 id="capname" class="capname">${esc(m.name)}</h2>
+   <div class="badges"><span class="rb${d.secret ? ' rbw' : ''}" style="background:${col};color:#141836">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}${d.tough ? ' robusto' : ''}</span></div>
+   ${d.secret ? `<div class="capwait"><b class="rbw">+${Math.round((F.SECRET_MULT - 1) * 100)}%</b><span>vita, attacco e difesa</span></div>` : `<div class="capwait"><b>${fmt(m.waitKills)}</b><span>incontri prima di catturarla</span></div>`}
    <p class="quote">«${esc(d.quote)}»</p>
-   <div class="card"><div class="kv"><span>Pianeta</span><b>${F.planetOf(F.zoneOf(sp)).name}</b></div>${d.secret ? `<div class="kv"><span>Bonus</span><b class="rbw">+${Math.round((F.SECRET_MULT - 1) * 100)}% vita, attacco e difesa</b></div>` : `<div class="kv"><span>Incontri prima della cattura</span><b>${fmt(m.waitKills)}</b></div>`}<div class="kv"><span>Abilità</span><b style="color:${CC(cls)}">${F.CLASSES[cls].ability}</b></div>${!d.secret && F.RAR_MULT[d.rarity] > 1 ? `<div class="kv"><span>Rarità</span><b>+${Math.round((F.RAR_MULT[d.rarity] - 1) * 100)}% vita, attacco e difesa</b></div>` : ''}${d.tough ? `<div class="kv"><span>Robusto</span><b>vita e difesa ×${F.TOUGH.hp}, attacco ×${F.TOUGH.atk}</b></div>` : ''}</div>
-
-   ${inTeam ? '<div class="note">È già entrata in squadra.</div>' : `<button class="pb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
-   <div class="row2"><button class="sb" data-act="close">Continua</button></div>
+   <div class="capinfo"><span>${F.planetOf(F.zoneOf(sp)).name}</span><span style="color:${CC(cls)}">${F.CLASSES[cls].ability}</span>${!d.secret && F.RAR_MULT[d.rarity] > 1 ? `<span>+${Math.round((F.RAR_MULT[d.rarity] - 1) * 100)}% statistiche</span>` : ''}${d.tough ? `<span>vita e difesa ×${F.TOUGH.hp}</span>` : ''}</div>
+   ${inTeam ? '<div class="note" style="text-align:center">È già entrata in squadra.</div>' : `<button class="pb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
+   <button class="sb wide" data-act="close" style="margin-top:6px">Continua</button>
   </div>`;
   m$.hidden = false;
 }
@@ -1024,7 +1027,7 @@ const TUT = [
   ['Shop', 'Ogni giorno nello Shop c\'è un regalo di Astri gratis. Buon viaggio, ' + '{nick}' + '!'],
 ];
 function showWelcome() {
-  const m$ = $('#modal');
+  const m$ = $('#modal'); m$.classList.add('wfull'); // a tutto schermo e in alto: con la tastiera aperta resta tutto visibile
   m$.innerHTML = `<div class="mod cap" role="dialog" aria-modal="true" aria-labelledby="wtit">
    <div class="kick">BENVENUTO</div><h2 id="wtit">Idle Tamers</h2>
    <p class="quote">Scegli il nome con cui ti vedranno gli altri giocatori in chat e in classifica.</p>
@@ -1035,7 +1038,7 @@ function showWelcome() {
 }
 let tutOn = false;
 function showTutorial(i) {
-  tutOn = true;
+  tutOn = true; $('#modal').classList.remove('wfull');
   const [t, d] = TUT[i], m$ = $('#modal'), last = i === TUT.length - 1;
   m$.innerHTML = `<div class="mod cap" role="dialog" aria-modal="true" aria-labelledby="ttit">
    <div class="kick">TUTORIAL ${i + 1}/${TUT.length}</div><h2 id="ttit">${t}</h2>
@@ -1092,7 +1095,7 @@ function showPreview(kind, id) {
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-label="Anteprima"><div class="eqhead"><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>${body}</div>`;
   $("#modal").hidden = false;
 }
-function closeModal() { $('#modal').classList.remove('chatfull', 'dollfull'); equipOpen = null; $('#modal').hidden = true; $('#modal').innerHTML = ''; }
+function closeModal() { $('#modal').classList.remove('chatfull', 'dollfull', 'capfull', 'wfull'); equipOpen = null; $('#modal').hidden = true; $('#modal').innerHTML = ''; }
 
 // ---------- chat globale e drop rari (Supabase) ----------
 const NET = { url: 'https://nvfpiwrienohvavvceqi.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52ZnBpd3JpZW5vaHZhdnZjZXFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NTQ4MzYsImV4cCI6MjEwODQzMDgzNn0.M_fmOZlu6qbdXw5flxwQsdvJxCgeMTY-WOpxwcLRSpA' };
@@ -1241,6 +1244,7 @@ document.addEventListener('click', e => {
   else if (a === 'reroll2') { if (F.rerollBonus(S, item, rrLocks)) { snd('coin'); toast('Bonus rimescolati', '#F49AC1'); } }
   else if (a === 'fuseopen') { showFuse(); return; }
   else if (a === 'sellopts') { showSellOpts(); return; }
+  else if (a === 'testcap') { const ids = Object.keys(S.roster).filter(k => !F.isHero(k)); if (ids.length) showCapture(ids[Math.floor(Math.random() * ids.length)]); else toast('Nessuna creatura catturata'); return; }
   else if (a === 'fuse') { const it = F.fuse(S, t.dataset.k); if (it) { const r = F.ITEM_RARITY.find(x => x.key === it.rarity); snd('rare'); toast(`Fusione riuscita: <b style="color:${r.color}">${esc(F.itemName(it))}</b>`, r.color); } showFuse(); dirty = true; return; }
   else if (a === 'dmgtoggle') { showDmg = !showDmg; }
   else if (a === 'dmgreset') { S.dmgLog = { since: S.clock || 0, by: {}, zone: S.zone }; }
