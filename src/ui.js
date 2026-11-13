@@ -250,7 +250,7 @@ function buildScene() { setScroll();
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
     const bp = u.secret ? 4 : u.boss ? 3 : 2, r = isRanged(u.cls);
-    const x = r ? (rk++) * 7 : (mk++) * 6 - (u.boss ? 6 : 0), y = 26; // scarto per non sovrapporsi del tutto
+    const x = 0, y = 26; mk++; // i nemici si sovrappongono: ognuno sta esattamente alla sua gittata
     const el = document.createElement('div'); el.className = 'u' + (u.secret ? ' secret' : '') + (ANIM[(F.SPECIES[u.species].base || u.species)] ? ' anim' : ''); el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
     el.innerHTML = `<div class="hpb"><b style="background:#FF5A6E"></b></div><div class="mk">${icon('dust', '#7ED36F', 10)}</div>${animHTML(u) || sprite(u.species, bp, { flip: true })}`;
     sc.appendChild(el); eEls[u.idx] = el;
@@ -416,7 +416,7 @@ function snd(kind) {
 function synergyHTML() {
   const cc = F.classCounts(S), all = Object.values(cc).every(x => x > 0);
   const chips = Object.keys(cc).map(c => { const n = cc[c], v = F.SYN_SAME.find(([k]) => n >= k); return `<span class="chip"><i style="background:${CC(c)}"></i>${c} ${n}${v ? ` <em>+${Math.round(v[1] * 100)}%</em>` : ''}</span>`; }).join('');
-  return `<div class="chips">${chips}<span class="chip${all ? '' : ' off'}">${all ? '★' : '☆'} Tutte le classi <em>${all ? '+' + Math.round(F.SYN_ALL * 100) + '%' : ''}</em></span></div><div class="note">Classi uguali: +5% con 2, +12% con 4, +20% con 6 (vita e attacco). Con tutte e 5 le classi in squadra: +8% a tutti.</div>`;
+  return `<div class="chips">${chips}<span class="chip${all ? '' : ' off'}">${all ? '★' : '☆'} Tutte le classi <em>${all ? '+' + Math.round(F.SYN_ALL * 100) + '%' : ''}</em></span></div><div class="note">Classi uguali: +5% con 2, +12% con 4, +20% con 6 (vita e attacco). Con tutte e 4 le classi in squadra: +8% a tutti.</div>`;
 }
 // Statistiche di un oggetto, in stile scheda
 function statsHTML(it, lv) {
@@ -563,16 +563,16 @@ function itemDetail(it, where) {
       <div class="msub">${r.label} · ${F.SLOT_LABEL[it.slot]}${it.cls ? ' · solo ' + it.cls : ' · tutte le classi'} · Lv ${F.itemLevel(it)} · punteggio ${fmt(F.itemPower(it))}</div>${statsHTML(it, 0)}`;
   const lockBtn = `<button class="sb${it.locked ? ' on' : ''}" data-act="lockit" data-item="${it.id}">${icon('lock', it.locked ? '#1B1F3B' : '#F2C14E', 13)} ${it.locked ? 'Bloccato' : 'Blocca'}</button>`;
   const sellBtn = lockBtn + (prot ? `<span class="msub">${it.locked ? 'Bloccato: non si vende' : 'Rarità protetta: non si vende'}</span>` : `<button class="sb" data-act="sell" data-item="${it.id}">Vendi · ${cfmt(F.sellValue(it, S))} oro</button>`);
-  if (where === 'chest') return `<div class="card idet" style="border-color:${r.color}">${head}${rerollHTML(it)}<div class="row2"><button class="pb" data-act="fromchest" data-item="${it.id}" ${S.inventory.length >= F.bagCap(S) ? 'disabled' : ''}>↑ Sposta nello zaino</button>${lockBtn}</div></div>`;
+  if (where === 'chest') return `<div class="card idet" style="border-color:${r.color}">${head}${rrOpen === it.id ? rerollHTML(it) : (it.bonus || []).length ? `<div class="row2"><button class="sb" data-act="rropen" data-item="${it.id}">${ipx('pietra', 14)} Rimescola</button></div>` : ''}<div class="row2"><button class="pb" data-act="fromchest" data-item="${it.id}" ${S.inventory.length >= F.bagCap(S) ? 'disabled' : ''}>↑ Sposta nello zaino</button>${lockBtn}</div></div>`;
   if (where === 'shop') return `<div class="card idet" style="border-color:${r.color}">${head}<div class="row2">${sellBtn}</div></div>`;
   const users = Object.keys(S.roster).filter(id => F.canUse(S.roster[id], it));
   return `<div class="card idet" style="border-color:${r.color}">${head}
       ${users.length ? `<div class="row2"><label for="eqsel">Equipaggia a</label><select id="eqsel">${users.map(id => { const c = S.roster[id].eq[F.targetSlot(S.roster[id], it)]; return `<option value="${id}">${esc(S.roster[id].name)} (ora ${c ? fmt(F.itemPower(c)) : '—'})</option>`; }).join('')}</select><button class="sb" data-act="eqto" data-item="${it.id}">Equipaggia</button></div>` : `<div class="note">Nessuno nella tua collezione può usarlo.</div>`}
-      ${rerollHTML(it)}
-      <div class="row2">${(() => { const n = F.nextRarity(it); if (!n) return ''; const rr = F.RUNE[n], nr = F.ITEM_RARITY.find(x => x.key === n); return `<button class="sb" data-act="raise" data-item="${it.id}" ${S.runes[n] < 1 ? 'disabled' : ''}>Porta a <b style="color:${nr.color}">${nr.label}</b> · 1 ${rr.label.toLowerCase()} (${S.runes[n]})</button>`; })()}<button class="sb" data-act="tochest" data-item="${it.id}" ${S.chest.length >= F.chestCap(S) ? 'disabled' : ''}>↓ Nel forziere</button>${sellBtn}</div>
+      ${rrOpen === it.id ? rerollHTML(it) : ''}
+      <div class="row2">${(it.bonus || []).length && rrOpen !== it.id ? `<button class="sb" data-act="rropen" data-item="${it.id}">${ipx('pietra', 14)} Rimescola</button>` : ''}${(() => { const n = F.nextRarity(it); if (!n) return ''; const rr = F.RUNE[n], nr = F.ITEM_RARITY.find(x => x.key === n); return `<button class="sb" data-act="raise" data-item="${it.id}" ${S.runes[n] < 1 ? 'disabled' : ''}>↑ <b style="color:${nr.color}">${nr.label}</b> · 1 runa (${S.runes[n]})</button>`; })()}<button class="sb" data-act="tochest" data-item="${it.id}" ${S.chest.length >= F.chestCap(S) ? 'disabled' : ''}>↓ Nel forziere</button>${sellBtn}</div>
     </div>`;
 }
-let selRune = null, selShop = null;
+let selRune = null, selShop = null, rrOpen = null;
 function runeTiles() {
   return `<div class="igrid"><button class="it${selRune === 'stone' ? ' sel' : ''}" style="border-color:#5BD8E6;--c:#5BD8E6" data-act="selrune" data-k="stone">${ipx('pietra', 22)}<b>${fmt(S.stones || 0)}</b><em>rimescolo</em></button>${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<button class="it${selRune === k ? ' sel' : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selrune" data-k="${k}" aria-label="${r.label}: ${S.runes[k]}">${icon('rune', r.color, 22)}<b>${fmt(S.runes[k])}</b><em>${r.label.replace('Runa ', '')}</em></button>`; }).join('')}</div>`;
 }
@@ -633,13 +633,13 @@ function pShop() {
   <div class="note" style="color:#9BFFB8;text-align:center">Versione di prova: per ora gli acquisti sono gratis, nessun pagamento reale.</div>
   <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min.`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
   <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
-  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr">${h.id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : h.id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub" style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
+  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr" data-act="preview" data-kind="hero" data-id="${h.id}" role="button" aria-label="Guarda ${sp.name}">${h.id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : h.id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div>${sp.hbText ? `<div class="msub" style="color:#FFD86B">${sp.hbText}</div>` : ''}<div class="msub" style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
   <div class="ph" id="shop-pet"><h2 style="font-size:13px">Pet</h2><span>non combattono · i bonus si sommano</span></div>
   ${S.welcomePack || !Object.keys(F.PETS).some(k => !F.PETS[k].astri && !(S.pets && S.pets[k])) ? '' : `<div class="card welcome"><b>Pacchetto Benvenuto · 4,99 €</b><div class="msub">500 ${icon('gem', '#F49AC1', 11)} + un pet a scelta · una sola volta</div>
    <div class="wpick">${Object.keys(F.PETS).filter(k => !F.PETS[k].astri && !(S.pets && S.pets[k])).map(k => `<button class="sb" data-act="welcome" data-k="${k}">${petHTML(k, 2)}<span>${F.PETS[k].name}</span></button>`).join('')}</div></div>`}
   ${Object.keys(F.PETS).map(k => { const p = F.PETS[k], own = S.pets && S.pets[k], b = p.bonus, lab = { gold: 'oro', xp: 'esperienza', drop: 'drop', capture: 'soggiogamento' };
     const main = Object.keys(b).filter(x => x !== 'bag' && x !== 'chest').map(x => `+${Math.round(b[x] * 100)}% ${lab[x]}`).join(' · ');
-    return `<div class="card petcard${own ? ' own' : ''}"><div class="pspr">${petHTML(k, 4)}</div><div style="flex:1"><b>${p.name}</b><div class="msub">${main}<br>+${b.bag} zaino · +${b.chest} forziere</div></div>${own ? '<span class="pown">Posseduto</span>' : `<button class="pb" data-act="buypet" data-k="${k}" ${p.astri && S.astri < p.astri ? 'disabled' : ''}>${p.astri ? fmt(p.astri) + ' ' + icon('gem', '#1B1F3B', 11) : p.price + ''}</button>`}</div>`; }).join('')}
+    return `<div class="card petcard${own ? ' own' : ''}"><div class="pspr" data-act="preview" data-kind="pet" data-id="${k}" role="button" aria-label="Guarda ${p.name}">${petHTML(k, 4)}</div><div style="flex:1"><b>${p.name}</b><div class="msub">${main}<br>+${b.bag} zaino · +${b.chest} forziere</div></div>${own ? '<span class="pown">Posseduto</span>' : `<button class="pb" data-act="buypet" data-k="${k}" ${p.astri && S.astri < p.astri ? 'disabled' : ''}>${p.astri ? fmt(p.astri) + ' ' + icon('gem', '#1B1F3B', 11) : p.price + ''}</button>`}</div>`; }).join('')}
   <div class="ph"><h2 style="font-size:13px">Abbonamento</h2></div>
   <div class="card passbig${F.hasPass(S) ? ' on' : ''}"><div class="pbhead"><div class="pbic">${ipx('collana', 44)}</div><div style="flex:1"><b class="pbt">Pass Astrale</b><div class="pbp">${F.PASS_PRICE}</div>${F.hasPass(S) ? `<div class="msub" style="color:#7ED36F">Attivo fino al ${new Date(S.pass).toLocaleDateString('it-IT')}</div>` : ''}</div></div>
    <ul class="pbl"><li><b>×2 oro</b> da ogni nemico</li><li><b>×2 esperienza</b> per tutta la squadra</li><li>Zaino e forziere <b>doppi</b> (${F.bagCap(S) + (F.hasPass(S) ? 0 : 20)} posti)</li><li>Vendita automatica anche dei <b>non comuni</b></li></ul>
@@ -830,7 +830,9 @@ function placePop() {
   const d = document.createElement('div'); d.className = 'pop'; d.innerHTML = pc[0]; p.appendChild(d);
   const pr = p.getBoundingClientRect(), ar = anc.getBoundingClientRect();
   const top = ar.bottom - pr.top + p.scrollTop + 6, ax = ar.left + ar.width / 2 - pr.left;
-  d.style.top = top + 'px'; d.style.setProperty('--ax', Math.max(14, Math.min(pr.width - 14, ax)) + 'px');
+  let lx = 8; // gli oggetti si aprono in un riquadro piccolo vicino all'oggetto, non a tutta larghezza
+  if (pc[1].includes('selit')) { const w = Math.min(268, pr.width - 16); d.classList.add('mini'); d.style.width = w + 'px'; lx = Math.max(8, Math.min(pr.width - w - 8, ax - w / 2)); d.style.left = lx + 'px'; }
+  d.style.top = top + 'px'; d.style.setProperty('--ax', (Math.max(14, Math.min(pr.width - 14, ax)) - lx + 8) + 'px');
   // se esce dal fondo, la apre sopra l'oggetto
   if ((selRune && pc[1].includes('selrune') && ar.top - pr.top + p.scrollTop > d.offsetHeight + 10) || (top + d.offsetHeight > p.scrollTop + p.clientHeight && ar.top - pr.top > d.offsetHeight + 10)) { d.style.top = (ar.top - pr.top + p.scrollTop - d.offsetHeight - 6) + 'px'; d.classList.add('up'); }
   // appena aperta, scorre quanto basta per mostrarla tutta
@@ -973,6 +975,31 @@ function showCmp(a, b) {
    <div class="note">In verde chi è più forte. Le statistiche base contano livello, classe, rarità e punti.</div></div>`;
   $('#modal').hidden = false;
 }
+
+// scheda ingrandita di un eroe o di un pet del negozio
+function showPreview(kind, id) {
+  let body = '';
+  if (kind === 'hero') {
+    const h = F.HERO_SHOP.find(x => x.id === id), sp = F.SPECIES[id], c = F.CLASSES[sp.cls], own = !!S.roster[id];
+    const big = id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(id, 6);
+    body = `<div class="pvbig herocard"><div class="mspr">${big}</div></div>
+      <h2 class="pvt">${sp.name}</h2><div class="msub" style="text-align:center"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · gittata ${F.rangeOf({ species: id, cls: sp.cls })}</div>
+      <div class="note" style="text-align:center"><i>“${sp.quote}”</i></div>
+      <div class="stbox"><div class="srow2"><span>Vita (livello 1)</span><b>${c.hp}</b></div><div class="srow2"><span>Danni</span><b>${c.atk}</b></div><div class="srow2"><span>Difesa</span><b>${c.def}</b></div><div class="srow2"><span>Attacchi al secondo</span><b>${(1 / c.spd).toFixed(2).replace('.', ',')}</b></div></div>
+      <div class="stbox"><div class="srow2"><span>Abilità</span><b style="color:${CC(sp.cls)}">${c.ability}</b></div><div class="msub">${c.desc}</div></div>
+      ${sp.hbText ? `<div class="stbox"><div class="srow2"><span>Talento dell'eroe</span></div><div class="msub" style="color:#FFD86B">${sp.hbText}</div></div>` : ''}
+      <div class="stbox"><div class="srow2"><span>Bonus</span><b style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</b></div><div class="msub">Gli eroi non occupano posti in squadra.</div></div>
+      ${own ? '<div class="note" style="text-align:center">Già nella tua squadra</div>' : `<button class="pb" style="width:100%" data-act="buyhero" data-id="${id}">Acquista · ${h.price}</button>`}`;
+  } else {
+    const p = F.PETS[id], own = S.pets && S.pets[id], b = p.bonus, lab = { gold: 'oro', xp: 'esperienza', drop: 'drop', capture: 'soggiogamento' };
+    body = `<div class="pvbig">${petHTML(id, 8)}</div><h2 class="pvt">${p.name}</h2>
+      <div class="stbox">${Object.keys(b).filter(x => x !== 'bag' && x !== 'chest').map(x => `<div class="srow2"><span>Bonus ${lab[x]}</span><b>+${Math.round(b[x] * 100)}%</b></div>`).join('')}<div class="srow2"><span>Spazio</span><b style="color:#9BFFB8">+${b.bag} zaino · +${b.chest} forziere</b></div></div>
+      <div class="msub" style="text-align:center">Vola sopra la squadra durante le battaglie. I bonus dei pet si sommano.</div>
+      ${own ? '<div class="note" style="text-align:center">Già tuo</div>' : `<button class="pb" style="width:100%;margin-top:8px" data-act="buypet" data-k="${id}" ${p.astri && S.astri < p.astri ? 'disabled' : ''}>Acquista · ${p.astri ? fmt(p.astri) + ' Astri' : p.price}</button>`}`;
+  }
+  $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-label="Anteprima"><div class="eqhead"><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>${body}</div>`;
+  $("#modal").hidden = false;
+}
 function closeModal() { $('#modal').classList.remove('chatfull', 'dollfull'); equipOpen = null; $('#modal').hidden = true; $('#modal').innerHTML = ''; }
 
 // ---------- chat globale e drop rari (Supabase) ----------
@@ -1112,6 +1139,8 @@ document.addEventListener('click', e => {
   else if (a === 'pts') { F.addPts(S, id, t.dataset.k, +t.dataset.n); rebuild(); }
   else if (a === 'ptsauto') { F.autoPts(S, id); rebuild(); }
   else if (a === 'ptsreset') { F.resetPts(S, id); rebuild(); }
+  else if (a === 'preview') { showPreview(t.dataset.kind, t.dataset.id); return; }
+  else if (a === 'rropen') { rrOpen = t.dataset.item; }
   else if (a === 'rrlock') { const i = +t.dataset.i; rrLocks = rrLocks.includes(i) ? rrLocks.filter(x => x !== i) : rrLocks.concat(i); }
   else if (a === 'reroll2') { if (F.rerollBonus(S, item, rrLocks)) { snd('coin'); toast('Bonus rimescolati', '#F49AC1'); } }
   else if (a === 'fuseopen') { showFuse(); return; }
