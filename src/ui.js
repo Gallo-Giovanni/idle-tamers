@@ -228,8 +228,9 @@ const PET_ANIM = { micio: 1, volpe: 1 }; // pet con animazione di volo
 const petHTML = (k, p) => PET_ANIM[k] ? `<div class="pa pa-${k}" style="--z:${p * 22}px" aria-hidden="true"></div>` : sprite('pet_' + k, p);
 let partyOrder = [], lastFrame = 0;
 // la prima linea sta oltre metà scena: la squadra ha più spazio (come negli altri idle), i nemici arrivano da destra
+const UNIT_SCALE = 1.5, PU = 19; // personaggi ingranditi ×1,5 (scena grande); PU = pixel per passo di distanza in battaglia
 let FRONT = 211; // il primo alleato sta poco a destra del centro; la squadra si allunga verso sinistra, sempre un po' sovrapposta
-const partyStep = n => Math.min(14, 195 / Math.max(1, n - 1));
+const partyStep = n => Math.min(18, 195 / Math.max(1, n - 1));
 const partyFront = () => 211;
 const deadSeen = new Set(); // membri che hanno già fatto l'animazione di morte
 function buildScene() { setScroll();
@@ -251,7 +252,7 @@ function buildScene() { setScroll();
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el || !deadSeen.has(u.id)) return; if (u.hp > 0) { deadSeen.delete(u.id); el.classList.add('revive'); setTimeout(() => el.classList.remove('revive'), 1300); } else { el._gone = 1; el.classList.add('dead', 'gone'); } });
   // pet: volano sopra l'eroe, così restano sempre in vista
   const hu = B.party.find(u => u.id === 'hero'), heroEl = hu && pEls[hu.idx], hx = heroEl ? +heroEl.dataset.x : FRONT;
-  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (hx - 18 - i * 28) + 'px'; el.style.bottom = (82 + (i % 2) * 10) + 'px'; el.innerHTML = petHTML(k, 2); sc.appendChild(el); });
+  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (hx - 24 - i * 36) + 'px'; el.style.bottom = (110 + (i % 2) * 14) + 'px'; el.innerHTML = petHTML(k, 2); sc.appendChild(el); });
   // nemici: quelli da mischia si ammassano sul primo bersaglio, quelli a distanza restano indietro
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
@@ -311,16 +312,16 @@ function updateScene() {
   { const now = performance.now(), dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0; lastFrame = now;
     const n = partyOrder.length, step = partyStep(n); let k = 0;
     partyOrder.forEach(({ u }) => { const el = pEls[u.idx]; if (!el) return;
-      if (u.hp > 0) { const bx = FRONT - k * step - (F.CLASSES[u.cls].range - 1) * 4; k++; el._wx = undefined; el.style.left = (bx + (F.CLASSES[u.cls].range === 1 ? (adv(u) - cam) * 15 : 0)) + 'px'; return; }
+      if (u.hp > 0) { const bx = FRONT - k * step - (F.CLASSES[u.cls].range - 1) * 4; k++; el._wx = undefined; el.style.left = (bx + (F.CLASSES[u.cls].range === 1 ? (adv(u) - cam) * PU : 0)) + 'px'; return; }
       if (el._wx === undefined) { el._wx = parseFloat(el.style.left) || +el.dataset.x; el._cam0 = cam; el.classList.remove('pm'); }
       if (marching) el._wx -= dt * 75 * F.moveSpeed(S);
-      el.style.left = (el._wx - (cam - el._cam0) * 15) + 'px'; }); }
+      el.style.left = (el._wx - (cam - el._cam0) * PU) + 'px'; }); }
   { const bb = $('#bossbar'), fb = B.enemies.find(u => u.boss && (F.SPECIES[u.species].base || u.species) === 'divoratore'); // barra grande solo per il boss finale
     if (bb) { const on = !!fb && fb.hp > 0 && !(fb.arrive > 0); bb.hidden = !on; if (on) { bb.firstChild.style.width = (148 * fb.hp / fb.maxHp) + 'px'; const nm = F.SPECIES[fb.species].name; if (bb.lastChild.textContent !== nm) bb.lastChild.textContent = nm; } } }
   // i nemici si posizionano rispetto all'alleato che stanno colpendo davvero (se cade il guerriero e resta un arciere, si fermano davanti all'arciere, non sopra)
   let ft = null; for (const u of B.party) if (u.hp > 0 && (!ft || F.rangeOf(u) < F.rangeOf(ft) || (F.rangeOf(u) === F.rangeOf(ft) && u.idx < ft.idx))) ft = u;
   const ftEl = ft && pEls[ft.idx], ftX = ftEl ? parseFloat(ftEl.style.left) : NaN;
-  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (isNaN(ftX) ? FRONT + 28 + (u.pos - 1) * 15 - B._cam * 15 : ftX + 13 + (u.pos - ft.pos - 1) * 15) + tx + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
+  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (isNaN(ftX) ? FRONT + 35 + (u.pos - 1) * PU - B._cam * PU : ftX + 20 + (u.pos - ft.pos - 1) * PU) + tx + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
   updateLog();
 }
 // frecce degli arcieri che restano conficcate nel nemico (al massimo 5, spariscono con lui)
@@ -405,7 +406,7 @@ function hud() {
   const maxId = S.inventory.reduce((x, it) => Math.max(x, it.id), 0); if (tab === 'zaino') S.bagSeen = Math.max(S.bagSeen || 0, maxId); const zb = document.querySelector('[data-tab=zaino]'); if (zb) zb.classList.toggle('dot', maxId > (S.bagSeen || 0));
   $('#gold').textContent = cfmt(S.gold); $('#astri').textContent = cfmt(S.astri);
   const pl = F.planetOf(S.zone); $('#ptitle').textContent = pl.name; $('#where').textContent = `Zona ${S.zone} · Battaglia ${S.battle}/30`;
-  const inf = pl === F.PLANETS[0]; scene().classList.toggle('rinf', inf); scene().classList.toggle('p1', false); for (const k of [1, 2, 3]) scene().classList.toggle('bg' + k, false); // zone 1-5: Inferno scene().classList.toggle('p2', pl === F.PLANETS[1]); scene().classList.toggle('p3', pl === F.PLANETS[2]); scene().classList.toggle('p4', pl === F.PLANETS[3]);
+  const inf = pl === F.PLANETS[0]; scene().classList.toggle('rinf', inf); scene().classList.toggle('p1', false); for (const k of [1, 2, 3]) scene().classList.toggle('bg' + k, false); /* zone 1-5: Inferno */ scene().classList.toggle('rpur', pl === F.PLANETS[1]); scene().classList.toggle('p2', false); /* zone 6-10: Purgatorio */ scene().classList.toggle('rter', pl === F.PLANETS[2]); scene().classList.toggle('p3', false); /* zone 11-15: Terra */ scene().classList.toggle('p4', pl === F.PLANETS[3]);
   $('#prog').style.width = (100 * S.battle / 30) + '%';
   $('#testbadge').hidden = !(S.settings.tFast || S.settings.tCap);
 }
