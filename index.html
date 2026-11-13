@@ -488,7 +488,11 @@ body.bigscene #scene{height:55vh}
 
 /* negozio: gli eroi camminano 1 secondo, poi attaccano, e si ripete */
 .herocard .mspr{margin-right:16px}
-.herocard .mspr .mg{animation:shopatk 1.6s infinite}.herocard .mspr .ar{animation:shopatk2 1.6s infinite}@keyframes shopatk2{0%{background-position-x:-104px;animation-timing-function:steps(8)}62.5%{background-position-x:-936px;animation-timing-function:steps(9)}100%{background-position-x:-1872px}}
+.herocard .mspr .mg{animation:shopatk 1.6s infinite}.herocard .mspr .ar{animation:shopatk2 2.6s infinite}
+.herocard .mspr{position:relative}
+.shopheart{position:absolute;left:62%;top:38%;width:9px;height:8px;pointer-events:none;opacity:0;image-rendering:pixelated;filter:drop-shadow(0 0 3px #FF7AD9);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23FF4FB8' d='M1 0h2v1h1V0h2v1h1v2H6v1H5v1H4v1H3V5H2V4H1V3H0V1h1z'/%3E%3Cpath fill='%23FFC2E8' d='M1 1h1v1H1z'/%3E%3C/svg%3E") center/contain no-repeat;animation:shopheart 2.6s linear infinite}
+@keyframes shopheart{0%,74%{opacity:0;transform:translateX(0)}75%{opacity:1;transform:translateX(0)}86%{opacity:1;transform:translateX(16px)}92%{opacity:0;transform:translateX(22px) scale(1.5)}100%{opacity:0}}
+.pvbig .shopheart{width:8px;height:7px;animation-name:shopheart2}@keyframes shopheart2{0%,74%{opacity:0;transform:translateX(0)}75%{opacity:1;transform:translateX(0)}90%{opacity:1;transform:translateX(30px)}96%{opacity:0;transform:translateX(38px) scale(1.5)}100%{opacity:0}}@keyframes shopatk2{0%{background-position-x:-104px;animation-timing-function:steps(8)}62.5%{background-position-x:-936px;animation-timing-function:steps(9)}100%{background-position-x:-1872px}}
 @keyframes shopatk{0%{background-position-x:-80px;animation-timing-function:steps(6)}62.5%{background-position-x:-560px;animation-timing-function:steps(8)}100%{background-position-x:-1200px}}
 
 /* frecce conficcate nei nemici */
@@ -2329,7 +2333,7 @@ function pShop() {
   <div class="note" style="color:#9BFFB8;text-align:center">Versione di prova: per ora gli acquisti sono gratis, nessun pagamento reale.</div>
   <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min.`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
   <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
-  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr" data-act="preview" data-kind="hero" data-id="${h.id}" role="button" aria-label="Guarda ${sp.name}">${h.id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : h.id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div>${sp.hbText ? `<div class="msub" style="color:#FFD86B">${sp.hbText}</div>` : ''}<div class="msub" style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
+  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr" data-act="preview" data-kind="hero" data-id="${h.id}" role="button" aria-label="Guarda ${sp.name}">${h.id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : h.id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div><i class="shopheart" aria-hidden="true"></i>' : sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div>${sp.hbText ? `<div class="msub" style="color:#FFD86B">${sp.hbText}</div>` : ''}<div class="msub" style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
   <div class="ph" id="shop-pet"><h2 style="font-size:13px">Pet</h2><span>non combattono · i bonus si sommano</span></div>
   ${S.welcomePack || !Object.keys(F.PETS).some(k => !F.PETS[k].astri && !(S.pets && S.pets[k])) ? '' : `<div class="card welcome"><b>Pacchetto Benvenuto · 4,99 €</b><div class="msub">500 ${icon('gem', '#F49AC1', 11)} + un pet a scelta · una sola volta</div>
    <div class="wpick">${Object.keys(F.PETS).filter(k => !F.PETS[k].astri && !(S.pets && S.pets[k])).map(k => `<button class="sb" data-act="welcome" data-k="${k}">${petHTML(k, 2)}<span>${F.PETS[k].name}</span></button>`).join('')}</div></div>`}
@@ -2412,7 +2416,7 @@ function pImpost() {
   <button class="sb" data-act="testacc" data-k="full" style="width:100%;margin-top:6px">Tutto completo (massimo di tutto)</button>
   <button class="sb" data-act="testcap" style="width:100%;margin-top:6px">Mostra la finestra di cattura</button>
   <div class="ph"><h2>Salvataggio</h2></div>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>13/11 22:02</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>13/11 22:08</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function pBestiario() {
@@ -2746,7 +2750,7 @@ function showPreview(kind, id) {
   let body = '';
   if (kind === 'hero') {
     const h = F.HERO_SHOP.find(x => x.id === id), sp = F.SPECIES[id], c = F.CLASSES[sp.cls], own = !!S.roster[id];
-    const big = id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(id, 6);
+    const big = id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div><i class="shopheart" aria-hidden="true"></i>' : sprite(id, 6);
     body = `<div class="pvbig herocard"><div class="mspr">${big}</div></div>
       <h2 class="pvt">${sp.name}</h2><div class="msub" style="text-align:center"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · gittata ${F.rangeOf({ species: id, cls: sp.cls })}</div>
       <div class="note" style="text-align:center"><i>“${sp.quote}”</i></div>

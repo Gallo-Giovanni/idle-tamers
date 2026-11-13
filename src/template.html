@@ -488,7 +488,11 @@ body.bigscene #scene{height:55vh}
 
 /* negozio: gli eroi camminano 1 secondo, poi attaccano, e si ripete */
 .herocard .mspr{margin-right:16px}
-.herocard .mspr .mg{animation:shopatk 1.6s infinite}.herocard .mspr .ar{animation:shopatk2 1.6s infinite}@keyframes shopatk2{0%{background-position-x:-104px;animation-timing-function:steps(8)}62.5%{background-position-x:-936px;animation-timing-function:steps(9)}100%{background-position-x:-1872px}}
+.herocard .mspr .mg{animation:shopatk 1.6s infinite}.herocard .mspr .ar{animation:shopatk2 2.6s infinite}
+.herocard .mspr{position:relative}
+.shopheart{position:absolute;left:62%;top:38%;width:9px;height:8px;pointer-events:none;opacity:0;image-rendering:pixelated;filter:drop-shadow(0 0 3px #FF7AD9);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23FF4FB8' d='M1 0h2v1h1V0h2v1h1v2H6v1H5v1H4v1H3V5H2V4H1V3H0V1h1z'/%3E%3Cpath fill='%23FFC2E8' d='M1 1h1v1H1z'/%3E%3C/svg%3E") center/contain no-repeat;animation:shopheart 2.6s linear infinite}
+@keyframes shopheart{0%,74%{opacity:0;transform:translateX(0)}75%{opacity:1;transform:translateX(0)}86%{opacity:1;transform:translateX(16px)}92%{opacity:0;transform:translateX(22px) scale(1.5)}100%{opacity:0}}
+.pvbig .shopheart{width:8px;height:7px;animation-name:shopheart2}@keyframes shopheart2{0%,74%{opacity:0;transform:translateX(0)}75%{opacity:1;transform:translateX(0)}90%{opacity:1;transform:translateX(30px)}96%{opacity:0;transform:translateX(38px) scale(1.5)}100%{opacity:0}}@keyframes shopatk2{0%{background-position-x:-104px;animation-timing-function:steps(8)}62.5%{background-position-x:-936px;animation-timing-function:steps(9)}100%{background-position-x:-1872px}}
 @keyframes shopatk{0%{background-position-x:-80px;animation-timing-function:steps(6)}62.5%{background-position-x:-560px;animation-timing-function:steps(8)}100%{background-position-x:-1200px}}
 
 /* frecce conficcate nei nemici */
