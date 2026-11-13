@@ -579,13 +579,16 @@ body.bigscene #scene{height:55vh}
 #scene.march .u:not(.dead) .mg.atk,#scene.march .u:not(.dead) .mg.atk2,#scene.march .u:not(.dead) .mg.sk{animation:mgatk .6s steps(8) 1 forwards}
 #scene.march .u:not(.dead) .ar.atk,#scene.march .u:not(.dead) .ar.atk2,#scene.march .u:not(.dead) .ar.sk{animation:aratk .6s steps(8) 1 forwards}
 /* cattura: a tutto schermo, è un momento che si aspetta anche settimane */
-#modal.capfull{top:0;background:radial-gradient(circle at 50% 38%,#2a2160 0,#0b0c22 70%);padding:12px}
-.capx{width:100%;max-width:380px;max-height:100%;overflow-y:auto;text-align:center;color:var(--fg);animation:capin .5s cubic-bezier(.2,1.4,.4,1)}
+#modal.capfull{top:0;background:rgba(5,6,18,.62);padding:14px}
+.capx{position:relative;width:100%;max-width:360px;max-height:100%;overflow-y:auto;overflow-x:hidden;text-align:center;color:var(--fg);background:radial-gradient(circle at 50% 30%,#2a2160 0,#0f1233 75%);border:1px solid color-mix(in srgb,var(--c) 55%,var(--line));border-radius:18px;padding:14px 14px 16px;box-shadow:0 0 30px color-mix(in srgb,var(--c) 35%,transparent);animation:capin .5s cubic-bezier(.2,1.4,.4,1)}
+.capstage{overflow:hidden}
+.capskip{position:absolute;top:8px;right:8px;z-index:2;background:#1A1F4A;border:1px solid var(--line);color:var(--muted);border-radius:999px;font-size:11px;padding:4px 10px;cursor:pointer}
+.capx .capkick{margin-top:22px}
 @keyframes capin{from{transform:scale(.6);opacity:0}}
 .capkick{font-family:'Pixelify Sans',sans-serif;font-size:24px;color:var(--c);letter-spacing:1px;text-shadow:0 0 12px var(--c),0 2px 0 #000;animation:capk 1.6s ease-in-out infinite}
 @keyframes capk{50%{transform:scale(1.06)}}
-.capstage{position:relative;height:220px;margin:4px 0 0}
-.caprays{position:absolute;left:50%;top:50%;width:420px;height:420px;margin:-210px 0 0 -210px;border-radius:50%;background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--c) 38%,transparent) 0 9deg,transparent 9deg 22deg);-webkit-mask:radial-gradient(circle,#000 18%,transparent 62%);mask:radial-gradient(circle,#000 18%,transparent 62%);animation:caprot 14s linear infinite}
+.capstage{position:relative;height:200px;margin:4px 0 0}
+.caprays{position:absolute;left:50%;top:50%;width:420px;height:420px;margin:-210px 0 0 -210px;border-radius:50%;background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--c) 38%,transparent) 0 9deg,transparent 9deg 22deg);-webkit-mask:radial-gradient(circle,#000 12%,transparent 46%);mask:radial-gradient(circle,#000 12%,transparent 46%);animation:caprot 14s linear infinite}
 @keyframes caprot{to{transform:rotate(360deg)}}
 .capglow{position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 55%,transparent),transparent 70%);animation:capg 2s ease-in-out infinite}
 @keyframes capg{50%{transform:scale(1.15);opacity:.7}}

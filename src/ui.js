@@ -246,7 +246,7 @@ function buildScene() { setScroll();
     const step = partyStep(list.length); // lo spazio si divide tra tutti, così nessuno esce dallo schermo
     const x = FRONT - k * step - (F.CLASSES[u.cls].range - 1) * 4, y = 26; // tutti sul pavimento
     const el = document.createElement('div'); el.className = 'u pm'; el.dataset.x = x; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 20 - (k % 2) * 5;
-    el.innerHTML = `<div class="hpb"><b style="background:#7ED36F"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : u.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : u.species === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
+    el.innerHTML = `<div class="hpb"><b style="background:${F.isHero(u.id) ? HERO_HP : '#7ED36F'}"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : u.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : u.species === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
     sc.appendChild(el); pEls[u.idx] = el;
   });
   place(order); partyOrder = order;
@@ -269,6 +269,7 @@ function buildScene() { setScroll();
   updateScene();
 }
 // Vita della squadra, stilizzata: barra sottile + danno medio al secondo (media mobile, non si azzera tra le battaglie)
+const HERO_HP = '#5BD8E6'; // vita degli eroi, che non occupano posti in squadra
 let logRows = [];
 const dps = {}, lastDealt = {}, acc = {};
 let dpsAt = 0;
@@ -291,7 +292,7 @@ function updateLog() {
   for (const [u, c] of logRows) {
     const pct = Math.max(0, u.hp / u.maxHp); if (u.hp > 0) alive++;
     const b = c.lastChild.firstChild; b.style.width = (100 * pct) + '%';
-    b.style.background = pct > 0.6 ? '#7ED36F' : pct > 0.3 ? '#F2C14E' : '#FF5A6E';
+    b.style.background = pct > 0.6 ? (F.isHero(u.id) ? HERO_HP : '#7ED36F') : pct > 0.3 ? '#F2C14E' : '#FF5A6E'; // gli eroi (fuori dal conteggio dei posti) in azzurro
     c.querySelector('.ph2').textContent = u.hp > 0 ? cfmt(Math.ceil(u.hp)) : 'KO'; c.querySelector('.ph2').style.color = b.style.background;
     c.querySelector('.pd').textContent = u.hp > 0 ? cfmt(dps[u.id] || 0) : '';
     c.classList.toggle('ko', u.hp <= 0);
@@ -940,13 +941,14 @@ function showCapture(sp) {
   const sparks = Array.from({ length: 14 }, (_, i) => `<i style="--a:${i * 360 / 14}deg;--d:${(i % 4) * 0.18}s;--r:${70 + (i % 3) * 22}px"></i>`).join('');
   const m$ = $('#modal'); m$.classList.add('capfull');
   m$.innerHTML = `<div class="capx" role="dialog" aria-modal="true" aria-labelledby="capname" style="--c:${col}">
+   <button class="capskip" data-act="capskip">Salta tutto${capQueue.length ? ` (${capQueue.length + 1})` : ''} ✕</button>
    <div class="capkick${d.secret ? ' rbw' : ''}">${d.secret ? 'BOSS SEGRETO CATTURATO!' : 'NUOVA CREATURA!'}</div>
    <div class="capstage"><div class="caprays"></div><div class="capglow"></div><div class="capsparks">${sparks}</div><div class="capmon"><div class="bob">${sprite(sp, 10)}</div></div><div class="capshadow"></div></div>
    <h2 id="capname" class="capname">${esc(m.name)}</h2>
    <div class="badges"><span class="rb${d.secret ? ' rbw' : ''}" style="background:${col};color:#141836">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}${d.tough ? ' robusto' : ''}</span></div>
    ${d.secret ? `<div class="capwait"><b class="rbw">+${Math.round((F.SECRET_MULT - 1) * 100)}%</b><span>vita, attacco e difesa</span></div>` : `<div class="capwait"><b>${fmt(m.waitKills)}</b><span>incontri prima di catturarla</span></div>`}
    <p class="quote">«${esc(d.quote)}»</p>
-   <div class="capinfo"><span>${F.planetOf(F.zoneOf(sp)).name}</span><span style="color:${CC(cls)}">${F.CLASSES[cls].ability}</span>${!d.secret && F.RAR_MULT[d.rarity] > 1 ? `<span>+${Math.round((F.RAR_MULT[d.rarity] - 1) * 100)}% statistiche</span>` : ''}${d.tough ? `<span>vita e difesa ×${F.TOUGH.hp}</span>` : ''}</div>
+   <div class="capinfo"><span>${F.planetOf(F.zoneOf(sp)).name}</span><span style="color:${CC(cls)}">${F.CLASSES[cls].ability}</span>${d.tough ? `<span>vita e difesa ×${F.TOUGH.hp}</span>` : ''}</div>
    ${inTeam ? '<div class="note" style="text-align:center">È già entrata in squadra.</div>' : `<button class="pb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
    <button class="sb wide" data-act="close" style="margin-top:6px">Continua</button>
   </div>`;
@@ -1244,6 +1246,7 @@ document.addEventListener('click', e => {
   else if (a === 'reroll2') { if (F.rerollBonus(S, item, rrLocks)) { snd('coin'); toast('Bonus rimescolati', '#F49AC1'); } }
   else if (a === 'fuseopen') { showFuse(); return; }
   else if (a === 'sellopts') { showSellOpts(); return; }
+  else if (a === 'capskip') { capQueue.length = 0; closeModal(); return; } // salta questa e tutte le catture in coda
   else if (a === 'testcap') { const ids = Object.keys(S.roster).filter(k => !F.isHero(k)); if (ids.length) showCapture(ids[Math.floor(Math.random() * ids.length)]); else toast('Nessuna creatura catturata'); return; }
   else if (a === 'fuse') { const it = F.fuse(S, t.dataset.k); if (it) { const r = F.ITEM_RARITY.find(x => x.key === it.rarity); snd('rare'); toast(`Fusione riuscita: <b style="color:${r.color}">${esc(F.itemName(it))}</b>`, r.color); } showFuse(); dirty = true; return; }
   else if (a === 'dmgtoggle') { showDmg = !showDmg; }

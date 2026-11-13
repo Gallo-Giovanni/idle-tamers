@@ -579,13 +579,16 @@ body.bigscene #scene{height:55vh}
 #scene.march .u:not(.dead) .mg.atk,#scene.march .u:not(.dead) .mg.atk2,#scene.march .u:not(.dead) .mg.sk{animation:mgatk .6s steps(8) 1 forwards}
 #scene.march .u:not(.dead) .ar.atk,#scene.march .u:not(.dead) .ar.atk2,#scene.march .u:not(.dead) .ar.sk{animation:aratk .6s steps(8) 1 forwards}
 /* cattura: a tutto schermo, è un momento che si aspetta anche settimane */
-#modal.capfull{top:0;background:radial-gradient(circle at 50% 38%,#2a2160 0,#0b0c22 70%);padding:12px}
-.capx{width:100%;max-width:380px;max-height:100%;overflow-y:auto;text-align:center;color:var(--fg);animation:capin .5s cubic-bezier(.2,1.4,.4,1)}
+#modal.capfull{top:0;background:rgba(5,6,18,.62);padding:14px}
+.capx{position:relative;width:100%;max-width:360px;max-height:100%;overflow-y:auto;overflow-x:hidden;text-align:center;color:var(--fg);background:radial-gradient(circle at 50% 30%,#2a2160 0,#0f1233 75%);border:1px solid color-mix(in srgb,var(--c) 55%,var(--line));border-radius:18px;padding:14px 14px 16px;box-shadow:0 0 30px color-mix(in srgb,var(--c) 35%,transparent);animation:capin .5s cubic-bezier(.2,1.4,.4,1)}
+.capstage{overflow:hidden}
+.capskip{position:absolute;top:8px;right:8px;z-index:2;background:#1A1F4A;border:1px solid var(--line);color:var(--muted);border-radius:999px;font-size:11px;padding:4px 10px;cursor:pointer}
+.capx .capkick{margin-top:22px}
 @keyframes capin{from{transform:scale(.6);opacity:0}}
 .capkick{font-family:'Pixelify Sans',sans-serif;font-size:24px;color:var(--c);letter-spacing:1px;text-shadow:0 0 12px var(--c),0 2px 0 #000;animation:capk 1.6s ease-in-out infinite}
 @keyframes capk{50%{transform:scale(1.06)}}
-.capstage{position:relative;height:220px;margin:4px 0 0}
-.caprays{position:absolute;left:50%;top:50%;width:420px;height:420px;margin:-210px 0 0 -210px;border-radius:50%;background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--c) 38%,transparent) 0 9deg,transparent 9deg 22deg);-webkit-mask:radial-gradient(circle,#000 18%,transparent 62%);mask:radial-gradient(circle,#000 18%,transparent 62%);animation:caprot 14s linear infinite}
+.capstage{position:relative;height:200px;margin:4px 0 0}
+.caprays{position:absolute;left:50%;top:50%;width:420px;height:420px;margin:-210px 0 0 -210px;border-radius:50%;background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--c) 38%,transparent) 0 9deg,transparent 9deg 22deg);-webkit-mask:radial-gradient(circle,#000 12%,transparent 46%);mask:radial-gradient(circle,#000 12%,transparent 46%);animation:caprot 14s linear infinite}
 @keyframes caprot{to{transform:rotate(360deg)}}
 .capglow{position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px 0 0 -85px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 55%,transparent),transparent 70%);animation:capg 2s ease-in-out infinite}
 @keyframes capg{50%{transform:scale(1.15);opacity:.7}}
@@ -1081,7 +1084,7 @@ function memberStats(s, id) {
 }
 // statistiche senza equipaggiamento (per i confronti)
 function bareStats(s, id) { const m = s.roster[id], eq = m.eq; m.eq = emptyEq(); try { return memberStats(s, id); } finally { m.eq = eq; } }
-function speciesBonus(sp) { const d = SPECIES[sp]; if (!d) return ''; const parts = []; if (d.secret) parts.push('+' + Math.round((SECRET_MULT - 1) * 100) + '%'); else if ((RAR_MULT[d.rarity] || 1) > 1) parts.push('+' + Math.round((RAR_MULT[d.rarity] - 1) * 100) + '%'); if (d.tough) parts.push('robusto'); return parts.join(' · '); }
+function speciesBonus(sp) { const d = SPECIES[sp]; if (!d) return ''; const parts = []; if (d.secret) parts.push('+' + Math.round((SECRET_MULT - 1) * 100) + '%'); if (d.tough) parts.push('robusto'); return parts.join(' · '); }
 function memberPower(s, id) { const st = memberStats(s, id); return Math.round(st.hp / 6 + st.atk * 2 + st.def * 3 + st.crit * 100); }
 
 // ---------------- Battaglia ----------------
@@ -1887,7 +1890,7 @@ function buildScene() { setScroll();
     const step = partyStep(list.length); // lo spazio si divide tra tutti, così nessuno esce dallo schermo
     const x = FRONT - k * step - (F.CLASSES[u.cls].range - 1) * 4, y = 26; // tutti sul pavimento
     const el = document.createElement('div'); el.className = 'u pm'; el.dataset.x = x; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 20 - (k % 2) * 5;
-    el.innerHTML = `<div class="hpb"><b style="background:#7ED36F"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : u.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : u.species === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
+    el.innerHTML = `<div class="hpb"><b style="background:${F.isHero(u.id) ? HERO_HP : '#7ED36F'}"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : u.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : u.species === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
     sc.appendChild(el); pEls[u.idx] = el;
   });
   place(order); partyOrder = order;
@@ -1910,6 +1913,7 @@ function buildScene() { setScroll();
   updateScene();
 }
 // Vita della squadra, stilizzata: barra sottile + danno medio al secondo (media mobile, non si azzera tra le battaglie)
+const HERO_HP = '#5BD8E6'; // vita degli eroi, che non occupano posti in squadra
 let logRows = [];
 const dps = {}, lastDealt = {}, acc = {};
 let dpsAt = 0;
@@ -1932,7 +1936,7 @@ function updateLog() {
   for (const [u, c] of logRows) {
     const pct = Math.max(0, u.hp / u.maxHp); if (u.hp > 0) alive++;
     const b = c.lastChild.firstChild; b.style.width = (100 * pct) + '%';
-    b.style.background = pct > 0.6 ? '#7ED36F' : pct > 0.3 ? '#F2C14E' : '#FF5A6E';
+    b.style.background = pct > 0.6 ? (F.isHero(u.id) ? HERO_HP : '#7ED36F') : pct > 0.3 ? '#F2C14E' : '#FF5A6E'; // gli eroi (fuori dal conteggio dei posti) in azzurro
     c.querySelector('.ph2').textContent = u.hp > 0 ? cfmt(Math.ceil(u.hp)) : 'KO'; c.querySelector('.ph2').style.color = b.style.background;
     c.querySelector('.pd').textContent = u.hp > 0 ? cfmt(dps[u.id] || 0) : '';
     c.classList.toggle('ko', u.hp <= 0);
@@ -2384,7 +2388,7 @@ function pImpost() {
   <button class="sb" data-act="testacc" data-k="full" style="width:100%;margin-top:6px">Tutto completo (massimo di tutto)</button>
   <button class="sb" data-act="testcap" style="width:100%;margin-top:6px">Mostra la finestra di cattura</button>
   <div class="ph"><h2>Salvataggio</h2></div>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>13/11 20:40</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>13/11 20:49</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function pBestiario() {
@@ -2581,13 +2585,14 @@ function showCapture(sp) {
   const sparks = Array.from({ length: 14 }, (_, i) => `<i style="--a:${i * 360 / 14}deg;--d:${(i % 4) * 0.18}s;--r:${70 + (i % 3) * 22}px"></i>`).join('');
   const m$ = $('#modal'); m$.classList.add('capfull');
   m$.innerHTML = `<div class="capx" role="dialog" aria-modal="true" aria-labelledby="capname" style="--c:${col}">
+   <button class="capskip" data-act="capskip">Salta tutto${capQueue.length ? ` (${capQueue.length + 1})` : ''} ✕</button>
    <div class="capkick${d.secret ? ' rbw' : ''}">${d.secret ? 'BOSS SEGRETO CATTURATO!' : 'NUOVA CREATURA!'}</div>
    <div class="capstage"><div class="caprays"></div><div class="capglow"></div><div class="capsparks">${sparks}</div><div class="capmon"><div class="bob">${sprite(sp, 10)}</div></div><div class="capshadow"></div></div>
    <h2 id="capname" class="capname">${esc(m.name)}</h2>
    <div class="badges"><span class="rb${d.secret ? ' rbw' : ''}" style="background:${col};color:#141836">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}${d.tough ? ' robusto' : ''}</span></div>
    ${d.secret ? `<div class="capwait"><b class="rbw">+${Math.round((F.SECRET_MULT - 1) * 100)}%</b><span>vita, attacco e difesa</span></div>` : `<div class="capwait"><b>${fmt(m.waitKills)}</b><span>incontri prima di catturarla</span></div>`}
    <p class="quote">«${esc(d.quote)}»</p>
-   <div class="capinfo"><span>${F.planetOf(F.zoneOf(sp)).name}</span><span style="color:${CC(cls)}">${F.CLASSES[cls].ability}</span>${!d.secret && F.RAR_MULT[d.rarity] > 1 ? `<span>+${Math.round((F.RAR_MULT[d.rarity] - 1) * 100)}% statistiche</span>` : ''}${d.tough ? `<span>vita e difesa ×${F.TOUGH.hp}</span>` : ''}</div>
+   <div class="capinfo"><span>${F.planetOf(F.zoneOf(sp)).name}</span><span style="color:${CC(cls)}">${F.CLASSES[cls].ability}</span>${d.tough ? `<span>vita e difesa ×${F.TOUGH.hp}</span>` : ''}</div>
    ${inTeam ? '<div class="note" style="text-align:center">È già entrata in squadra.</div>' : `<button class="pb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
    <button class="sb wide" data-act="close" style="margin-top:6px">Continua</button>
   </div>`;
@@ -2885,6 +2890,7 @@ document.addEventListener('click', e => {
   else if (a === 'reroll2') { if (F.rerollBonus(S, item, rrLocks)) { snd('coin'); toast('Bonus rimescolati', '#F49AC1'); } }
   else if (a === 'fuseopen') { showFuse(); return; }
   else if (a === 'sellopts') { showSellOpts(); return; }
+  else if (a === 'capskip') { capQueue.length = 0; closeModal(); return; } // salta questa e tutte le catture in coda
   else if (a === 'testcap') { const ids = Object.keys(S.roster).filter(k => !F.isHero(k)); if (ids.length) showCapture(ids[Math.floor(Math.random() * ids.length)]); else toast('Nessuna creatura catturata'); return; }
   else if (a === 'fuse') { const it = F.fuse(S, t.dataset.k); if (it) { const r = F.ITEM_RARITY.find(x => x.key === it.rarity); snd('rare'); toast(`Fusione riuscita: <b style="color:${r.color}">${esc(F.itemName(it))}</b>`, r.color); } showFuse(); dirty = true; return; }
   else if (a === 'dmgtoggle') { showDmg = !showDmg; }

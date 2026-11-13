@@ -437,7 +437,7 @@ function memberStats(s, id) {
 }
 // statistiche senza equipaggiamento (per i confronti)
 function bareStats(s, id) { const m = s.roster[id], eq = m.eq; m.eq = emptyEq(); try { return memberStats(s, id); } finally { m.eq = eq; } }
-function speciesBonus(sp) { const d = SPECIES[sp]; if (!d) return ''; const parts = []; if (d.secret) parts.push('+' + Math.round((SECRET_MULT - 1) * 100) + '%'); else if ((RAR_MULT[d.rarity] || 1) > 1) parts.push('+' + Math.round((RAR_MULT[d.rarity] - 1) * 100) + '%'); if (d.tough) parts.push('robusto'); return parts.join(' · '); }
+function speciesBonus(sp) { const d = SPECIES[sp]; if (!d) return ''; const parts = []; if (d.secret) parts.push('+' + Math.round((SECRET_MULT - 1) * 100) + '%'); if (d.tough) parts.push('robusto'); return parts.join(' · '); }
 function memberPower(s, id) { const st = memberStats(s, id); return Math.round(st.hp / 6 + st.atk * 2 + st.def * 3 + st.crit * 100); }
 
 // ---------------- Battaglia ----------------
