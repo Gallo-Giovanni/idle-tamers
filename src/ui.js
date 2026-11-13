@@ -228,9 +228,9 @@ const PET_ANIM = { micio: 1, volpe: 1 }; // pet con animazione di volo
 const petHTML = (k, p) => PET_ANIM[k] ? `<div class="pa pa-${k}" style="--z:${p * 22}px" aria-hidden="true"></div>` : sprite('pet_' + k, p);
 let partyOrder = [], lastFrame = 0;
 // la prima linea sta oltre metà scena: la squadra ha più spazio (come negli altri idle), i nemici arrivano da destra
-const MID = 205; let FRONT = 240; // squadra centrata un po' a destra del centro, sempre un po' sovrapposta
-const partyStep = n => Math.min(14, 220 / Math.max(1, n - 1));
-const partyFront = n => Math.min(262, MID + (n - 1) * partyStep(n) / 2);
+let FRONT = 211; // il primo alleato sta poco a destra del centro; la squadra si allunga verso sinistra, sempre un po' sovrapposta
+const partyStep = n => Math.min(14, 195 / Math.max(1, n - 1));
+const partyFront = () => 211;
 const deadSeen = new Set(); // membri che hanno già fatto l'animazione di morte
 function buildScene() { setScroll();
   const sc = $('#units'); sc.innerHTML = '';
@@ -947,20 +947,30 @@ function foundListHTML(r) {
   return `<div class="flhead">${list.length} oggetti raccolti</div><div class="flist">${list.slice(0, 40).map(it => { const ra = F.ITEM_RARITY.find(x => x.key === it.rarity);
     return `<div class="frow" style="--c:${ra.color}">${itemIcon(it.slot, it.cls, ra.color, 24)}<div class="fmid"><b class="${ra.rainbow ? 'rbw' : ''}" style="color:${ra.color}">${esc(F.itemName(it))}</b><span>Lv ${F.itemLevel(it)} · ${F.SLOT_LABEL[it.slot]}${it.cls ? ' · ' + it.cls : ''}</span></div>${F.isUpgrade(S, it) ? '<i class="upgs">▲</i>' : ''}<em style="color:${ra.color}">${ra.label}</em></div>`; }).join('')}</div>`;
 }
+// il riepilogo resta salvato finché non si preme Raccogli: se esci e rientri si somma a quello nuovo
 function showOffline(r) {
+  const o = S.offRep || (S.offRep = { seconds: 0, kills: 0, gold: 0, items: 0, byRar: {}, runes: {}, levels: [], lost: 0, caps: [], since: r.since });
+  o.seconds += r.seconds || 0; o.kills += r.kills || 0; o.gold += r.gold || 0; o.items += r.items || 0; o.lost += r.lost || 0; o.skip = !!r.skip;
+  if (r.since !== undefined) o.since = o.since === undefined ? r.since : Math.min(o.since, r.since);
+  for (const k in r.byRar || {}) o.byRar[k] = (o.byRar[k] || 0) + r.byRar[k];
+  for (const k in r.runes || {}) o.runes[k] = (o.runes[k] || 0) + r.runes[k];
+  for (const l of r.levels || []) { const x = o.levels.find(y => y.id === l.id); if (x) x.to = Math.max(x.to, l.to); else o.levels.push({ id: l.id, from: l.from, to: l.to }); }
+  (r.events || []).filter(e => e.type === 'capture').forEach(e => { o.caps.push(e.species); capQueue.push(e.species); });
+  save(); renderOffline();
+}
+function renderOffline() { const r = S.offRep; if (!r) return;
   const h = Math.floor(r.seconds / 3600), mi = Math.floor(r.seconds % 3600 / 60);
-  const caps = r.events.filter(e => e.type === 'capture').map(e => S.roster[e.species] ? S.roster[e.species].name : e.species);
+  const caps = r.caps.map(sp => S.roster[sp] ? S.roster[sp].name : sp);
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-labelledby="offt">
    <h2 id="offt">Bentornato!</h2>
    <p class="msub">Mentre eri via (${h >= 48 ? Math.round(h / 24) + ' giorni' : h + ' h ' + mi + ' min'}${!r.skip && r.seconds >= F.offlineCap(S) ? `, massimo ${+(F.offlineCap(S) / 3600).toFixed(1)} ore` : ''}) la squadra ha combattuto da sola.</p>
    <div class="card"><div class="kv"><span>Nemici sconfitti</span><b>${fmt(r.kills)}</b></div><div class="kv"><span>Oro</span><b>+${cfmt(r.gold)}</b></div><div class="kv"><span>Oggetti trovati</span><b>${fmt(r.items)}</b></div>${F.ITEM_RARITY.filter(x => r.byRar && r.byRar[x.key] > 0).map(x => `<div class="kv sub"><span class="${x.rainbow ? 'rbw' : ''}" style="color:${x.color}">· ${x.label}</span><b>${fmt(r.byRar[x.key])}</b></div>`).join('')}${Object.keys(r.runes).filter(k => r.runes[k] > 0).map(k => `<div class="kv"><span style="color:${F.RUNE[k].color}">${F.RUNE[k].label}</span><b>+${fmt(r.runes[k])}</b></div>`).join('')}
-   ${r.levels.map(l => `<div class="kv"><span>${esc(S.roster[l.id].name)}</span><b>Lv ${l.from} → ${l.to}</b></div>`).join('')}</div>
+   ${r.levels.filter(l => S.roster[l.id]).map(l => `<div class="kv"><span>${esc(S.roster[l.id].name)}</span><b>Lv ${l.from} → ${l.to}</b></div>`).join('')}</div>
    ${r.lost ? `<div class="card" style="border-color:#FF8A96"><b style="color:#FF8A96">Zaino pieno:</b> ${fmt(r.lost)} oggetti persi. Libera spazio, usa il forziere o attiva la vendita automatica.</div>` : ''}
    ${caps.length ? `<div class="card" style="border-color:#F2C14E"><b style="color:#F2C14E">Catture:</b> ${caps.map(esc).join(', ')}</div>` : ''}
    ${foundListHTML(r)}
-   <button class="pb wide" data-act="close">Raccogli</button></div>`;
+   <button class="pb wide" data-act="offok">Raccogli</button></div>`;
   $('#modal').hidden = false;
-  r.events.filter(e => e.type === 'capture').forEach(e => capQueue.push(e.species));
 }
 function skipTime(hours) {
   const total = hours * 3600, chunk = 6 * 3600;
@@ -1262,6 +1272,7 @@ document.addEventListener('click', e => {
   else if (a === 'capadd') { F.addToTeam(S, id); rebuild(); closeModal(); }
   else if (a === 'share') { const m = S.roster[id], d = F.SPECIES[m.species]; const txt = `Ho catturato ${m.name} (${F.RARITY[d.rarity].label}, ${d.cls}) in Frontiera Arcana dopo ${fmt(m.waitKills)} incontri!`; try { navigator.clipboard.writeText(txt).then(() => { t.textContent = 'Copiato!'; }, () => { t.textContent = 'Copia non riuscita'; }); } catch (err) { t.textContent = 'Copia non riuscita'; } return; }
   else if (a === 'close') { closeModal(); }
+  else if (a === 'offok') { S.offRep = null; save(); closeModal(); }
   else if (a === 'cmppick') { showCmpPick(id); return; }
   else if (a === 'cmp') { showCmp(t.dataset.a, t.dataset.b); return; }
   else if (a === 'tutnext') { const i = +t.dataset.i + 1; if (i < TUT.length) { showTutorial(i); return; } S.tutorial = 1; tutOn = false; save(); closeModal(); }
@@ -1300,7 +1311,8 @@ function frame(now) {
   while (left > 0) { const d = Math.min(0.05, left); F.step(S, B, d, ev); left -= d; }
   handle(ev); updateScene(); hud();
   if (now - achAt > 1500) { achAt = now; for (const a of F.checkAch(S)) { S.achNew = (S.achNew || 0) + 1; dirty = true; } } // niente avvisi a schermo: solo il pallino su Stats
-  if ($('#modal').hidden && capQueue.length) showCapture(capQueue.shift());
+  if ($('#modal').hidden && S.offRep) renderOffline();
+  else if ($('#modal').hidden && capQueue.length) showCapture(capQueue.shift());
   if (dirty && !skyDrag && now - renderAt > 700 && now - scrollAt > 1500 && !touching && !document.activeElement.matches('input,select')) { renderAt = now; render(); }
   if (now - saveAt > 10000) { saveAt = now; if (F.ensureShop(S, Date.now())) toast('Il mercante ha nuovi oggetti', '#F49AC1'); save(); }
   requestAnimationFrame(frame);
