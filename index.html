@@ -574,6 +574,10 @@ body.bigscene #scene{height:55vh}
 .igrid.rrow{grid-template-columns:repeat(9,minmax(0,1fr));gap:4px}.igrid.rrow .it{min-height:0;height:40px;padding:2px 0;font-size:10px}.igrid.rrow .it b{font-size:10px}
 .bagbar{gap:5px}.bagbar .pb,.bagbar .sb{font-size:12px;padding:0 7px;line-height:1.15}.bagbar .eqres{white-space:nowrap}
 .rn{display:inline-block;vertical-align:middle;image-rendering:pixelated;background-repeat:no-repeat;animation:rnA 1.05s steps(8) infinite;flex-shrink:0}@keyframes rnA{to{background-position-x:calc(-8 * var(--s))}}
+/* l'attacco vince sulla camminata: anche il colpo che uccide l'ultimo nemico (quando la squadra riparte) si vede */
+#scene.march .u:not(.dead) .kn.atk,#scene.march .u:not(.dead) .kn.atk2,#scene.march .u:not(.dead) .kn.sk{animation:knatk .45s steps(7) 1 forwards}
+#scene.march .u:not(.dead) .mg.atk,#scene.march .u:not(.dead) .mg.atk2,#scene.march .u:not(.dead) .mg.sk{animation:mgatk .6s steps(8) 1 forwards}
+#scene.march .u:not(.dead) .ar.atk,#scene.march .u:not(.dead) .ar.atk2,#scene.march .u:not(.dead) .ar.sk{animation:aratk .6s steps(8) 1 forwards}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -2358,7 +2362,7 @@ function pImpost() {
   <div class="tzgrid">${[5, 10, 15, 20].map(z => `<button class="sb" data-act="testacc" data-k="${z}">Zona ${z}</button>`).join('')}</div>
   <button class="sb" data-act="testacc" data-k="full" style="width:100%;margin-top:6px">Tutto completo (massimo di tutto)</button>
   <div class="ph"><h2>Salvataggio</h2></div>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>13/11 20:35</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>13/11 20:38</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function pBestiario() {
