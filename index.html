@@ -1174,7 +1174,7 @@ function enemiesLeft(z, n) { let t = 0; for (let k = n + 1; k <= BOSS_BATTLE; k+
 // I nemici entrano uno alla volta da fuori schermo, ognuno con il suo passo: i Guerrieri corrono, arcieri e maghi arrivano dopo
 // i nemici entrano uno alla volta, a qualche secondo l'uno dall'altro e più lenti: all'inizio di ogni battaglia lo scontro è 1 contro 1
 const ENEMY_START = 10, ENEMY_SPACING = 10, ENEMY_GAP = 0.5, ENEMY_V = { Guerriero: 3.6, Arciere: 2.8, Mago: 2.8, Curatore: 2.5 };
-const PARTY_ENTRY = 2, PARTY_V = { Guerriero: 3.2, Arciere: 2.4, Mago: 2.2, Curatore: 2 }; // a inizio battaglia ognuno corre al suo posto alla sua velocità: prima i guerrieri, poi arcieri, maghi e curatori
+const PARTY_ENTRY = 2.5, PARTY_V = { Guerriero: 1.6, Arciere: 1.25, Mago: 1.15, Curatore: 1.05 }; // a inizio battaglia ognuno corre al suo posto alla sua velocità: prima i guerrieri, poi arcieri, maghi e curatori
 // i nemici aspettano in fila fuori schermo, uno dietro l'altro: ognuno parte verso la squadra dalla sua posizione col suo passo
 function arriveTime(i, cls) { return (ENEMY_START + i * ENEMY_SPACING - CLASSES[cls].range) / ENEMY_V[cls]; } // secondi per entrare in scena: i nemici arrivano insieme, in gruppo, alla stessa velocità
 // ---------------- Portale ----------------
@@ -1212,7 +1212,8 @@ function makeEnemies(s) {
 // Si torna a vita piena quando cambia la zona, quando la zona ricomincia dopo il boss o quando la squadra cade.
 function startBattle(s) {
   s.runHp = s.runHp || {};
-  const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', home: -reachOf(s.roster[id].species) / 20, arrive: 1, pos: -reachOf(s.roster[id].species) / 20 - PARTY_ENTRY, idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: abilityOf(s.roster[id].species), abT: 0, dealt: 0, taken: 0 }; });
+  const entry = s.battle === 1 || !!s._entry; s._entry = 0; // la squadra corre in scena a inizio zona (o dopo una sconfitta); nelle altre battaglie è già schierata
+  const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', home: -reachOf(s.roster[id].species) / 20, arrive: entry ? 1 : 0, pos: -reachOf(s.roster[id].species) / 20 - (entry ? PARTY_ENTRY : 0), idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: abilityOf(s.roster[id].species), abT: 0, dealt: 0, taken: 0 }; });
   s.mvTeam = teamMove(s);
   return { party, enemies: makeEnemies(s), time: 0, over: null, pause: 0 };
 }
@@ -2056,7 +2057,8 @@ const UNIT_SCALE = 1.5, PU = 19; // personaggi ingranditi ×1,5 (scena grande); 
 let FRONT = 211; // il primo alleato sta poco a destra del centro; la squadra si allunga verso sinistra, sempre un po' sovrapposta
 const partyStep = n => Math.min(18, 195 / Math.max(1, n - 1));
 const partyFront = () => 211;
-const XB = 250, PX = 38; // XB: dove starebbe un alleato a gittata 0; PX: pixel per unità di gittata (20 = Brace)
+const XB = 290, PX = 38, PE = 16; // PE: pixel per unità di distanza dei nemici (più stretti, così anche i loro curatori restano in vista)
+const worldX = p => p <= 0 ? XB + p * PX : XB + p * PE; // posizione in scena: i nemici nascono fuori a destra e arrivano camminando // XB: dove starebbe un alleato a gittata 0; PX: pixel per unità di gittata (20 = Brace)
 const unitX = u => XB - F.reachOf(u.species) / 20 * PX;
 const deadSeen = new Set(); // membri che hanno già fatto l'animazione di morte
 function buildScene() { setScroll();
@@ -2148,7 +2150,7 @@ function updateScene() {
   // i nemici si posizionano rispetto all'alleato che stanno colpendo davvero (se cade il guerriero e resta un arciere, si fermano davanti all'arciere, non sopra)
   const prr = u => u.id === 'hero' ? -1 : u.idx; let ft = null; for (const u of B.party) if (u.hp > 0 && (!ft || F.rangeOf(u) < F.rangeOf(ft) || (F.rangeOf(u) === F.rangeOf(ft) && prr(u) < prr(ft)))) ft = u;
   const ftEl = ft && pEls[ft.idx], ftX = ftEl ? parseFloat(ftEl.style.left) : NaN;
-  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (isNaN(ftX) ? FRONT + 35 + (u.pos - 1) * PU - B._cam * PU : ftX + 20 + (u.pos - ft.pos - 1) * PU) + tx + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); stFx(el, u); el.classList.toggle('marked', u.mark > 0); });
+  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (worldX(u.pos - cam) + tx) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); stFx(el, u); el.classList.toggle('marked', u.mark > 0); });
   updateLog();
 }
 // frecce degli arcieri che restano conficcate nel nemico (al massimo 5, spariscono con lui)
@@ -2598,7 +2600,7 @@ function pImpost() {
   <button class="sb" data-act="testacc" data-k="full" style="width:100%;margin-top:6px">Tutto completo (massimo di tutto)</button>
   <button class="sb" data-act="testcap" style="width:100%;margin-top:6px">Mostra la finestra di cattura</button>
   <div class="ph"><h2>Salvataggio</h2></div>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>14/11 08:45</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>14/11 08:52</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function pBestiario() {

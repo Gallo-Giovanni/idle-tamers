@@ -234,7 +234,8 @@ const UNIT_SCALE = 1.5, PU = 19; // personaggi ingranditi ×1,5 (scena grande); 
 let FRONT = 211; // il primo alleato sta poco a destra del centro; la squadra si allunga verso sinistra, sempre un po' sovrapposta
 const partyStep = n => Math.min(18, 195 / Math.max(1, n - 1));
 const partyFront = () => 211;
-const XB = 250, PX = 38; // XB: dove starebbe un alleato a gittata 0; PX: pixel per unità di gittata (20 = Brace)
+const XB = 290, PX = 38, PE = 16; // PE: pixel per unità di distanza dei nemici (più stretti, così anche i loro curatori restano in vista)
+const worldX = p => p <= 0 ? XB + p * PX : XB + p * PE; // posizione in scena: i nemici nascono fuori a destra e arrivano camminando // XB: dove starebbe un alleato a gittata 0; PX: pixel per unità di gittata (20 = Brace)
 const unitX = u => XB - F.reachOf(u.species) / 20 * PX;
 const deadSeen = new Set(); // membri che hanno già fatto l'animazione di morte
 function buildScene() { setScroll();
@@ -326,7 +327,7 @@ function updateScene() {
   // i nemici si posizionano rispetto all'alleato che stanno colpendo davvero (se cade il guerriero e resta un arciere, si fermano davanti all'arciere, non sopra)
   const prr = u => u.id === 'hero' ? -1 : u.idx; let ft = null; for (const u of B.party) if (u.hp > 0 && (!ft || F.rangeOf(u) < F.rangeOf(ft) || (F.rangeOf(u) === F.rangeOf(ft) && prr(u) < prr(ft)))) ft = u;
   const ftEl = ft && pEls[ft.idx], ftX = ftEl ? parseFloat(ftEl.style.left) : NaN;
-  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (isNaN(ftX) ? FRONT + 35 + (u.pos - 1) * PU - B._cam * PU : ftX + 20 + (u.pos - ft.pos - 1) * PU) + tx + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); stFx(el, u); el.classList.toggle('marked', u.mark > 0); });
+  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (worldX(u.pos - cam) + tx) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); stFx(el, u); el.classList.toggle('marked', u.mark > 0); });
   updateLog();
 }
 // frecce degli arcieri che restano conficcate nel nemico (al massimo 5, spariscono con lui)

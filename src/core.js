@@ -480,7 +480,7 @@ function enemiesLeft(z, n) { let t = 0; for (let k = n + 1; k <= BOSS_BATTLE; k+
 // I nemici entrano uno alla volta da fuori schermo, ognuno con il suo passo: i Guerrieri corrono, arcieri e maghi arrivano dopo
 // i nemici entrano uno alla volta, a qualche secondo l'uno dall'altro e più lenti: all'inizio di ogni battaglia lo scontro è 1 contro 1
 const ENEMY_START = 10, ENEMY_SPACING = 10, ENEMY_GAP = 0.5, ENEMY_V = { Guerriero: 3.6, Arciere: 2.8, Mago: 2.8, Curatore: 2.5 };
-const PARTY_ENTRY = 2, PARTY_V = { Guerriero: 3.2, Arciere: 2.4, Mago: 2.2, Curatore: 2 }; // a inizio battaglia ognuno corre al suo posto alla sua velocità: prima i guerrieri, poi arcieri, maghi e curatori
+const PARTY_ENTRY = 2.5, PARTY_V = { Guerriero: 1.6, Arciere: 1.25, Mago: 1.15, Curatore: 1.05 }; // a inizio battaglia ognuno corre al suo posto alla sua velocità: prima i guerrieri, poi arcieri, maghi e curatori
 // i nemici aspettano in fila fuori schermo, uno dietro l'altro: ognuno parte verso la squadra dalla sua posizione col suo passo
 function arriveTime(i, cls) { return (ENEMY_START + i * ENEMY_SPACING - CLASSES[cls].range) / ENEMY_V[cls]; } // secondi per entrare in scena: i nemici arrivano insieme, in gruppo, alla stessa velocità
 // ---------------- Portale ----------------
@@ -518,7 +518,8 @@ function makeEnemies(s) {
 // Si torna a vita piena quando cambia la zona, quando la zona ricomincia dopo il boss o quando la squadra cade.
 function startBattle(s) {
   s.runHp = s.runHp || {};
-  const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', home: -reachOf(s.roster[id].species) / 20, arrive: 1, pos: -reachOf(s.roster[id].species) / 20 - PARTY_ENTRY, idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: abilityOf(s.roster[id].species), abT: 0, dealt: 0, taken: 0 }; });
+  const entry = s.battle === 1 || !!s._entry; s._entry = 0; // la squadra corre in scena a inizio zona (o dopo una sconfitta); nelle altre battaglie è già schierata
+  const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', home: -reachOf(s.roster[id].species) / 20, arrive: entry ? 1 : 0, pos: -reachOf(s.roster[id].species) / 20 - (entry ? PARTY_ENTRY : 0), idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: abilityOf(s.roster[id].species), abT: 0, dealt: 0, taken: 0 }; });
   s.mvTeam = teamMove(s);
   return { party, enemies: makeEnemies(s), time: 0, over: null, pause: 0 };
 }
