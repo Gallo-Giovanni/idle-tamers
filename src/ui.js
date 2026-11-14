@@ -447,7 +447,7 @@ function hud() {
   const maxId = S.inventory.reduce((x, it) => Math.max(x, it.id), 0); if (tab === 'zaino') S.bagSeen = Math.max(S.bagSeen || 0, maxId); const zb = document.querySelector('[data-tab=zaino]'); if (zb) zb.classList.toggle('dot', maxId > (S.bagSeen || 0));
   $('#gold').textContent = cfmt(S.gold); $('#astri').textContent = cfmt(S.astri);
   const pl = F.planetOf(S.zone); $('#ptitle').textContent = F.ZONE_NAMES[S.zone] || pl.name; $('#where').textContent = `${pl.name} · Zona ${S.zone} · Battaglia ${S.battle}/30`;
-  const inf = pl === F.PLANETS[0]; scene().classList.toggle('rinf', inf); scene().classList.toggle('p1', false); for (const k of [1, 2, 3]) scene().classList.toggle('bg' + k, false); /* zone 1-5: Inferno */ scene().classList.toggle('rpur', pl === F.PLANETS[1]); scene().classList.toggle('p2', false); /* zone 6-10: Purgatorio */ scene().classList.toggle('rter', pl === F.PLANETS[2]); scene().classList.toggle('p3', false); /* zone 11-15: Terra */ scene().classList.toggle('p4', pl === F.PLANETS[3]);
+  const inf = pl === F.PLANETS[0]; scene().classList.toggle('rinf', inf); scene().classList.toggle('p1', false); for (const k of [1, 2, 3]) scene().classList.toggle('bg' + k, false); /* zone 1-5: Inferno */ scene().classList.toggle('rpur', pl === F.PLANETS[1]); scene().classList.toggle('p2', false); /* zone 6-10: Purgatorio */ scene().classList.toggle('rter', pl === F.PLANETS[2]); scene().classList.toggle('p3', false); /* zone 11-15: Terra */ scene().classList.toggle('p4', false); scene().classList.toggle('rpar', pl === F.PLANETS[3]); /* zone 16-20: Paradiso */
   $('#prog').style.width = (100 * S.battle / 30) + '%';
   $('#testbadge').hidden = !(S.settings.tFast || S.settings.tCap);
 }
