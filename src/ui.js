@@ -236,7 +236,7 @@ const partyStep = n => Math.min(18, 195 / Math.max(1, n - 1));
 const partyFront = () => 211;
 const XB = 290, PX = 38, PE = 16; // PE: pixel per unità di distanza dei nemici (più stretti, così anche i loro curatori restano in vista)
 const worldX = p => p <= 0 ? XB + p * PX : XB + p * PE; // posizione in scena: i nemici nascono fuori a destra e arrivano camminando // XB: dove starebbe un alleato a gittata 0; PX: pixel per unità di gittata (20 = Brace)
-const unitX = u => XB - F.reachOf(u.species) / 20 * PX;
+const unitX = u => XB - (u.reach || F.reachOf(u.species)) / 20 * PX;
 const deadSeen = new Set(); // membri che hanno già fatto l'animazione di morte
 function buildScene() { setScroll();
   const sc = $('#units'); sc.innerHTML = '';
@@ -248,7 +248,7 @@ function buildScene() { setScroll();
   const place = (list) => list.forEach(({ u }, k) => {
     const step = partyStep(list.length); // lo spazio si divide tra tutti, così nessuno esce dallo schermo
     const x = unitX(u), y = 26; // ognuno alla sua gittata dal nemico: Brace davanti, poi Guerrieri, Arcieri, Maghi e Curatori in fondo
-    const el = document.createElement('div'); el.className = 'u pm'; el.dataset.x = x; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 30 - Math.round(F.reachOf(u.species) / 5);
+    const el = document.createElement('div'); el.className = 'u pm'; el.dataset.x = x; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 30 - Math.round((u.reach || F.reachOf(u.species)) / 5);
     el.innerHTML = `<div class="hpb"><b style="background:${F.isHero(u.id) ? HERO_HP : '#7ED36F'}"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : u.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : u.species === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
     sc.appendChild(el); pEls[u.idx] = el;
   });
@@ -307,7 +307,7 @@ let marching = null;
 function updateScene() {
   const en = B.enemies.filter(u => u.hp > 0);
   // telecamera: quando la prima linea avanza, avanza tutta la squadra e la scena la segue (la squadra resta ferma sullo schermo)
-  const adv = u => (u.pos === undefined || u.hp <= 0) ? 0 : u.pos + F.reachOf(u.species) / 20; // quanto è avanti (o indietro, mentre corre al suo posto) rispetto alla sua gittata
+  const adv = u => (u.pos === undefined || u.hp <= 0) ? 0 : u.pos + (u.reach || F.reachOf(u.species)) / 20; // quanto è avanti (o indietro, mentre corre al suo posto) rispetto alla sua gittata
   const cam = B.party.reduce((x, u) => u.cls === 'Guerriero' ? Math.max(x, adv(u)) : x, 0), moving = cam > (B._cam || 0) + 1e-6; B._cam = cam;
   const m = B.over === 'win' || moving || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
@@ -479,9 +479,9 @@ function statsHTML(it, lv) {
   const bon = (it.bonus || []).map(b => `<div class="srow2 bon"><span><i style="background:${r.color}"></i>${F.STAT_LABEL[b.k]}</span><b>${val(b.k, F.bonusValue(it, b))}</b></div>`).join('');
   return `<div class="stbox">${rows}${bon ? `<div class="sthead">Bonus</div>${bon}` : ''}<div class="srow2 val"><span>${icon('coin', '#F2C14E', 12)} Valore</span><b>${fmt(F.sellValue(it, S))}</b></div>${lv ? `<div class="sthead" style="color:#5BD8E6">Slot +${lv}: +${lv * 10}% agli attributi</div>` : ''}</div>`;
 }
-function fullStats(st, sp) {
+function fullStats(st, sp, id) {
   const pc = v => (v * 100).toFixed(1).replace('.', ',') + '%';
-  const rows = [['Gittata', sp ? String(F.reachOf(sp)).replace('.', ',') : String(F.CLASSES[st.cls].range)], ...(sp ? [['Velocità di movimento', '×' + String(F.speedOf(sp)).replace('.', ',')]] : []), ['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)], ['Vel. movimento', '+' + pc(st.move || 0)]];
+  const rows = [['Gittata', sp ? String(id && S.team.includes(id) ? F.teamReach(S, id) : F.reachOf(sp)).replace('.', ',') : String(F.CLASSES[st.cls].range)], ...(sp ? [['Velocità di movimento', '×' + String(F.speedOf(sp)).replace('.', ',')]] : []), ['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)], ['Vel. movimento', '+' + pc(st.move || 0)]];
   return `<div class="fstats">${rows.map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join('')}</div>`;
 }
 function ptsHTML(id) {
@@ -505,7 +505,7 @@ function memberRow(id, inTeam, i) {
   html += `</div>`;
   if (open) {
     html += `<div class="card detail">
-    ${fullStats(st, m.species)}
+    ${fullStats(st, m.species, id)}
     <button class="sb" data-act="cmppick" data-id="${id}" style="width:100%;margin:6px 0">Confronta con un'altra creatura</button>
     <div class="abil"><b style="color:${CC(cls)}">${F.abilityOf(m.species).name}</b> · ${F.abilityOf(m.species).desc}</div>
     ${ptsHTML(id)}
@@ -655,19 +655,21 @@ function showFuse() {
 }
 // opzioni di scarto e vendita, in una finestra per lasciare spazio allo zaino
 let sellOpen = false;
-function showSellOpts() {
-  sellOpen = true;
-  $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true"><div class="eqhead"><h2 style="margin:0;font-size:18px">Scarto e vendita</h2><button class="ib" data-act="close" aria-label="Chiudi">✕</button></div>
-  <div class="card autos3"><span class="autol">Scarto automatico</span>${(() => { const k = F.minKeep(S); return [['comune', 1], ['noncomune', 2]].map(([key, lvl]) => { const r = F.ITEM_RARITY.find(x => x.key === key), on = k >= lvl, needPass = lvl > 1 && !F.hasPass(S), needZone = lvl === 1 && !F.hasPass(S) && S.maxZone < F.FREE_FILTER_ZONE; return `<button class="atog${on ? ' on' : ''}" style="--c:${r.color}" data-act="atog" data-k="${key}"><span>${r.label}</span>${needPass ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : needZone ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} zona ${F.FREE_FILTER_ZONE}</b>` : ''}</button>`; }).join(''); })()}</div>
+function showSellOpts() { sellOpen = false; tab = 'negozio'; closeModal(); render(); } // ora scarto e vendita stanno nel Mercante
+function autoScartoHTML() {
+  return `<div class="card autos3"><span class="autol">Scarto automatico</span>${(() => { const k = F.minKeep(S); return [['comune', 1], ['noncomune', 2]].map(([key, lvl]) => { const r = F.ITEM_RARITY.find(x => x.key === key), on = k >= lvl, needPass = lvl > 1 && !F.hasPass(S), needZone = lvl === 1 && !F.hasPass(S) && S.maxZone < F.FREE_FILTER_ZONE; return `<button class="atog${on ? ' on' : ''}" style="--c:${r.color}" data-act="atog" data-k="${key}"><span>${r.label}</span>${needPass ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : needZone ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} zona ${F.FREE_FILTER_ZONE}</b>` : ''}</button>`; }).join(''); })()}</div>`;
+}
+function sellOptsHTML() {
+  return `<div class="ph"><h2 style="font-size:13px">Vendita</h2><span>cosa tenere e cosa vendere</span></div>
   <div class="card protc"><span class="autol">Non vendere mai</span><div class="protg">${(() => { const ps = F.protectSet(S); return F.ITEM_RARITY.map(r => `<button class="pchip${ps[r.key] ? ' on' : ''}${r.rainbow ? ' rb' : ''}" style="--c:${r.color}" data-act="protk" data-k="${r.key}" aria-pressed="${!!ps[r.key]}" aria-label="${r.label}" title="${r.label}"><i>${ps[r.key] ? '✓' : ''}</i><span>${r.label.slice(0, 3)}</span></button>`).join(''); })()}</div></div>
   <div class="note">Gli oggetti scartati si vendono in oro appena cadono. Rune, oggetti bloccati e rarità protette non si vendono mai.</div>
-  <button class="sb" data-act="sellrest" style="width:100%;margin-top:6px">Vendi il resto dello zaino</button></div>`;
-  $('#modal').hidden = false;
+  <button class="sb" data-act="sellrest" style="width:100%;margin-top:6px">Vendi il resto dello zaino</button>`;
 }
 function pZaino() {
   const inBag = selItem && S.inventory.find(x => x.id === selItem), inChest = selItem && S.chest.find(x => x.id === selItem);
   const det = inBag ? itemDetail(inBag, 'bag') : inChest ? itemDetail(inChest, 'chest') : '';
-  return `<div class="row2 bagbar"><button class="pb" data-act="equipall">Equipaggia tutto</button><label class="tg eqres"><input type="checkbox" data-act="eqres" ${S.settings.eqReserve ? 'checked' : ''}> includi riserva</label><button class="sb" data-act="fuseopen">Fusione</button><button class="sb" data-act="sellopts">Scarto e vendita</button></div>
+  return `<div class="row2 bagbar"><button class="pb" data-act="equipall">Equipaggia tutto</button><label class="tg eqres"><input type="checkbox" data-act="eqres" ${S.settings.eqReserve ? 'checked' : ''}> includi riserva</label><button class="sb" data-act="fuseopen">Fusione</button></div>
+  ${autoScartoHTML()}
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span></span></div>
   ${runeTiles()}
   <div class="ph"><h2 style="font-size:13px">Zaino</h2><span${S.inventory.length >= F.bagCap(S) ? ' style="color:#FF8A96"' : ''}>${S.inventory.length}/${F.bagCap(S)}</span></div>
@@ -724,6 +726,7 @@ function pNegozio() {
   return `<div class="ph"><h2>Mercante</h2><span>merce nuova tra ${h} h ${mi} min</span></div>
   <div class="row2"><div class="card wallet" style="flex:1;margin:0">${icon('gem', '#F49AC1', 16)} <b>${fmt(S.astri)}</b> Astri</div><button class="sb" data-act="reroll" ${S.astri < F.REROLL_COST ? 'disabled' : ''}>Rinnova · ${F.REROLL_COST} Astri</button></div>
 
+  ${sellOptsHTML()}
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span>tocca per vendere</span></div>
   ${runeTiles()}
   <div class="ph"><h2 style="font-size:13px">In vendita</h2><span>▲ migliora un tuo personaggio</span></div>
@@ -739,7 +742,7 @@ const guideOpen = new Set(); // le voci aperte restano aperte anche quando il pa
 document.addEventListener('toggle', e => { const d = e.target; if (d.classList && d.classList.contains('guide')) { const i = +d.dataset.g; if (d.open) guideOpen.add(i); else guideOpen.delete(i); } }, true);
 const GUIDE = [
   ['Battaglie e zone', 'La tua squadra combatte in automatico, anche quando sei offline. Ogni zona ha 30 battaglie e un boss finale: sconfiggilo per accedere alla zona successiva. Se vieni sconfitto, si ricomincia dalla prima battaglia della zona. Tornare nelle zone già completate serve a raccogliere risorse, potenziare la squadra o catturare nuovi compagni.'],
-  ['Squadra, classi e gittata', 'Le classi sono quattro: Guerriero, Arciere, Mago e Curatore. Ogni personaggio ha una gittata e un attacco propri, e si posiziona in base alla gittata: Brace è sempre in prima linea, dietro di lui i Guerrieri, poi Arcieri e Maghi, e in fondo i Curatori. I nemici colpiscono sempre chi è più vicino. Bonus di classe: 2 creature della stessa classe danno +5% a vita e danni di quella classe, 4 danno +12%, 6 danno +20%; schierare tutte e 4 le classi aggiunge +8% a tutta la squadra. Ogni 5 zone completate si sblocca un posto in più.'],
+  ['Squadra, classi e gittata', 'Le classi sono quattro: Guerriero, Arciere, Mago e Curatore. Ogni personaggio ha un attacco proprio e si posiziona in base alla classe: Brace è sempre in prima linea, dietro di lui i Guerrieri, poi Arcieri e Maghi, e in fondo i Curatori. I nemici colpiscono sempre chi è più vicino. Tra creature della stessa classe decide l\'ordine nella schermata Squadra: chi è più in alto sta più avanti e prende i colpi per primo. Bonus di classe: 2 creature della stessa classe danno +5% a vita e danni di quella classe, 4 danno +12%, 6 danno +20%; schierare tutte e 4 le classi aggiunge +8% a tutta la squadra. Ogni 5 zone completate si sblocca un posto in più.'],
   ['Cattura delle creature', 'Ogni nemico sconfitto ha una ridotta probabilità di unirsi alla squadra: le creature più rare sono più difficili da reclutare, ma decisamente più forti. Ogni creatura può essere catturata una sola volta.'],
   ['Equipaggiamento e zaino', 'Il bottino dei nemici finisce nello Zaino. Un triangolo verde segnala un oggetto che migliora un membro della squadra. Se lo zaino è pieno, i nuovi oggetti vanno persi.'],
   ['Livelli e punti', 'Le creature salgono di livello combattendo, ma solo quelle in vita ottengono esperienza. A ogni livello si ricevono punti statistica da assegnare nella scheda del personaggio.'],
