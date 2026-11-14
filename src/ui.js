@@ -434,7 +434,7 @@ function hud() {
   const shb = document.querySelector('[data-tab=shop]'); if (tab === 'shop') S.shopSeen = SHOP_VER; if (shb) shb.classList.toggle('dot', F.dailyReady(S) || S.shopSeen !== SHOP_VER);
   const maxId = S.inventory.reduce((x, it) => Math.max(x, it.id), 0); if (tab === 'zaino') S.bagSeen = Math.max(S.bagSeen || 0, maxId); const zb = document.querySelector('[data-tab=zaino]'); if (zb) zb.classList.toggle('dot', maxId > (S.bagSeen || 0));
   $('#gold').textContent = cfmt(S.gold); $('#astri').textContent = cfmt(S.astri);
-  const pl = F.planetOf(S.zone); $('#ptitle').textContent = pl.name; $('#where').textContent = `Zona ${S.zone} · Battaglia ${S.battle}/30`;
+  const pl = F.planetOf(S.zone); $('#ptitle').textContent = F.ZONE_NAMES[S.zone] || pl.name; $('#where').textContent = `${pl.name} · Zona ${S.zone} · Battaglia ${S.battle}/30`;
   const inf = pl === F.PLANETS[0]; scene().classList.toggle('rinf', inf); scene().classList.toggle('p1', false); for (const k of [1, 2, 3]) scene().classList.toggle('bg' + k, false); /* zone 1-5: Inferno */ scene().classList.toggle('rpur', pl === F.PLANETS[1]); scene().classList.toggle('p2', false); /* zone 6-10: Purgatorio */ scene().classList.toggle('rter', pl === F.PLANETS[2]); scene().classList.toggle('p3', false); /* zone 11-15: Terra */ scene().classList.toggle('p4', pl === F.PLANETS[3]);
   $('#prog').style.width = (100 * S.battle / 30) + '%';
   $('#testbadge').hidden = !(S.settings.tFast || S.settings.tCap);
@@ -830,7 +830,7 @@ function pMappa() {
     const missing = Z.pool.concat(Z.boss).filter((k, j, a) => a.indexOf(k) === j && !S.roster[k] && F.zoneOf(k) === z).length;
     const slot = F.SLOT_UNLOCKS.includes(z) && !done;
     return `<div class="isl ${left ? 'l' : 'r'}${locked ? ' zlk' : ''}${here ? ' here' : ''}" style="--d:${i * 0.4}s">
-      <div class="itop"><b>Zona ${z}</b>${done ? `<span class="ok">${icon('check', '#7ED36F', 12)}</span>` : ''}${missing && !locked ? `<span class="miss">${missing} da catturare</span>` : ''}${slot ? '<span class="miss slotm">+1 posto</span>' : ''}</div>
+      <div class="itop"><b>Zona ${z}<span class="zname">${F.ZONE_NAMES[z]}</span></b>${done ? `<span class="ok">${icon('check', '#7ED36F', 12)}</span>` : ''}${missing && !locked ? `<span class="miss">${missing} da catturare</span>` : ''}${slot ? '<span class="miss slotm">+1 posto</span>' : ''}</div>
       <div class="rock pl${pl}">
         <div class="mobs">${mobs.map((k, j) => `<span class="mob" style="animation-delay:${j * 0.3 + i * 0.2}s">${sprite(k, 2, locked ? { sil: true } : undefined)}</span>`).join('')}</div>
         <div class="boss"><span class="crown">♛</span>${sprite(Z.boss, 3, locked ? { sil: true } : undefined)}</div>

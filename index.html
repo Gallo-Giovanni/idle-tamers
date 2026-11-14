@@ -644,6 +644,7 @@ body.bigscene #scene{height:calc(55vh + var(--hh,52px))}
 .u.st-taunt>*:not(.hpb){filter:drop-shadow(0 0 4px #FF4A5A) drop-shadow(0 0 2px #FF4A5A)}
 .u.st-null::before{content:'';position:absolute;left:50%;top:-12px;width:9px;height:9px;margin-left:-5px;border:2px solid #B7A6FF;background:rgba(80,60,160,.6);box-shadow:0 0 5px #B7A6FF;transform:rotate(45deg);pointer-events:none;z-index:4}
 .u.st-hot>*:not(.hpb){filter:drop-shadow(0 0 4px #7EFF8A)}
+.zname{display:block;font-size:11.5px;font-weight:600;color:var(--gold);margin-top:1px}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -656,7 +657,7 @@ body.bigscene #scene{height:calc(55vh + var(--hh,52px))}
 <div id="app">
 <header>
  <div class="hrow">
-  <div><div class="title"><span id="ptitle">Prati Stellari</span><span id="testbadge" hidden>TEST</span></div><div id="where"></div></div>
+  <div><div class="title"><span id="ptitle">Cancelli dell'Inferno</span><span id="testbadge" hidden>TEST</span></div><div id="where"></div></div>
   <div class="res">
    <div class="pill"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F2C14E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Oro"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4"/></svg><span id="gold">0</span><button class="plus" data-act="goshop" data-v="oro" aria-label="Compra oro">+</button></div>
    
@@ -768,11 +769,15 @@ const SPECIES = {
   reginaquarzo: { name: 'Regina di Quarzo', cls: 'Arciere', rarity: 'boss', quote: 'Una regina non si arrende. Sceglie solo chi servire.' },
 };
 // Pianeti e zone: 10 zone da 30 battaglie, 5 per pianeta
+const ZONE_NAMES = [null, 'Cancelli dell\'Inferno', 'Fiume di Brace', 'Fosse di Zolfo', 'Ponte delle Catene', 'Trono del Re Vuoto',
+  'Spiaggia delle Anime', 'Rovine Grigie', 'Scalinata del Pentimento', 'Bosco dei Sussurri', 'Cima di Quarzo',
+  'Villaggio di Confine', 'Campi in Fiamme', 'Foresta Fumante', 'Mura del Regno', 'Vulcano dell\'Imperatore',
+  'Soglia delle Nuvole', 'Giardini Celesti', 'Coro Spezzato', 'Stelle Spente', 'Trono Celeste'];
 const PLANETS = [
-  { name: 'Prati Stellari', zones: [1, 5], species: ['glimmo', 'cometuga', 'sporello', 'bzzt', 'astrillo', 'nebulina', 'revuoto'] },
-  { name: 'Luna di Cristallo', zones: [6, 10], species: ['scheggia', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo', 'prismella', 'reginaquarzo'] },
-  { name: 'Nebulosa di Fuoco', zones: [11, 15], species: ['braciolo', 'lavarospo', 'magmolo', 'lapillo', 'fiammella', 'draghetto', 'imperatore'] },
-  { name: 'Abisso Stellare', zones: [16, 20], species: ['ombretto', 'nullo', 'abissale', 'corvonero', 'tentacula', 'stellanera', 'divoratore'] },
+  { name: 'Inferno', zones: [1, 5], species: ['glimmo', 'cometuga', 'sporello', 'bzzt', 'astrillo', 'nebulina', 'revuoto'] },
+  { name: 'Purgatorio', zones: [6, 10], species: ['scheggia', 'geodino', 'lumispettro', 'gemmerla', 'quarzillo', 'prismella', 'reginaquarzo'] },
+  { name: 'Terra', zones: [11, 15], species: ['braciolo', 'lavarospo', 'magmolo', 'lapillo', 'fiammella', 'draghetto', 'imperatore'] },
+  { name: 'Paradiso', zones: [16, 20], species: ['ombretto', 'nullo', 'abissale', 'corvonero', 'tentacula', 'stellanera', 'divoratore'] },
 ];
 // 7 creature per pianeta (28 in tutto): 2 nella prima zona, 2 nella seconda, poi 1 per zona e il boss alla quinta
 const ZONE_NEW = [null,
@@ -946,17 +951,17 @@ const ACH = [
   { id: 'k1000', name: 'Mille battaglie', desc: 'Sconfiggi 1.000 nemici', test: s => s.stats.kills >= 1000, astri: 10 },
   { id: 'k10k',  name: 'Flagello del vuoto', desc: 'Sconfiggi 10.000 nemici', test: s => s.stats.kills >= 10000, astri: 25 },
   { id: 'b10',   name: 'In marcia', desc: 'Raggiungi la zona 3', test: s => s.maxZone >= 3, astri: 5 },
-  { id: 'b20',   name: 'Oltre l\'orizzonte', desc: 'Raggiungi la Luna di Cristallo (zona 6)', test: s => s.maxZone >= 6, astri: 10 },
+  { id: 'b20',   name: 'Oltre l\'orizzonte', desc: 'Raggiungi il Purgatorio (zona 6)', test: s => s.maxZone >= 6, astri: 10 },
   { id: 'boss1', name: 'Regicida', desc: 'Sconfiggi il Re Vuoto (zona 5)', test: s => s.cleared >= 5, astri: 15 },
   { id: 'boss2', name: 'Spezzacristalli', desc: 'Sconfiggi la Regina di Quarzo (zona 10)', test: s => s.cleared >= 10, astri: 30 },
   { id: 'c1',    name: 'Primo amico', desc: 'Cattura la prima creatura', test: s => capturedCount(s) >= 1, astri: 5 },
   { id: 'c4',    name: 'Piccolo zoo', desc: 'Cattura 4 creature', test: s => capturedCount(s) >= 4, astri: 10 },
-  { id: 'c7',    name: 'Bestiario dei Prati', desc: 'Cattura tutte le creature di Prati Stellari', test: s => PLANETS[0].species.every(k => s.roster[k]), astri: 40 },
+  { id: 'c7',    name: "Bestiario dell'Inferno", desc: "Cattura tutte le creature dell'Inferno", test: s => PLANETS[0].species.every(k => s.roster[k]), astri: 40 },
   { id: 'boss3', name: 'Domatore di fiamme', desc: "Sconfiggi l'Imperatore Magma (zona 15)", test: s => s.cleared >= 15, astri: 45 },
   { id: 'boss4', name: "Oltre l'Abisso", desc: 'Sconfiggi il Divoratore di Stelle (zona 20)', test: s => s.cleared >= 20, astri: 80 },
-  { id: 'c21', name: 'Bestiario del Fuoco', desc: 'Cattura tutte le creature della Nebulosa di Fuoco', test: s => PLANETS[2].species.every(k => s.roster[k]), astri: 80 },
-  { id: 'c28', name: "Bestiario dell'Abisso", desc: "Cattura tutte le creature dell'Abisso Stellare", test: s => PLANETS[3].species.every(k => s.roster[k]), astri: 100 },
-  { id: 'c14',   name: 'Bestiario della Luna', desc: 'Cattura tutte le creature della Luna di Cristallo', test: s => PLANETS[1].species.every(k => s.roster[k]), astri: 60 },
+  { id: 'c21', name: 'Bestiario della Terra', desc: 'Cattura tutte le creature della Terra', test: s => PLANETS[2].species.every(k => s.roster[k]), astri: 80 },
+  { id: 'c28', name: 'Bestiario del Paradiso', desc: 'Cattura tutte le creature del Paradiso', test: s => PLANETS[3].species.every(k => s.roster[k]), astri: 100 },
+  { id: 'c14',   name: 'Bestiario del Purgatorio', desc: 'Cattura tutte le creature del Purgatorio', test: s => PLANETS[1].species.every(k => s.roster[k]), astri: 60 },
   { id: 'leg',   name: 'Bagliore leggendario', desc: 'Trova un oggetto leggendario o superiore', test: s => s.stats.legendary >= 1, astri: 10 },
   { id: 'full',  name: 'Squadra al completo', desc: 'Sblocca e riempi tutti i posti della squadra', test: s => creaturesInTeam(s) >= CREATURE_SLOTS, astri: 20 },
 ];
@@ -1788,7 +1793,7 @@ function simulateOffline(s, seconds, noCap) {
 }
 
 function setEnemyTable(EH, EA) { E_HP = EH; E_ATK = EA; } // solo per la taratura
-const api = { abilityOf, ABIL, petList, movePet, petB, heroSpace, END_GOLD, EARLY_DROP, chestCap, BAG_BASE, OFFLINE_CAP, setEnemyTable, enemyHpScale, enemyAtkScale, goldScale, enemyScale, enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { ZONE_NAMES, abilityOf, ABIL, petList, movePet, petB, heroSpace, END_GOLD, EARLY_DROP, chestCap, BAG_BASE, OFFLINE_CAP, setEnemyTable, enemyHpScale, enemyAtkScale, goldScale, enemyScale, enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   testAccount, autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
@@ -2232,7 +2237,7 @@ function hud() {
   const shb = document.querySelector('[data-tab=shop]'); if (tab === 'shop') S.shopSeen = SHOP_VER; if (shb) shb.classList.toggle('dot', F.dailyReady(S) || S.shopSeen !== SHOP_VER);
   const maxId = S.inventory.reduce((x, it) => Math.max(x, it.id), 0); if (tab === 'zaino') S.bagSeen = Math.max(S.bagSeen || 0, maxId); const zb = document.querySelector('[data-tab=zaino]'); if (zb) zb.classList.toggle('dot', maxId > (S.bagSeen || 0));
   $('#gold').textContent = cfmt(S.gold); $('#astri').textContent = cfmt(S.astri);
-  const pl = F.planetOf(S.zone); $('#ptitle').textContent = pl.name; $('#where').textContent = `Zona ${S.zone} · Battaglia ${S.battle}/30`;
+  const pl = F.planetOf(S.zone); $('#ptitle').textContent = F.ZONE_NAMES[S.zone] || pl.name; $('#where').textContent = `${pl.name} · Zona ${S.zone} · Battaglia ${S.battle}/30`;
   const inf = pl === F.PLANETS[0]; scene().classList.toggle('rinf', inf); scene().classList.toggle('p1', false); for (const k of [1, 2, 3]) scene().classList.toggle('bg' + k, false); /* zone 1-5: Inferno */ scene().classList.toggle('rpur', pl === F.PLANETS[1]); scene().classList.toggle('p2', false); /* zone 6-10: Purgatorio */ scene().classList.toggle('rter', pl === F.PLANETS[2]); scene().classList.toggle('p3', false); /* zone 11-15: Terra */ scene().classList.toggle('p4', pl === F.PLANETS[3]);
   $('#prog').style.width = (100 * S.battle / 30) + '%';
   $('#testbadge').hidden = !(S.settings.tFast || S.settings.tCap);
@@ -2569,7 +2574,7 @@ function pImpost() {
   <button class="sb" data-act="testacc" data-k="full" style="width:100%;margin-top:6px">Tutto completo (massimo di tutto)</button>
   <button class="sb" data-act="testcap" style="width:100%;margin-top:6px">Mostra la finestra di cattura</button>
   <div class="ph"><h2>Salvataggio</h2></div>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>14/11 07:37</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>14/11 07:52</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function pBestiario() {
@@ -2628,7 +2633,7 @@ function pMappa() {
     const missing = Z.pool.concat(Z.boss).filter((k, j, a) => a.indexOf(k) === j && !S.roster[k] && F.zoneOf(k) === z).length;
     const slot = F.SLOT_UNLOCKS.includes(z) && !done;
     return `<div class="isl ${left ? 'l' : 'r'}${locked ? ' zlk' : ''}${here ? ' here' : ''}" style="--d:${i * 0.4}s">
-      <div class="itop"><b>Zona ${z}</b>${done ? `<span class="ok">${icon('check', '#7ED36F', 12)}</span>` : ''}${missing && !locked ? `<span class="miss">${missing} da catturare</span>` : ''}${slot ? '<span class="miss slotm">+1 posto</span>' : ''}</div>
+      <div class="itop"><b>Zona ${z}<span class="zname">${F.ZONE_NAMES[z]}</span></b>${done ? `<span class="ok">${icon('check', '#7ED36F', 12)}</span>` : ''}${missing && !locked ? `<span class="miss">${missing} da catturare</span>` : ''}${slot ? '<span class="miss slotm">+1 posto</span>' : ''}</div>
       <div class="rock pl${pl}">
         <div class="mobs">${mobs.map((k, j) => `<span class="mob" style="animation-delay:${j * 0.3 + i * 0.2}s">${sprite(k, 2, locked ? { sil: true } : undefined)}</span>`).join('')}</div>
         <div class="boss"><span class="crown">♛</span>${sprite(Z.boss, 3, locked ? { sil: true } : undefined)}</div>
