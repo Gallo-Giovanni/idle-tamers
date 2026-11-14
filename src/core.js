@@ -18,7 +18,7 @@ const RARITY = {
 };
 
 const SPECIES = {
-  hero:     { name: 'Eroe',     cls: 'Guerriero', rarity: null, hero: true, quote: '' },
+  hero:     { name: 'Brace',     cls: 'Guerriero', rarity: null, hero: true, quote: '' },
   hero_arc: { name: 'Succube', cls: 'Arciere', rarity: null, hero: true, hb: { crit: 0.15, critDmg: 0.5, atk: 0.15 }, hbText: '+15% prob. critico · +50% danni critici · +15% danni', quote: 'Un cuore lanciato non sbaglia mai bersaglio.' },
   hero_mag: { name: 'Negromante',  cls: 'Mago',      rarity: null, hero: true, hb: { atk: 0.45, aspd: 0.2, hp: 0.15 }, hbText: '+45% danni · +20% vel. d\'attacco · +15% vita', quote: 'I morti ascoltano. Io parlo per primo.' },
   glimmo:   { name: 'Glimmo',   cls: 'Arciere',   rarity: 'comune',    quote: 'Blip! Brillo solo per te.' },
@@ -143,7 +143,7 @@ const starCost = (base, g) => l => Math.round(base * Math.pow(g, l));
 const G = 2.6;
 const TREE = {
   forza:    { name: 'Forza',    desc: 'Attacco della squadra +5% per livello', max: 30, cost: starCost(200, G) },
-  vita:     { name: 'Vita',     desc: 'Vita dell\'eroe +6% per livello', max: 30, cost: starCost(150, G) },
+  vita:     { name: 'Vita',     desc: 'Vita di Brace +6% per livello', max: 30, cost: starCost(150, G) },
   branco:   { name: 'Branco',   desc: 'Vita delle creature +6% per livello', max: 30, cost: starCost(150, G) },
   scudo:    { name: 'Scudo',    desc: 'Difesa della squadra +5% per livello', max: 30, cost: starCost(150, G) },
   lama:     { name: 'Lama',     desc: 'Probabilità di critico +1% per livello', max: 20, cost: starCost(300, 2) },
@@ -231,6 +231,8 @@ const PETS = {
   gufo:      { name: 'Gufo Astrale',       price: '2,99 €', bonus: { drop: 0.05, bag: 1, chest: 1 } },
   draghetto: { name: 'Draghetto di Brace', astri: 1000,     bonus: { capture: 0.05, bag: 2, chest: 2 } },
 };
+function petList(s) { const own = Object.keys(s.pets || {}).filter(k => PETS[k]), o = (s.petOrder || []).filter(k => own.includes(k)); return o.concat(own.filter(k => !o.includes(k))); } // ordine scelto dal giocatore, poi quelli nuovi
+function movePet(s, k, dir) { const l = petList(s), i = l.indexOf(k), j = i + dir; if (i < 0 || j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; s.petOrder = l; }
 function petB(s, k) { let t = 0; for (const id in (s.pets || {})) { const b = PETS[id] && PETS[id].bonus[k]; if (b) t += b; } return t; }
 function buyPet(s, id) { const p = PETS[id]; if (!p || (s.pets && s.pets[id])) return false; if (p.astri) { if (s.astri < p.astri) return false; s.astri -= p.astri; } s.pets = s.pets || {}; s.pets[id] = 1; return true; } // in euro: versione di prova, gratis
 function buyWelcome(s, id) { const p = PETS[id]; if (s.welcomePack || !p || p.astri || (s.pets && s.pets[id])) return false; s.welcomePack = 1; s.pets = s.pets || {}; s.pets[id] = 1; s.astri += 500; return true; } // 500 Astri + un pet a scelta (tra quelli in euro)
@@ -367,6 +369,7 @@ function rollBonus(s, it) { const have = (it.bonus || []).map(b => b.k), pool = 
 // Rimescola i bonus di un oggetto (Astri); i bonus bloccati restano, ma ognuno raddoppia il costo
 // costo in Pietre del rimescolo (si trovano dai nemici, rarità media): 1 + 1 per ogni bonus bloccato, raddoppiando
 function rerollCost(it, locks) { return Math.pow(2, locks.length); }
+const EARLY_DROP = { 1: 10, 2: 5, 3: 2.5, 4: 1.5 }; // moltiplicatore del drop degli oggetti nelle prime zone
 const STONE_DROP = 0.000011; // circa una ogni 3 giorni
 function rerollBonus(s, id, locks) {
   const it = s.inventory.find(x => x.id === id) || s.chest.find(x => x.id === id); if (!it || !(it.bonus || []).length) return false;
@@ -661,8 +664,9 @@ function onKill(s, b, e, ev) {
   if (ev) ev.push({ type: 'kill', idx: e.idx, gold });
   // drop
   const firstBoss = e.boss && !e.portal && s.zone > s.cleared;
-  const early = 1 + Math.max(0, 4 - s.zone) / 3; // prime zone: un po' più oggetti per far provare subito l'equipaggiamento (×2 zona 1, ×1,67 zona 2, ×1,33 zona 3)
-  const dropP = (e.boss ? (firstBoss ? 1 : 0.1) : 0.007 * early) * (1 + B(s, 'drop'));
+  const early = EARLY_DROP[s.zone] || 1; // prime zone: molti più oggetti, così all'inizio c'è sempre qualcosa da equipaggiare
+  const starter = (s.stats.items || 0) < 3 ? 0.3 : 0; // i primi 3 oggetti arrivano quasi subito
+  const dropP = (e.boss ? (firstBoss ? 1 : 0.1) : Math.max(starter, 0.007 * early)) * (1 + B(s, 'drop'));
   if (rnd(s) < dropP) dropItem(s, e.boss, ev);
   // rune
   if (firstBoss) { addRune(s, 'noncomune', 2, ev); addRune(s, 'rara', 1, ev); }
@@ -913,6 +917,7 @@ function migrate(s) {
   }
   s.scale2 = 1;
   if (s.roster && s.roster.hero_arc && s.roster.hero_arc.name === 'Eroina Arciera') s.roster.hero_arc.name = 'Succube'; // l'arciera è diventata la Succube
+  if (s.roster && s.roster.hero && s.roster.hero.name === 'Eroe') s.roster.hero.name = 'Brace'; // il protagonista ha un nome
   if (s.roster && s.roster.hero_mag && s.roster.hero_mag.name === 'Eroe Mago') s.roster.hero_mag.name = 'Negromante'; // il mago è diventato il Negromante
   if (s.settings && s.settings.test) { s.settings.tFast = s.settings.tCap = true; } if (s.settings) delete s.settings.test; // la vecchia modalità test diventa le due spunte
   untank(s); for (const id in (s.roster || {})) { const m = s.roster[id]; if (SPECIES[m.species] && !SPECIES[m.species].hero) m.name = SPECIES[m.species].name; } // i mostri tengono il loro nome: si rinominano solo gli eroi // la classe Tank non esiste più: armi e creature passano ai Guerrieri
@@ -989,7 +994,7 @@ function simulateOffline(s, seconds, noCap) {
 }
 
 function setEnemyTable(EH, EA) { E_HP = EH; E_ATK = EA; } // solo per la taratura
-const api = { setEnemyTable, enemyHpScale, enemyAtkScale, goldScale, enemyScale, enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { petList, movePet, petB, heroSpace, END_GOLD, EARLY_DROP, chestCap, BAG_BASE, OFFLINE_CAP, setEnemyTable, enemyHpScale, enemyAtkScale, goldScale, enemyScale, enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   testAccount, autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;

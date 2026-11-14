@@ -254,7 +254,7 @@ function buildScene() { setScroll();
   B.party.forEach(u => { const el = pEls[u.idx]; if (!el || !deadSeen.has(u.id)) return; if (u.hp > 0) { deadSeen.delete(u.id); el.classList.add('revive'); setTimeout(() => el.classList.remove('revive'), 1300); } else { el._gone = 1; el.classList.add('dead', 'gone'); } });
   // pet: volano sopra l'eroe, così restano sempre in vista
   const hu = B.party.find(u => u.id === 'hero'), heroEl = hu && pEls[hu.idx], hx = heroEl ? +heroEl.dataset.x : FRONT;
-  Object.keys(S.pets || {}).filter(k => F.PETS[k]).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (hx - 24 - i * 36) + 'px'; el.style.bottom = (110 + (i % 2) * 14) + 'px'; el.innerHTML = petHTML(k, 2); sc.appendChild(el); });
+  F.petList(S).forEach((k, i) => { const el = document.createElement('div'); el.className = 'u pet'; el.style.left = (hx - 24 - i * 36) + 'px'; el.style.bottom = (110 + (i % 2) * 14) + 'px'; el.innerHTML = petHTML(k, 2); sc.appendChild(el); });
   // nemici: quelli da mischia si ammassano sul primo bersaglio, quelli a distanza restano indietro
   let mk = 0, rk = 0;
   B.enemies.forEach(u => {
@@ -419,7 +419,8 @@ function handle(ev) {
 const SHOP_VER = 4; // aumentalo quando nello Shop arriva qualcosa di nuovo: compare il pallino
 // le finestre si aprono sotto la scena: la battaglia resta sempre in vista
 function applyBig() { document.body.classList.toggle('bigscene', !!S.settings.bigScene && !!S.net && !tutOn); }
-function sceneEdge() { const sc = $('#scene'), md = $('#modal'); if (!sc || !md || !md.offsetParent) return; const v = Math.round(sc.getBoundingClientRect().bottom - md.offsetParent.getBoundingClientRect().top); if (v > 0 && v !== sceneEdge.v) { sceneEdge.v = v; md.style.setProperty('--sb', v + 'px'); } }
+function sceneEdge() { const hd = document.querySelector('header'); if (hd && hd.offsetHeight !== sceneEdge.h) { sceneEdge.h = hd.offsetHeight; document.documentElement.style.setProperty('--hh', hd.offsetHeight + 'px'); } // il cielo della battaglia sale dietro l'intestazione
+  const sc = $('#scene'), md = $('#modal'); if (!sc || !md || !md.offsetParent) return; const v = Math.round(sc.getBoundingClientRect().bottom - md.offsetParent.getBoundingClientRect().top); if (v > 0 && v !== sceneEdge.v) { sceneEdge.v = v; md.style.setProperty('--sb', v + 'px'); } }
 window.addEventListener('resize', sceneEdge);
 function hud() {
   sceneEdge();
@@ -620,7 +621,7 @@ function runeTiles() {
   return `<div class="igrid rrow"><button class="it${selRune === 'stone' ? ' sel' : ''}" style="border-color:#5BD8E6;--c:#5BD8E6" data-act="selrune" data-k="stone" aria-label="Pietra del rimescolo: ${S.stones || 0}">${ipx('pietra', 16)}<b>${fmt(S.stones || 0)}</b></button>${Object.keys(F.RUNE).map(k => { const r = F.RUNE[k]; return `<button class="it${selRune === k ? ' sel' : ''}" style="border-color:${r.color};--c:${r.color}" data-act="selrune" data-k="${k}" aria-label="${r.label}: ${S.runes[k]}">${runeImg(k, 18)}<b>${fmt(S.runes[k])}</b></button>`; }).join('')}</div>`;
 }
 function runeDetail(k) {
-  if (k === 'stone') return `<div class="card idet" style="border-color:#5BD8E6"><div class="iname" style="color:#5BD8E6;display:flex;align-items:center;gap:6px">${ipx('pietra', 26)}Pietra del rimescolo × ${fmt(S.stones || 0)}</div><div class="msub">Cambia a caso i bonus di un oggetto: tocca l'oggetto e usa "Rimescola i bonus". Costa 1 pietra, il doppio per ogni bonus che blocchi. È rara: cade dai nemici circa una volta ogni 3 giorni.</div></div>`;
+  if (k === 'stone') return `<div class="card idet" style="border-color:#5BD8E6"><div class="iname" style="color:#5BD8E6;display:flex;align-items:center;gap:6px">${ipx('pietra', 26)}Pietra del rimescolo × ${fmt(S.stones || 0)}</div><div class="msub">Cambia a caso i bonus di un oggetto: tocca l'oggetto e usa "Rimescola i bonus". Costa 1 pietra, il doppio per ogni bonus che blocchi. È rara: ogni nemico ha lo 0,0011% di probabilità di lasciarla, i boss 20 volte di più.</div></div>`;
   const r = F.RUNE[k], n = S.runes[k], nr = F.ITEM_RARITY.find(x => x.key === k);
   return `<div class="card idet" style="border-color:${r.color}"><div class="iname" style="color:${r.color};display:flex;align-items:center;gap:6px">${runeImg(k, 26)}${r.label} × ${fmt(n)}</div>
     <div class="msub">Porta un oggetto a <b style="color:${nr.color}">${nr.label}</b>. Gli slot ora si potenziano con gli Astri.</div>
@@ -647,7 +648,7 @@ let sellOpen = false;
 function showSellOpts() {
   sellOpen = true;
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true"><div class="eqhead"><h2 style="margin:0;font-size:18px">Scarto e vendita</h2><button class="ib" data-act="close" aria-label="Chiudi">✕</button></div>
-  <div class="card autos3"><span class="autol">Scarta in automatico</span>${(() => { const k = F.minKeep(S); return [['comune', 1], ['noncomune', 2]].map(([key, lvl]) => { const r = F.ITEM_RARITY.find(x => x.key === key), on = k >= lvl, needPass = lvl > 1 && !F.hasPass(S), needZone = lvl === 1 && !F.hasPass(S) && S.maxZone < F.FREE_FILTER_ZONE; return `<button class="atog${on ? ' on' : ''}" style="--c:${r.color}" data-act="atog" data-k="${key}"><span>${r.label}</span>${needPass ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : needZone ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} zona ${F.FREE_FILTER_ZONE}</b>` : ''}</button>`; }).join(''); })()}</div>
+  <div class="card autos3"><span class="autol">Scarto automatico</span>${(() => { const k = F.minKeep(S); return [['comune', 1], ['noncomune', 2]].map(([key, lvl]) => { const r = F.ITEM_RARITY.find(x => x.key === key), on = k >= lvl, needPass = lvl > 1 && !F.hasPass(S), needZone = lvl === 1 && !F.hasPass(S) && S.maxZone < F.FREE_FILTER_ZONE; return `<button class="atog${on ? ' on' : ''}" style="--c:${r.color}" data-act="atog" data-k="${key}"><span>${r.label}</span>${needPass ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} PASS</b>` : needZone ? `<b class="passov">${icon('lock', '#1B1F3B', 9)} zona ${F.FREE_FILTER_ZONE}</b>` : ''}</button>`; }).join(''); })()}</div>
   <div class="card protc"><span class="autol">Non vendere mai</span><div class="protg">${(() => { const ps = F.protectSet(S); return F.ITEM_RARITY.map(r => `<button class="pchip${ps[r.key] ? ' on' : ''}${r.rainbow ? ' rb' : ''}" style="--c:${r.color}" data-act="protk" data-k="${r.key}" aria-pressed="${!!ps[r.key]}" aria-label="${r.label}" title="${r.label}"><i>${ps[r.key] ? '✓' : ''}</i><span>${r.label.slice(0, 3)}</span></button>`).join(''); })()}</div></div>
   <div class="note">Gli oggetti scartati si vendono in oro appena cadono. Rune, oggetti bloccati e rarità protette non si vendono mai.</div>
   <button class="sb" data-act="sellrest" style="width:100%;margin-top:6px">Vendi il resto dello zaino</button></div>`;
@@ -682,9 +683,10 @@ function pShop() {
   return `<div class="ph"><h2>Shop</h2><span>${icon('gem', '#F49AC1', 14)} ${fmt(S.astri)} Astri</span></div>
   <div class="note" style="color:#9BFFB8;text-align:center">Versione di prova: per ora gli acquisti sono gratis, nessun pagamento reale.</div>
   <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min.`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
-  <div class="ph"><h2 style="font-size:13px">Eroi</h2><span>non occupano posti in squadra</span></div>
-  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr" data-act="preview" data-kind="hero" data-id="${h.id}" role="button" aria-label="Guarda ${sp.name}">${h.id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div><i class="shopskull" aria-hidden="true"></i>' : h.id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div><i class="shopheart" aria-hidden="true"></i>' : sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div>${sp.hbText ? `<div class="msub" style="color:#FFD86B">${sp.hbText}</div>` : ''}<div class="msub" style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
+  <div class="ph"><h2 style="font-size:13px">Seguaci</h2><span>non occupano posti in squadra</span></div>
+  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr" data-act="preview" data-kind="hero" data-id="${h.id}" role="button" aria-label="Guarda ${sp.name}">${h.id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div><i class="shopskull" aria-hidden="true"></i>' : h.id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div><i class="shopheart" aria-hidden="true"></i>' : sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub" style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
   <div class="ph" id="shop-pet"><h2 style="font-size:13px">Pet</h2><span>non combattono · i bonus si sommano</span></div>
+  ${F.petList(S).length > 1 ? '<button class="sb wide" data-act="petorder" style="width:100%;margin-bottom:6px">Cambia l\'ordine dei pet</button>' : ''}
   ${S.welcomePack || !Object.keys(F.PETS).some(k => !F.PETS[k].astri && !(S.pets && S.pets[k])) ? '' : `<div class="card welcome"><b>Pacchetto Benvenuto · 4,99 €</b><div class="msub">500 ${icon('gem', '#F49AC1', 11)} + un pet a scelta · una sola volta</div>
    <div class="wpick">${Object.keys(F.PETS).filter(k => !F.PETS[k].astri && !(S.pets && S.pets[k])).map(k => `<button class="sb" data-act="welcome" data-k="${k}">${petHTML(k, 2)}<span>${F.PETS[k].name}</span></button>`).join('')}</div></div>`}
   ${Object.keys(F.PETS).map(k => { const p = F.PETS[k], own = S.pets && S.pets[k], b = p.bonus, lab = { gold: 'oro', xp: 'esperienza', drop: 'drop', capture: 'soggiogamento' };
@@ -740,7 +742,7 @@ const GUIDE = [
   ['Bestiario e missioni', 'Dalla Mappa apri il Bestiario: tutte le creature, dove trovarle e le missioni per ognuna. Sconfiggendone tante ricevi Astri e rune.'],
   ['Velocità di movimento', 'Stivali e gambali (e alcuni bonus) fanno camminare la squadra più in fretta: battaglie più veloci, farm più rapido.'],
   ['Astri e potenziamenti', 'Gli Astri si guadagnano col regalo giornaliero, gli achievement, le missioni, il portale e vendendo le rune. Servono a potenziare gli slot dell\'equipaggiamento e nello Shop.'],
-  ['Shop, eroi e pet', 'Nello Shop trovi eroi con talenti propri, pet che volano sopra la squadra con bonus cumulabili, il Pass Astrale (oro ed esperienza doppi, zaino più grande) e pacchetti di Astri e oro.'],
+  ['Shop, seguaci e pet', 'Nello Shop trovi i seguaci di Brace, con un attacco tutto loro, pet che volano sopra la squadra con bonus cumulabili, il Pass Astrale (oro ed esperienza doppi, zaino più grande) e pacchetti di Astri e oro.'],
   ['Achievement, classifica e chat', 'Gli achievement danno Astri. In Stats trovi le tue statistiche, il contributo di ogni membro e la classifica; la chat è in alto a destra.'],
 ];
 function pImpost() {
@@ -892,7 +894,8 @@ function pAltro() {
   <div class="note">Le rarità più alte (Astrale, Arcano, Eterno, Segreto) possono cadere da qualsiasi nemico, in ogni zona, con la stessa probabilità. Qui trovi i tuoi; quando ci sarà la chat globale vedrai anche quelli degli altri giocatori.</div>
   <div class="chips">${F.RARE_FEED.map(k => { const r = F.ITEM_RARITY.find(x => x.key === k); return `<span class="chip"><i style="background:${r.color}"></i><span class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</span> <em>${(st.rare && st.rare[k]) || 0}</em></span>`; }).join('')}</div>
   ${RL.slice(0, 10).map(e => { const r = F.ITEM_RARITY.find(x => x.key === e.rarity); return `<div class="card feed">${itemIcon(e.slot, null, r.color, 20)}<div style="flex:1"><b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${r.label}</b> · ${F.SLOT_LABEL[e.slot]} · Lv ${e.lvl || Math.max(1, Math.ceil((e.ilvl || 1) / 30))}<div class="msub">Zona ${e.zone} · ${when(e.t)}</div></div></div>`; }).join('') || '<div class="note">Nessuno ancora. Buona fortuna!</div>'}`;
-  return `<div class="ph"><h2>Statistiche</h2></div>
+  return `<button class="pb wide" data-act="bonus" style="width:100%;margin:6px 0 2px">Tutti i bonus dell'account</button>
+  <div class="ph"><h2>Statistiche</h2></div>
   <div class="sgrid">
    <div><span>Nemici sconfitti</span><b>${fmt(st.kills)}</b></div><div><span>Oro totale</span><b>${cfmt(st.gold)}</b></div>
    <div><span>Vittorie / sconfitte</span><b>${fmt(st.wins)} / ${fmt(st.losses)}</b></div><div><span>Oggetti trovati</span><b>${fmt(st.items)}</b></div>
@@ -957,6 +960,64 @@ function render() {
 }
 
 // ---------- modali ----------
+// ordine dei pet che volano sopra la squadra: il primo sta più vicino a Brace
+function showPetOrder() {
+  const l = F.petList(S);
+  $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-labelledby="pot"><div class="eqhead" style="display:flex;align-items:center;gap:8px"><h2 id="pot" style="margin:0;font-size:18px;text-align:left">Ordine dei pet</h2><button class="sb" data-act="close" style="margin-left:auto">Fatto</button></div>
+   <div class="note">Il primo vola più vicino a Brace, gli altri dietro.</div>
+   ${l.map((k, i) => `<div class="card porow">${petHTML(k, 2)}<b style="flex:1">${i + 1}. ${F.PETS[k].name}</b><button class="ib" data-act="petmv" data-k="${k}" data-d="-1" aria-label="Sposta avanti" ${i === 0 ? 'disabled' : ''}>${icon('up')}</button><button class="ib" data-act="petmv" data-k="${k}" data-d="1" aria-label="Sposta indietro" ${i === l.length - 1 ? 'disabled' : ''}>${icon('down')}</button></div>`).join('')}
+  </div>`;
+  $('#modal').hidden = false;
+}
+// tutti i bonus dell'account in una schermata: totale e da dove arrivano
+function showBonus() {
+  const T = F.tb(S), P = k => F.petB(S, k), pass = F.hasPass(S), pc = v => '+' + (Math.round(v * 1000) / 10).toString().replace('.', ',') + '%';
+  const src = parts => parts.filter(x => x[1]).map(x => `${x[0]} ${x[1]}`).join(' · ');
+  const row = (label, total, parts, col) => `<div class="bnrow"><div><b>${label}</b>${parts ? `<span>${parts}</span>` : ''}</div><em style="${col ? 'color:' + col : ''}">${total}</em></div>`;
+  const pct = (k, label, extra) => { const s = T[k] || 0, p = P(k), e = extra || [], tot = s + p + e.reduce((a, x) => a + (x[2] || 0), 0); return row(label, tot ? pc(tot) : '—', src([['Stelle', s ? pc(s) : ''], ['Pet', p ? pc(p) : '']].concat(e.map(x => [x[0], x[1]])))); };
+  const mul = (label, k, xs) => { const s = T[k] || 0, p = P(k); let m = 1; const parts = [['Stelle', s ? pc(s) : ''], ['Pet', p ? pc(p) : '']]; for (const [n, v] of xs) if (v > 1) { m *= v; parts.push([n, '×' + String(v).replace('.', ',')]); } const tot = (1 + s + p) * m; return row(label, tot > 1 ? '×' + (Math.round(tot * 100) / 100).toString().replace('.', ',') : '—', src(parts), tot > 1 ? '#9BFFB8' : ''); };
+  const syn = ['Guerriero', 'Arciere', 'Mago', 'Curatore'].map(c => { const v = F.synergy(S, c); return row(`<span style="color:${CC(c)}">${c}</span>`, v ? pc(v) : '—', v ? 'vita e danni della classe in squadra' : ''); }).join('');
+  const early = F.EARLY_DROP[S.zone] || 1, hs = F.heroSpace(S), cap = S.cleared >= 20;
+  const sp = (label, k, extra) => { const s = T[k] || 0, p = P(k), base = F.BAG_BASE * (pass ? 2 : 1); return row(label, String(k === 'bag' ? F.bagCap(S) : F.chestCap(S)), src([['Base', String(F.BAG_BASE)], ['Pass', pass ? '+' + F.BAG_BASE : ''], ['Stelle', s ? '+' + s : ''], ['Pet', p ? '+' + p : ''], ['Seguaci', hs ? '+' + hs : ''], ['Acquistati', extra ? '+' + extra : '']])); };
+  const m$ = $('#modal'); m$.classList.add('dollfull');
+  m$.innerHTML = `<div class="mod bonusmod" role="dialog" aria-modal="true" aria-labelledby="bnt"><div class="eqhead"><h2 id="bnt" style="margin:0;font-size:18px;text-align:left">Bonus dell'account</h2><button class="sb" data-act="close" style="margin-left:auto">Chiudi</button></div>
+   <div class="bnscroll">
+   <div class="bnh">Combattimento · tutta la squadra</div>
+   ${pct('atk', 'Danni')}${pct('hp', 'Vita')}${pct('def', 'Difesa')}${pct('aspd', "Velocità d'attacco")}${pct('crit', 'Probabilità di critico')}${pct('critDmg', 'Danni critici')}${pct('block', 'Blocco')}${pct('dodge', 'Schivata')}${pct('heal', 'Cure')}
+   ${pct('move', 'Velocità di marcia', [['Equipaggiamento', S.mvTeam ? pc(S.mvTeam) : '', S.mvTeam || 0]])}
+   <div class="bnh">Bonus di classe</div>${syn}
+   <div class="bnh">Oro, esperienza e drop</div>
+   ${mul('Oro', 'gold', [['Pass', pass ? 2 : 1], ['Fine del gioco', cap ? F.END_GOLD : 1]])}
+   ${(() => { const g0 = F.goldScale(S.zone, S.battle), m = (1 + (T.gold || 0) + P('gold')) * (pass ? 2 : 1) * (cap ? F.END_GOLD : 1); return `<div class="bnbase">Oro per nemico in zona ${S.zone}, battaglia ${S.battle}: <b>${cfmt(Math.round(g0))}</b> di base → <b style="color:#9BFFB8">${cfmt(Math.round(g0 * m))}</b> con i bonus. I boss danno 10 volte tanto.</div>`; })()}
+   ${mul('Esperienza', 'xp', [['Pass', pass ? 2 : 1]])}
+   ${mul('Drop degli oggetti', 'drop', [['Prime zone', early]])}
+   ${(() => { const d = (T.drop || 0) + P('drop'), base = 0.007, now = base * early * (1 + d), f = v => (Math.round(v * 1000) / 10).toString().replace('.', ','); return `<div class="bnbase">Probabilità che un nemico lasci un oggetto: <b>${f(base)}%</b> di base → <b style="color:#9BFFB8">${f(now)}%</b> qui, con i bonus.</div>`; })()}
+   ${(() => { const v = (T.capture || 0) + P('capture'); const k = 1 + Math.min(0.5, v), one = p => '1 su ' + fmt(Math.round(1 / p)); return row('Probabilità di cattura', v ? pc(Math.min(0.5, v)) : '—', src([['Stelle', T.capture ? pc(T.capture) : ''], ['Pet', P('capture') ? pc(P('capture')) : ''], ['massimo', v > 0.5 ? '+50%' : '']])) + `<div class="bnbase">${[['comune', 'Comuni'], ['noncomune', 'Non comuni'], ['rara', 'Rare'], ['boss', 'Boss']].map(([r, l]) => `${l}: <b>${one(F.RARITY[r].p)}</b> → <b style="color:#9BFFB8">${one(F.RARITY[r].p * k)}</b>`).join('<br>')}<br>a ogni nemico di quella specie sconfitto</div>`; })()}
+   ${pct('sell', 'Oro dalla vendita')}
+   <div class="bnh">Spazio e tempo</div>
+   ${sp('Posti nello zaino', 'bag', S.extraBag)}${sp('Posti nel forziere', 'chest', S.extraChest)}
+   ${row('Tempo offline', (Math.round(F.offlineCap(S) / 360) / 10).toString().replace('.', ',') + ' ore', src([['Base', F.OFFLINE_CAP / 3600 + ' ore'], ['Stelle', T.offline ? '+' + Math.round(T.offline / 60) + ' min' : '']]))}
+   </div></div>`;
+  m$.hidden = false;
+}
+// la finestra dell'eroe appena acquistato: come una cattura, con l'eroe animato che attacca
+const HERO_BIG = id => id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div><i class="shopskull" aria-hidden="true"></i>' : id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div><i class="shopheart" aria-hidden="true"></i>' : sprite(id, 6);
+function showHeroGet(id) {
+  const d = F.SPECIES[id], h = F.HERO_SHOP.find(x => x.id === id), col = '#F2C14E';
+  const sparks = Array.from({ length: 14 }, (_, i) => `<i style="--a:${i * 360 / 14}deg;--d:${(i % 4) * 0.18}s;--r:${70 + (i % 3) * 22}px"></i>`).join('');
+  const m$ = $('#modal'); m$.classList.add('capfull');
+  m$.innerHTML = `<div class="capx" role="dialog" aria-modal="true" aria-labelledby="capname" style="--c:${col}">
+   <div class="capkick">NUOVO SEGUACE!</div>
+   <div class="capstage"><div class="caprays"></div><div class="capglow"></div><div class="capsparks">${sparks}</div><div class="capmon"><div class="herocard caphero"><div class="mspr">${HERO_BIG(id)}</div></div></div><div class="capshadow"></div></div>
+   <h2 id="capname" class="capname">${esc(d.name)}</h2>
+   <div class="badges"><span class="rb" style="background:${col};color:#141836">Seguace</span><span class="cb" style="background:${CC(d.cls)}">${d.cls}</span></div>
+   <p class="quote">«${esc(d.quote)}»</p>
+   <div class="capskill"><b style="color:${CC(d.cls)}">${F.CLASSES[d.cls].ability}</b><span>${F.CLASSES[d.cls].desc}</span></div>
+   <div class="capinfo"><span style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</span><span>non occupa posti in squadra</span></div>
+   <button class="pb wide" data-act="close">Continua</button>
+  </div>`;
+  m$.hidden = false;
+}
 function showCapture(sp) {
   const m = S.roster[sp], d = F.SPECIES[sp], cls = d.cls, inTeam = S.team.includes(sp);
   const RC = { comune: '#A9B0D6', noncomune: '#6CCB5F', rara: '#5B9BFF', boss: '#F2C14E', segreto: '#FF7AD9' }, col = RC[d.rarity] || '#F2C14E';
@@ -1006,12 +1067,13 @@ function showOffline(r) {
 function renderOffline() { const r = S.offRep; if (!r) return;
   const h = Math.floor(r.seconds / 3600), mi = Math.floor(r.seconds % 3600 / 60);
   const caps = r.caps.map(sp => S.roster[sp] ? S.roster[sp].name : sp);
+  $('#modal').classList.add('offfull'); // a tutto schermo e centrato, così si legge più roba
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-labelledby="offt">
    <h2 id="offt">Bentornato!</h2>
    <p class="msub">Mentre eri via (${h >= 48 ? Math.round(h / 24) + ' giorni' : h + ' h ' + mi + ' min'}${!r.skip && r.seconds >= F.offlineCap(S) ? `, massimo ${+(F.offlineCap(S) / 3600).toFixed(1)} ore` : ''}) la squadra ha combattuto da sola.</p>
    <div class="card"><div class="kv"><span>Nemici sconfitti</span><b>${fmt(r.kills)}</b></div><div class="kv"><span>Oro</span><b>+${cfmt(r.gold)}</b></div><div class="kv"><span>Oggetti trovati</span><b>${fmt(r.items)}</b></div>${F.ITEM_RARITY.filter(x => r.byRar && r.byRar[x.key] > 0).map(x => `<div class="kv sub"><span class="${x.rainbow ? 'rbw' : ''}" style="color:${x.color}">· ${x.label}</span><b>${fmt(r.byRar[x.key])}</b></div>`).join('')}${Object.keys(r.runes).filter(k => r.runes[k] > 0).map(k => `<div class="kv"><span style="color:${F.RUNE[k].color}">${F.RUNE[k].label}</span><b>+${fmt(r.runes[k])}</b></div>`).join('')}
    ${r.levels.filter(l => S.roster[l.id]).map(l => `<div class="kv"><span>${esc(S.roster[l.id].name)}</span><b>Lv ${l.from} → ${l.to}</b></div>`).join('')}</div>
-   ${r.lost ? `<div class="card" style="border-color:#FF8A96"><b style="color:#FF8A96">Zaino pieno:</b> ${fmt(r.lost)} oggetti persi. Libera spazio, usa il forziere o attiva la vendita automatica.</div>` : ''}
+   ${r.lost ? `<div class="card" style="border-color:#FF8A96"><b style="color:#FF8A96">Zaino pieno:</b> ${fmt(r.lost)} oggetti persi. Libera spazio, usa il forziere o attiva lo scarto automatico.</div>` : ''}
    ${caps.length ? `<div class="card" style="border-color:#F2C14E"><b style="color:#F2C14E">Catture:</b> ${caps.map(esc).join(', ')}</div>` : ''}
    ${foundListHTML(r)}
    <button class="pb wide" data-act="offok">Raccogli</button></div>`;
@@ -1099,15 +1161,14 @@ function showCmp(a, b) {
 function showPreview(kind, id) {
   let body = '';
   if (kind === 'hero') {
-    const h = F.HERO_SHOP.find(x => x.id === id), sp = F.SPECIES[id], c = F.CLASSES[sp.cls], own = !!S.roster[id];
+    const h = F.HERO_SHOP.find(x => x.id === id), sp = F.SPECIES[id], c = F.CLASSES[sp.cls], own = !!S.roster[id], hb = sp.hb || {};
     const big = id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div><i class="shopskull" aria-hidden="true"></i>' : id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div><i class="shopheart" aria-hidden="true"></i>' : sprite(id, 6);
     body = `<div class="pvbig herocard"><div class="mspr">${big}</div></div>
       <h2 class="pvt">${sp.name}</h2><div class="msub" style="text-align:center"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · gittata ${F.rangeOf({ species: id, cls: sp.cls })}</div>
       <div class="note" style="text-align:center"><i>“${sp.quote}”</i></div>
-      <div class="stbox"><div class="srow2"><span>Vita (livello 1)</span><b>${c.hp}</b></div><div class="srow2"><span>Danni</span><b>${c.atk}</b></div><div class="srow2"><span>Difesa</span><b>${c.def}</b></div><div class="srow2"><span>Attacchi al secondo</span><b>${(1 / c.spd).toFixed(2).replace('.', ',')}</b></div></div>
+      <div class="stbox"><div class="srow2"><span>Vita (livello 1)</span><b>${Math.round(c.hp * (1 + (hb.hp || 0)))}</b></div><div class="srow2"><span>Danni</span><b>${Math.round(c.atk * (1 + (hb.atk || 0)))}</b></div><div class="srow2"><span>Difesa</span><b>${c.def}</b></div><div class="srow2"><span>Attacchi al secondo</span><b>${((1 + (hb.aspd || 0)) / c.spd).toFixed(2).replace('.', ',')}</b></div>${hb.crit ? `<div class="srow2"><span>Colpi critici</span><b>${Math.round(hb.crit * 100)}%</b></div>` : ''}</div>
       <div class="stbox"><div class="srow2"><span>Abilità</span><b style="color:${CC(sp.cls)}">${c.ability}</b></div><div class="msub">${c.desc}</div></div>
-      ${sp.hbText ? `<div class="stbox"><div class="srow2"><span>Talento dell'eroe</span></div><div class="msub" style="color:#FFD86B">${sp.hbText}</div></div>` : ''}
-      <div class="stbox"><div class="srow2"><span>Bonus</span><b style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</b></div><div class="msub">Gli eroi non occupano posti in squadra.</div></div>
+      <div class="stbox"><div class="srow2"><span>Bonus</span><b style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</b></div><div class="msub">I seguaci non occupano posti in squadra.</div></div>
       ${own ? '<div class="note" style="text-align:center">Già nella tua squadra</div>' : `<button class="pb" style="width:100%" data-act="buyhero" data-id="${id}">Acquista · ${h.price}</button>`}`;
   } else {
     const p = F.PETS[id], own = S.pets && S.pets[id], b = p.bonus, lab = { gold: 'oro', xp: 'esperienza', drop: 'drop', capture: 'soggiogamento' };
@@ -1119,7 +1180,7 @@ function showPreview(kind, id) {
   $('#modal').innerHTML = `<div class="mod" role="dialog" aria-modal="true" aria-label="Anteprima"><div class="eqhead"><button class="ib" data-act="close" aria-label="Chiudi" style="margin-left:auto">✕</button></div>${body}</div>`;
   $("#modal").hidden = false;
 }
-function closeModal() { $('#modal').classList.remove('chatfull', 'dollfull', 'capfull', 'wfull'); equipOpen = null; $('#modal').hidden = true; $('#modal').innerHTML = ''; }
+function closeModal() { $('#modal').classList.remove('chatfull', 'dollfull', 'capfull', 'wfull', 'offfull'); equipOpen = null; $('#modal').hidden = true; $('#modal').innerHTML = ''; }
 
 // ---------- chat globale e drop rari (Supabase) ----------
 const NET = { url: 'https://nvfpiwrienohvavvceqi.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52ZnBpd3JpZW5vaHZhdnZjZXFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NTQ4MzYsImV4cCI6MjEwODQzMDgzNn0.M_fmOZlu6qbdXw5flxwQsdvJxCgeMTY-WOpxwcLRSpA' };
@@ -1294,7 +1355,7 @@ document.addEventListener('click', e => {
   else if (a === 'skip') { skipTime(+t.dataset.h); return; }
   else if (a === 'sellbelow') { const r = F.sellBelow(S); toast(r.n ? `Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro` : 'Niente sotto la soglia'); }
   else if (a === 'claim') { const r = F.claimMission(S, id); if (r) toast(`Missione completata: +${r.astri} Astri, +1 ${F.RUNE[r.rune[0]].label.toLowerCase()}`, '#F2C14E'); }
-  else if (a === 'buyhero') { if (F.buyHero(S, id)) { toast(F.SPECIES[id].name + ' si unisce alla squadra! (versione di prova)', '#F2C14E'); rebuild(); } }
+  else if (a === 'buyhero') { if (F.buyHero(S, id)) { snd('capture'); rebuild(); showHeroGet(id); } }
   else if (a === 'bagview') { bagView = t.dataset.v; selItem = null; }
   else if (a === 'tochest') { F.toChest(S, +t.dataset.item); selItem = null; }
   else if (a === 'fromchest') { F.fromChest(S, +t.dataset.item); selItem = null; }
@@ -1320,6 +1381,9 @@ document.addEventListener('click', e => {
   else if (a === 'reset') { if (confirmReset > Date.now()) { const tk = S.net && S.net.token; if (tk) api('rpc/it_unregister', { p_token: tk }).catch(() => {}); S = F.newState(); save(); rebuild(); confirmReset = 0; showWelcome(); } else confirmReset = Date.now() + 3000; }
   else if (a === 'capadd') { F.addToTeam(S, id); rebuild(); closeModal(); }
   else if (a === 'close') { closeModal(); }
+  else if (a === 'bonus') showBonus();
+  else if (a === 'petorder') showPetOrder();
+  else if (a === 'petmv') { F.movePet(S, t.dataset.k, +t.dataset.d); save(); buildScene(); showPetOrder(); return; }
   else if (a === 'offok') { S.offRep = null; save(); closeModal(); }
   else if (a === 'cmppick') { showCmpPick(id); return; }
   else if (a === 'cmp') { showCmp(t.dataset.a, t.dataset.b); return; }
