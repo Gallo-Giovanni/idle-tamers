@@ -234,7 +234,7 @@ const UNIT_SCALE = 1.5, PU = 19; // personaggi ingranditi ×1,5 (scena grande); 
 let FRONT = 211; // il primo alleato sta poco a destra del centro; la squadra si allunga verso sinistra, sempre un po' sovrapposta
 const partyStep = n => Math.min(18, 195 / Math.max(1, n - 1));
 const partyFront = () => 211;
-const XB = 290, PX = 38, PE = 16; // PE: pixel per unità di distanza dei nemici (più stretti, così anche i loro curatori restano in vista)
+const XB = 268, PX = 38, PE = 16; // PE: pixel per unità di distanza dei nemici (più stretti, così anche i loro curatori restano in vista)
 const worldX = p => p <= 0 ? XB + p * PX : XB + p * PE; // posizione in scena: i nemici nascono fuori a destra e arrivano camminando // XB: dove starebbe un alleato a gittata 0; PX: pixel per unità di gittata (20 = Brace)
 const unitX = u => XB - (u.reach || F.reachOf(u.species)) / 20 * PX;
 const deadSeen = new Set(); // membri che hanno già fatto l'animazione di morte
