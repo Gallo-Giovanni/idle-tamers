@@ -19,10 +19,10 @@ def main(src, out, scale=3.3):
     a = np.array(Image.open(src).convert('RGB')).astype(float)
     runs = strips(a); print('strisce', runs)
     assert len(runs) == 6, 'servono 6 strisce separate'
-    m = a.max(axis=2); al = np.clip((m - 30) / 50, 0, 1)
+    m = a.max(axis=2); al = np.clip((m - 12) / 22, 0, 1)  # anche le rocce scure restano piene: solo il nero vero diventa trasparente
     rgb = np.where(al[..., None] > 0.01, np.clip(a / np.maximum(al[..., None], 0.01), 0, 255), 0); rgb = np.where(al[..., None] >= 1, a, rgb)
     full = os.path.join(out, 'full.png'); Image.fromarray(np.dstack([rgb, al * 255]).astype('uint8'), 'RGBA').save(full)
     for n, (y0, y1) in zip(NAMES, runs):
-        print(n, make(full, (0, max(0, y0 - 2), a.shape[1], min(a.shape[0], y1 + 2)), scale, os.path.join(out, n + '.png'), colors=48))
+        print(n, make(full, (0, max(0, y0 - 2), a.shape[1], min(a.shape[0], y1 + 2)), scale, os.path.join(out, n + '.png'), colors=128))
 if __name__ == '__main__':
     main(sys.argv[1], sys.argv[2], float(sys.argv[3]) if len(sys.argv) > 3 else 3.3)

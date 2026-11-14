@@ -4,21 +4,26 @@ import sys, re, base64
 from PIL import Image
 cls, d, fill, sky = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 L = {n: Image.open(f'{d}/{n}.png').size for n in ['c1', 'c2', 'mtn', 'mid', 'fg', 'gnd']}
-K = 2.3  # ingrandimento in scena: i livelli riempiono la scena
+K = float(sys.argv[5]) if len(sys.argv) > 5 else 1.0  # ingrandimento in scena (1 = pixel dell'immagine, nitido)
 W = round(L['c1'][0] * K)
 h = {n: round(L[n][1] * K) for n in L}
 import numpy as np
 def solid(n):  # altezza (css) della base piena di un livello: il livello dietro deve appoggiarsi lì sotto
-    a = np.array(Image.open(f'{d}/{n}.png').convert('RGBA'))[..., 3]; r = 0; y = a.shape[0] - 1
-    while y > 0 and (a[y] > 0).mean() < 0.5: y -= 1  # righe vuote in fondo
-    while y >= 0 and (a[y] > 0).mean() >= 0.8: r += 1; y -= 1
-    return round(r * K)
+    a = np.array(Image.open(f'{d}/{n}.png').convert('RGBA'))[..., 3]; cov = (a > 0).mean(axis=1); y = len(cov) - 1
+    while y > 0 and cov[y] < 0.5: y -= 1  # righe vuote o sfrangiate in fondo
+    top = y; low = 0
+    while top >= 0 and low < 3:  # sale finché la striscia è piena (tollera 2 righe un po' bucate)
+        low = low + 1 if cov[top] < 0.8 else 0; top -= 1
+    return round((y - top - 3) * K)
 S = {n: solid(n) for n in ['fg', 'mid', 'mtn']}
 bg_ = h['gnd'] - 4; bf = bg_; bm = bf + max(6, S['fg'] - 4); bt = bm + max(6, S['mid'] - 4)
 print('basi piene', S, 'bottom fg/mid/mtn', bf, bm, bt)
-b = {n: base64.b64encode(open(f'{d}/{n}.png', 'rb').read()).decode() for n in L}
+import io
+def enc(n):  # WebP senza perdita: stessa nitidezza del PNG, file molto più leggero
+    bf = io.BytesIO(); Image.open(f'{d}/{n}.png').save(bf, 'WEBP', lossless=True, method=6); return base64.b64encode(bf.getvalue()).decode()
+b = {n: enc(n) for n in L}
 k = f'r6{cls}'
-url = lambda n: f'url(data:image/png;base64,{b[n]})'
+url = lambda n: f'url(data:image/webp;base64,{b[n]})'
 css = f"""/* {cls}: sfondo a 6 livelli (strisce separate da ChatGPT, montate con tools/realm6.py) */
 #scene .l6{{display:none}}
 #scene.{cls}{{background:{sky}!important;animation:none}}
