@@ -518,7 +518,7 @@ function makeEnemies(s) {
 // Si torna a vita piena quando cambia la zona, quando la zona ricomincia dopo il boss o quando la squadra cade.
 function startBattle(s) {
   s.runHp = s.runHp || {};
-  const entry = s.battle === 1 || !!s._entry; s._entry = 0; // la squadra corre in scena a inizio zona (o dopo una sconfitta); nelle altre battaglie è già schierata
+  const entry = true; // a ogni battaglia la squadra riparte dal centro e corre incontro ai nemici
   const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', home: -reachOf(s.roster[id].species) / 20, arrive: entry ? 1 : 0, pos: -reachOf(s.roster[id].species) / 20 - (entry ? PARTY_ENTRY : 0), idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: abilityOf(s.roster[id].species), abT: 0, dealt: 0, taken: 0 }; });
   s.mvTeam = teamMove(s);
   return { party, enemies: makeEnemies(s), time: 0, over: null, pause: 0 };
@@ -657,43 +657,43 @@ function tickStatus(s, b, u, dt, ev) {
 // ---------- Attacchi propri: ogni creatura e ogni seguace ha il suo (vale per la squadra; i nemici restano quelli di sempre) ----------
 // k: tipo di effetto · ev: ogni quanti colpi · cd: ogni quanti secondi (maghi, curatori e alcuni guerrieri)
 const ABIL = {
-  hero:        { name: 'Lama infernale',     k: 'hit', ev: 3, m: 1.8, burn: 0.6, desc: 'Ogni 3 colpi un fendente infuocato: 180% dei danni e il nemico brucia per 3 s.' },
+  hero:        { name: 'Lama infernale',     k: 'hit', ev: 3, m: 1.8, burn: 0.6, desc: 'Ogni 3 colpi sferra un fendente infuocato: fa il 180% dei danni e il nemico brucia per 3 s.' },
   hero_arc:    { name: 'Cuore spezzato',     k: 'mark', ev: 3, desc: 'Ogni 3 colpi spezza il cuore del nemico: subisce il 30% di danni in più per 4 s.' },
-  hero_mag:    { name: "Teschio dell'anima", k: 'nuke', cd: 5, m: 2.5, ign: 1, leech: 0.25, desc: "Ogni 5 s un teschio che ignora l'armatura: 250% dei danni, e recupera un quarto dei danni come vita." },
+  hero_mag:    { name: "Teschio dell'anima", k: 'nuke', cd: 5, m: 2.5, ign: 1, leech: 0.25, desc: "Ogni 5 s lancia un teschio che ignora l'armatura: fa il 250% dei danni e il Negromante recupera come vita un quarto dei danni fatti." },
   glimmo:      { name: 'Lampo di luce',      k: 'blind', ev: 3, desc: 'Ogni 3 colpi acceca il nemico: per 3 s manca il 30% dei suoi colpi.' },
   cometuga:    { name: 'Guscio cometa',      k: 'shell', ev: 4, desc: 'Ogni 4 colpi si chiude nel guscio: per 2 s subisce metà dei danni.' },
   sporello:    { name: 'Spore lunari',       k: 'heal', cd: 3, desc: "Ogni 3 s cura l'alleato più ferito: 6% della sua vita più il 100% del proprio attacco." },
-  bzzt:        { name: 'Martellata',         k: 'hit', ev: 3, m: 1.8, stun: 1, desc: 'Ogni 3 colpi una martellata: 180% dei danni e il nemico resta stordito per 1 s.' },
+  bzzt:        { name: 'Martellata',         k: 'hit', ev: 3, m: 1.8, stun: 1, desc: 'Ogni 3 colpi tira una martellata: fa il 180% dei danni e il nemico resta stordito per 1 s.' },
   astrillo:    { name: 'Guscio riflettente', k: 'reflect', v: 0.2, desc: 'Rimanda a chi lo colpisce il 20% dei danni che riceve.' },
-  nebulina:    { name: 'Nebbia stellare',    k: 'aoe', cd: 5, m: 1.4, desc: 'Ogni 5 s una nebbia di stelle colpisce tutti i nemici: 140% dei danni.' },
-  revuoto:     { name: 'Corona del vuoto',   k: 'hitall', ev: 4, m: 1.5, desc: "Ogni 4 colpi un'onda del vuoto colpisce tutti i nemici: 150% dei danni." },
-  scheggia:    { name: 'Morso di ghiaccio',  k: 'hit', ev: 3, m: 1.8, slow: 3, desc: 'Ogni 3 colpi un morso gelato: 180% dei danni e il nemico attacca più piano del 30% per 3 s.' },
+  nebulina:    { name: 'Nebbia stellare',    k: 'aoe', cd: 5, m: 1.4, desc: 'Ogni 5 s soffia una nebbia di stelle che colpisce tutti i nemici: 140% dei danni.' },
+  revuoto:     { name: 'Corona del vuoto',   k: 'hitall', ev: 4, m: 1.5, desc: "Ogni 4 colpi scatena un'onda del vuoto che colpisce tutti i nemici: 150% dei danni." },
+  scheggia:    { name: 'Morso di ghiaccio',  k: 'hit', ev: 3, m: 1.8, slow: 3, desc: 'Ogni 3 colpi dà un morso gelato: fa il 180% dei danni e il nemico attacca il 30% più piano per 3 s.' },
   geodino:     { name: 'Pelle di roccia',    k: 'rock', desc: 'Sotto metà vita la sua pelle diventa roccia: subisce il 30% di danni in meno.' },
   lumispettro: { name: 'Luce spettrale',     k: 'healall', cd: 4, desc: 'Ogni 4 s cura tutta la squadra: 3% della vita di ognuno più il 40% del proprio attacco.' },
-  gemmerla:    { name: 'Piuma di cristallo', k: 'pierce', ev: 3, desc: 'Ogni 3 colpi la piuma trapassa: 130% dei danni al bersaglio e 100% al nemico dietro.' },
+  gemmerla:    { name: 'Piuma di cristallo', k: 'pierce', ev: 3, desc: 'Ogni 3 colpi scocca una piuma che trapassa: fa il 130% dei danni al bersaglio e il 100% al nemico dietro.' },
   quarzillo:   { name: 'Abbraccio di quarzo', k: 'taunt', cd: 8, desc: 'Ogni 8 s attira su di sé tutti i colpi per 3 s, subendo il 30% di danni in meno.' },
-  prismella:   { name: 'Raggio prismatico',  k: 'chain', cd: 5, desc: 'Ogni 5 s un raggio rimbalza su 3 nemici: 180%, 120% e 80% dei danni.' },
-  reginaquarzo:{ name: 'Pioggia di cristalli', k: 'multi', ev: 3, desc: 'Ogni 3 colpi scocca 3 frecce su 3 nemici diversi (100% ciascuna).' },
-  braciolo:    { name: 'Testata rovente',    k: 'hit', ev: 3, m: 1.6, burn: 0.8, desc: 'Ogni 3 colpi una testata rovente: 160% dei danni e il nemico brucia per 4 s.' },
+  prismella:   { name: 'Raggio prismatico',  k: 'chain', cd: 5, desc: 'Ogni 5 s lancia un raggio che rimbalza su 3 nemici: fa il 180%, il 120% e l\'80% dei danni.' },
+  reginaquarzo:{ name: 'Pioggia di cristalli', k: 'multi', ev: 3, desc: 'Ogni 3 colpi scocca 3 frecce su 3 nemici diversi: ognuna fa il 100% dei danni.' },
+  braciolo:    { name: 'Testata rovente',    k: 'hit', ev: 3, m: 1.6, burn: 0.8, desc: 'Ogni 3 colpi dà una testata rovente: fa il 160% dei danni e il nemico brucia per 4 s.' },
   lavarospo:   { name: 'Pelle di lava',      k: 'thorns', v: 0.35, desc: 'Chi lo colpisce si brucia: subisce il 35% del suo attacco in 3 s.' },
   magmolo:     { name: 'Calore',             k: 'hot', cd: 3, desc: "Ogni 3 s scalda l'alleato più ferito, che recupera vita per 4 s: in tutto 8% della sua vita più il 120% del proprio attacco." },
   lapillo:     { name: 'Lapillo infuocato',  k: 'burnhit', ev: 3, burn: 1.2, desc: 'Ogni 3 colpi la freccia incendia il nemico: brucia per il 120% dei danni in 4 s.' },
-  fiammella:   { name: 'Fiammata',           k: 'nuke', cd: 5, m: 2, ign: 1, burn: 0.8, desc: "Ogni 5 s una fiammata che ignora l'armatura: 200% dei danni e il nemico brucia per 4 s." },
+  fiammella:   { name: 'Fiammata',           k: 'nuke', cd: 5, m: 2, ign: 1, burn: 0.8, desc: "Ogni 5 s lancia una fiammata che ignora l'armatura: fa il 200% dei danni e il nemico brucia per 4 s." },
   draghetto:   { name: 'Soffio di brace',    k: 'aoe', cd: 6, m: 1.7, desc: 'Ogni 6 s soffia fuoco su tutti i nemici: 170% dei danni.' },
   imperatore:  { name: 'Eruzione',           k: 'aoe', cd: 6, m: 1.3, desc: 'Ogni 6 s fa piovere lava su tutti i nemici: 130% dei danni.' },
-  ombretto:    { name: "Pugnalata d'ombra",  k: 'hit', ev: 3, m: 1.6, crit: 1, desc: "Ogni 3 colpi una pugnalata d'ombra: 160% dei danni ed è sempre un colpo critico." },
+  ombretto:    { name: "Pugnalata d'ombra",  k: 'hit', ev: 3, m: 1.6, crit: 1, desc: "Ogni 3 colpi tira una pugnalata d'ombra: fa il 160% dei danni ed è sempre un colpo critico." },
   nullo:       { name: 'Cubo nullo',         k: 'null', cd: 10, desc: 'Ogni 10 s annulla del tutto il colpo successivo che riceve.' },
   abissale:    { name: "Scudo dell'abisso",  k: 'shield', cd: 4, desc: "Ogni 4 s dà uno scudo all'alleato più ferito: assorbe danni pari al 10% della sua vita più il 100% del proprio attacco." },
-  corvonero:   { name: 'Becco nero',         k: 'hit', ev: 3, m: 1, crit: 1, cdm: 0.5, desc: 'Ogni 3 colpi una beccata sempre critica, con danni critici più alti del 50%.' },
+  corvonero:   { name: 'Becco nero',         k: 'hit', ev: 3, m: 1, crit: 1, cdm: 0.5, desc: 'Ogni 3 colpi dà una beccata che è sempre un colpo critico, con danni critici più alti del 50%.' },
   tentacula:   { name: 'Otto braccia',       k: 'flurry', ev: 3, desc: 'Ogni 3 attacchi tre colpi veloci di fila: 80% dei danni ciascuno.' },
-  stellanera:  { name: 'Buco nero',          k: 'big', cd: 6, m: 3, desc: "Ogni 6 s un buco nero sul nemico con più vita: 300% dei danni, ignora l'armatura." },
-  divoratore:  { name: 'Divora stelle',      k: 'nuke', cd: 6, m: 2.5, ign: 1, again: 1, desc: "Ogni 6 s divora il nemico: 250% dei danni, ignora l'armatura; se lo uccide, ripete subito su un altro." },
+  stellanera:  { name: 'Buco nero',          k: 'big', cd: 6, m: 3, desc: "Ogni 6 s apre un buco nero sul nemico con più vita: fa il 300% dei danni e ignora l'armatura." },
+  divoratore:  { name: 'Divora stelle',      k: 'nuke', cd: 6, m: 2.5, ign: 1, again: 1, desc: "Ogni 6 s morde il nemico: fa il 250% dei danni e ignora l'armatura; se lo uccide, morde subito un altro nemico." },
 };
 // creature senza attacco proprio (non presenti nelle zone): quello della classe
 const ABIL_CLS = {
-  Guerriero: { name: 'Fendente', k: 'hit', ev: 3, m: 2.2, desc: 'Ogni 3 colpi un colpo pesante: 220% dei danni.' },
+  Guerriero: { name: 'Fendente', k: 'hit', ev: 3, m: 2.2, desc: 'Ogni 3 colpi sferra un colpo pesante: fa il 220% dei danni.' },
   Arciere: { name: 'Marchio', k: 'mark', ev: 3, desc: 'Ogni 3 colpi marchia il bersaglio: +30% danni subiti per 4 s.' },
-  Mago: { name: 'Tempesta arcana', k: 'nuke', cd: 5, m: 2.5, ign: 1, desc: "Ogni 5 s scaglia un fulmine arcano: 250% dei danni, ignora l'armatura." },
+  Mago: { name: 'Tempesta arcana', k: 'nuke', cd: 5, m: 2.5, ign: 1, desc: "Ogni 5 s scaglia un fulmine arcano: fa il 250% dei danni e ignora l'armatura." },
   Curatore: { name: 'Luce curativa', k: 'heal', cd: 3, desc: "Ogni 3 s cura l'alleato più ferito: 6% della sua vita più il 100% del proprio attacco." },
 };
 function abilityOf(sp) { const d = SPECIES[sp]; if (!d) return ABIL_CLS.Guerriero; const k = d.base || sp; return ABIL[k] || ABIL_CLS[d.cls]; }
