@@ -2,9 +2,16 @@
 import sys, numpy as np
 from PIL import Image
 def seamless(a, ov):
-    # sovrappone la coda all'inizio con una dissolvenza: la striscia si ripete senza giunture
-    W = a.shape[1]; out = a[:, :W - ov].copy(); w = np.linspace(0, 1, ov)[None, :, None]
-    out[:, :ov] = a[:, W - ov:] * (1 - w) + a[:, :ov] * w
+    # la coda si sovrappone all'inizio: dove c'è disegno in uno dei due resta pieno (niente nuvole o montagne tagliate),
+    # dove ci sono entrambi i colori si mescolano gradualmente; la striscia si ripete senza giunture
+    W = a.shape[1]; out = a[:, :W - ov].copy(); w = np.linspace(0, 1, ov)[None, :]
+    A, Bv = a[:, W - ov:], a[:, :ov]                      # coda e inizio (alfa premoltiplicato)
+    aa, ab = A[:, :, 3] / 255, Bv[:, :, 3] / 255
+    wa, wb = aa * (1 - w), ab * w; s = np.maximum(wa + wb, 1e-6)
+    al = np.maximum(aa, ab)
+    rgbA = A[:, :, :3] / np.maximum(aa, 1e-6)[..., None]; rgbB = Bv[:, :, :3] / np.maximum(ab, 1e-6)[..., None]
+    rgb = (rgbA * wa[..., None] + rgbB * wb[..., None]) / s[..., None]
+    out[:, :ov, :3] = rgb * al[..., None]; out[:, :ov, 3] = al * 255
     return out
 def make(src, box, scale, out, ov=0.12, colors=40):
     s = Image.open(src).convert('RGBA').crop(box)
