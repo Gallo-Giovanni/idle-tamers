@@ -19,7 +19,13 @@ def main(src, out, scale=3.3):
     a = np.array(Image.open(src).convert('RGB')).astype(float)
     runs = strips(a); print('strisce', runs)
     assert len(runs) == 6, 'servono 6 strisce separate'
-    m = a.max(axis=2); al = np.clip((m - 12) / 40, 0, 1)  # anche le rocce scure restano piene: solo il nero vero diventa trasparente
+    from scipy import ndimage
+    m = a.max(axis=2)
+    # trasparente solo il nero di sfondo collegato ai bordi e agli spazi tra le strisce: rocce e ombre scure dentro i disegni restano piene
+    bgm = m < 34; lab, n = ndimage.label(bgm); edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
+    for (y0, y1), (z0, z1) in zip(runs, runs[1:]): edge |= set(np.unique(lab[y1:z0])) - {0}
+    al = (~np.isin(lab, list(edge))).astype(float)
+    al = np.maximum(al, np.clip((m - 34) / 30, 0, 1))
     rgb = np.where(al[..., None] > 0.01, np.clip(a / np.maximum(al[..., None], 0.01), 0, 255), 0); rgb = np.where(al[..., None] >= 1, a, rgb)
     full = os.path.join(out, 'full.png'); Image.fromarray(np.dstack([rgb, al * 255]).astype('uint8'), 'RGBA').save(full)
     for n, (y0, y1) in zip(NAMES, runs):
