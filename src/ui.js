@@ -397,7 +397,7 @@ let lvlToastAt = 0;
 function handle(ev) {
   for (const e of ev) {
     if (e.type === 'dmg') { const el = (e.side === 'p' ? pEls : eEls)[e.idx], d = impactDelay(e), show = () => { if (e.side === 'e') snd(e.crit ? 'crit' : 'hit'); floatText(el, cfmt(e.dmg), e.burn ? 'burnt' : e.crit ? 'crit' : (e.side === 'p' ? 'hurt' : '')); }; if (d && !e.burn) setTimeout(show, d); else show(); }
-    else if (e.type === 'fx' && e.fx === 'burn') { const el = (e.side === 'p' ? pEls : eEls)[e.idx]; setTimeout(() => vfxAt(el, 'vfxflame', 800), 80); }
+    else if (e.type === 'fx' && e.fx === 'burn') { const el = (e.side === 'p' ? pEls : eEls)[e.idx]; setTimeout(() => { if (el && !el.classList.contains('st-burn')) vfxAt(el, 'vfxflame', 800); }, 80); } // se il nemico è ancora vivo basta la fiamma che brucia su di lui: niente doppione
     else if (e.type === 'fx') { const el = (e.side === 'p' ? pEls : eEls)[e.idx], L = { null: 'Annullato!', shieldhit: 'Assorbito!', stun: 'Stordito!', blind: 'Accecato!', slow: 'Rallentato!' }; if (L[e.fx]) floatText(el, L[e.fx], 'fxt'); }
     else if (e.type === 'atk' && e.side === 'p' && e.tgt !== undefined && B.party[e.idx] && B.party[e.idx].id === 'hero_arc') { flyHeart(pEls[e.idx], eEls[e.tgt]); }
     else if (e.type === 'atk' && e.side === 'p' && e.tgt !== undefined && B.party[e.idx] && B.party[e.idx].id === 'hero_mag') { flyHeart(pEls[e.idx], eEls[e.tgt], 'skull'); }
