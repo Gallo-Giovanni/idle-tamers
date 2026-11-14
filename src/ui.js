@@ -341,7 +341,7 @@ function stickArrow(el) {
   }, 250);
 }
 // la Succube lancia un cuore e il Negromante un teschio fantasma: volano dritti dalla mano al nemico lasciando una scia, poi scoppiano
-const PROJ = { heart: { p: 'heartp', w: 20, h: 18, tr: 'htrail', m: 'hmini', hit: 'hhit', d: 120 }, skull: { p: 'skullp', w: 18, h: 18, tr: 'strail', m: 'smini', hit: 'shit', d: 170 } };
+const PROJ = { heart: { p: 'heartp', w: 20, h: 18, tr: 'htrail', m: 'hmini', hit: 'hhit', d: 120, vfx: 'vfxhburst' }, skull: { p: 'skullp', w: 18, h: 18, tr: 'strail', m: 'smini', hit: 'shit', d: 170 } };
 function flyHeart(fromEl, toEl, kind) {
   if (!fromEl || !toEl) return;
   const P = PROJ[kind || 'heart'];
@@ -355,6 +355,7 @@ function flyHeart(fromEl, toEl, kind) {
     h.animate(kf, { duration: T, easing: 'linear', fill: 'forwards' });
     for (let i = 1; i <= 5; i++) setTimeout(() => { const [x, y] = pt(i / 6); const t = document.createElement('i'); t.className = P.tr; t.style.left = (x0 + x) + 'px'; t.style.top = (y0 + y) + 'px'; fx.appendChild(t); setTimeout(() => t.remove(), 360); }, i * T / 6);
     setTimeout(() => { h.remove(); if (!toEl.isConnected) return;
+      if (P.vfx) { const v = document.createElement('div'); v.className = P.vfx; v.style.left = x1 + 'px'; v.style.top = y1 + 'px'; fx.appendChild(v); setTimeout(() => v.remove(), 700); } else
       for (let i = 0; i < 6; i++) { const m = document.createElement('i'); m.className = P.m; m.style.left = x1 + 'px'; m.style.top = y1 + 'px'; const ang = i / 6 * Math.PI * 2, r = 16 + Math.random() * 8; m.style.setProperty('--dx', (Math.cos(ang) * r).toFixed(0) + 'px'); m.style.setProperty('--dy', (Math.sin(ang) * r - 6).toFixed(0) + 'px'); fx.appendChild(m); setTimeout(() => m.remove(), 450); }
       toEl.classList.remove(P.hit); void toEl.offsetWidth; toEl.classList.add(P.hit);
     }, T);
