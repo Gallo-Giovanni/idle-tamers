@@ -234,6 +234,8 @@ const UNIT_SCALE = 1.5, PU = 19; // personaggi ingranditi ×1,5 (scena grande); 
 let FRONT = 211; // il primo alleato sta poco a destra del centro; la squadra si allunga verso sinistra, sempre un po' sovrapposta
 const partyStep = n => Math.min(18, 195 / Math.max(1, n - 1));
 const partyFront = () => 211;
+const XB = 250, PX = 38; // XB: dove starebbe un alleato a gittata 0; PX: pixel per unità di gittata (20 = Brace)
+const unitX = u => XB - F.reachOf(u.species) / 20 * PX;
 const deadSeen = new Set(); // membri che hanno già fatto l'animazione di morte
 function buildScene() { setScroll();
   const sc = $('#units'); sc.innerHTML = '';
@@ -244,8 +246,8 @@ function buildScene() { setScroll();
   const order = orderFront(B.party); FRONT = partyFront(order.length);
   const place = (list) => list.forEach(({ u }, k) => {
     const step = partyStep(list.length); // lo spazio si divide tra tutti, così nessuno esce dallo schermo
-    const x = FRONT - k * step - (F.CLASSES[u.cls].range - 1) * 4, y = 26; // tutti sul pavimento
-    const el = document.createElement('div'); el.className = 'u pm'; el.dataset.x = x; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 20 - (k % 2) * 5;
+    const x = unitX(u), y = 26; // ognuno alla sua gittata dal nemico: Brace davanti, poi Guerrieri, Arcieri, Maghi e Curatori in fondo
+    const el = document.createElement('div'); el.className = 'u pm'; el.dataset.x = x; el.style.left = x + 'px'; el.style.bottom = y + 'px'; el.style.zIndex = 30 - Math.round(F.reachOf(u.species) / 5);
     el.innerHTML = `<div class="hpb"><b style="background:${F.isHero(u.id) ? HERO_HP : '#7ED36F'}"></b></div>${u.species === 'hero' ? '<div class="kn" aria-hidden="true"></div>' : u.species === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : u.species === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div>' : sprite(u.species, 2)}`;
     sc.appendChild(el); pEls[u.idx] = el;
   });
@@ -304,7 +306,7 @@ let marching = null;
 function updateScene() {
   const en = B.enemies.filter(u => u.hp > 0);
   // telecamera: quando la prima linea avanza, avanza tutta la squadra e la scena la segue (la squadra resta ferma sullo schermo)
-  const adv = u => (u.pos === undefined || F.CLASSES[u.cls].range !== 1 || u.hp <= 0) ? 0 : u.pos + 1;
+  const adv = u => (u.pos === undefined || u.cls !== 'Guerriero' || u.hp <= 0) ? 0 : u.pos + F.reachOf(u.species) / 20; // quanto il guerriero è avanzato verso il nemico
   const cam = B.party.reduce((x, u) => Math.max(x, adv(u)), 0), moving = cam > (B._cam || 0) + 1e-6; B._cam = cam;
   const m = B.over === 'win' || moving || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
@@ -315,7 +317,7 @@ function updateScene() {
   { const now = performance.now(), dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0; lastFrame = now;
     const n = partyOrder.length, step = partyStep(n); let k = 0;
     partyOrder.forEach(({ u }) => { const el = pEls[u.idx]; if (!el) return;
-      if (u.hp > 0) { const bx = FRONT - k * step - (F.CLASSES[u.cls].range - 1) * 4; k++; el._wx = undefined; el.style.left = (bx + (F.CLASSES[u.cls].range === 1 ? (adv(u) - cam) * PU : 0)) + 'px'; return; }
+      if (u.hp > 0) { const bx = unitX(u); k++; el._wx = undefined; el.style.left = (bx + (u.cls === 'Guerriero' ? (adv(u) - cam) * PX : 0)) + 'px'; return; }
       if (el._wx === undefined) { el._wx = parseFloat(el.style.left) || +el.dataset.x; el._cam0 = cam; el.classList.remove('pm'); }
       if (marching) el._wx -= dt * 75 * F.moveSpeed(S);
       el.style.left = (el._wx - (cam - el._cam0) * PU) + 'px'; }); }
@@ -472,9 +474,9 @@ function statsHTML(it, lv) {
   const bon = (it.bonus || []).map(b => `<div class="srow2 bon"><span><i style="background:${r.color}"></i>${F.STAT_LABEL[b.k]}</span><b>${val(b.k, F.bonusValue(it, b))}</b></div>`).join('');
   return `<div class="stbox">${rows}${bon ? `<div class="sthead">Bonus</div>${bon}` : ''}<div class="srow2 val"><span>${icon('coin', '#F2C14E', 12)} Valore</span><b>${fmt(F.sellValue(it, S))}</b></div>${lv ? `<div class="sthead" style="color:#5BD8E6">Slot +${lv}: +${lv * 10}% agli attributi</div>` : ''}</div>`;
 }
-function fullStats(st) {
+function fullStats(st, sp) {
   const pc = v => (v * 100).toFixed(1).replace('.', ',') + '%';
-  const rows = [['Gittata', String(F.CLASSES[st.cls].range)], ['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)], ['Vel. movimento', '+' + pc(st.move || 0)]];
+  const rows = [['Gittata', sp ? String(F.reachOf(sp)).replace('.', ',') : String(F.CLASSES[st.cls].range)], ['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)], ['Vel. movimento', '+' + pc(st.move || 0)]];
   return `<div class="fstats">${rows.map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join('')}</div>`;
 }
 function ptsHTML(id) {
@@ -498,7 +500,7 @@ function memberRow(id, inTeam, i) {
   html += `</div>`;
   if (open) {
     html += `<div class="card detail">
-    ${fullStats(st)}
+    ${fullStats(st, m.species)}
     <button class="sb" data-act="cmppick" data-id="${id}" style="width:100%;margin:6px 0">Confronta con un'altra creatura</button>
     <div class="abil"><b style="color:${CC(cls)}">${F.abilityOf(m.species).name}</b> · ${F.abilityOf(m.species).desc}</div>
     ${ptsHTML(id)}
@@ -1168,7 +1170,7 @@ function showPreview(kind, id) {
     const h = F.HERO_SHOP.find(x => x.id === id), sp = F.SPECIES[id], c = F.CLASSES[sp.cls], own = !!S.roster[id], hb = sp.hb || {};
     const big = id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div><i class="shopskull" aria-hidden="true"></i>' : id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div><i class="shopheart" aria-hidden="true"></i>' : sprite(id, 6);
     body = `<div class="pvbig herocard"><div class="mspr">${big}</div></div>
-      <h2 class="pvt">${sp.name}</h2><div class="msub" style="text-align:center"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · gittata ${F.rangeOf({ species: id, cls: sp.cls })}</div>
+      <h2 class="pvt">${sp.name}</h2><div class="msub" style="text-align:center"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · gittata ${String(F.reachOf(id)).replace('.', ',')}</div>
       <div class="note" style="text-align:center"><i>“${sp.quote}”</i></div>
       <div class="stbox"><div class="srow2"><span>Vita (livello 1)</span><b>${Math.round(c.hp * (1 + (hb.hp || 0)))}</b></div><div class="srow2"><span>Danni</span><b>${Math.round(c.atk * (1 + (hb.atk || 0)))}</b></div><div class="srow2"><span>Difesa</span><b>${c.def}</b></div><div class="srow2"><span>Attacchi al secondo</span><b>${((1 + (hb.aspd || 0)) / c.spd).toFixed(2).replace('.', ',')}</b></div>${hb.crit ? `<div class="srow2"><span>Colpi critici</span><b>${Math.round(hb.crit * 100)}%</b></div>` : ''}</div>
       <div class="stbox"><div class="srow2"><span>Attacco</span><b style="color:${CC(sp.cls)}">${F.abilityOf(id).name}</b></div><div class="msub">${F.abilityOf(id).desc}</div></div>

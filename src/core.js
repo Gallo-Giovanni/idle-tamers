@@ -3,7 +3,7 @@
 'use strict';
 
 const CLASSES = {
-  Guerriero: { range: 1, hp: 135, atk: 14, def: 5, spd: 1.1, block: 0.08, color: '#F08A5D', ability: 'Fendente', desc: 'Sta in prima linea (gittata 1): i nemici colpiscono sempre chi è più vicino. Para l\'8% dei colpi e ogni 3 attacchi sferra un colpo pesante: 220% dei danni sul bersaglio.' },
+  Guerriero: { range: 1, hp: 135, atk: 14, def: 5, spd: 1.1, block: 0.08, color: '#F08A5D', ability: 'Fendente', desc: 'Sta in prima linea: i nemici colpiscono sempre chi è più vicino. Para l\'8% dei colpi e ogni 3 attacchi sferra un colpo pesante: 220% dei danni sul bersaglio.' },
   Arciere:   { range: 3, hp: 80,  atk: 12, def: 1, spd: 1.0, color: '#7ED36F', ability: 'Marchio', desc: 'Ogni 3 attacchi marchia il bersaglio: +30% danni subiti per 4 s.' },
   Curatore:  { range: 6, hp: 85,  atk: 7,  def: 2, spd: 1.3, color: '#F2E27A', ability: 'Luce curativa', desc: 'Ogni 3 s cura l\'alleato più ferito: 6% della sua vita più il 100% del proprio attacco. Chi è appena stato curato riceve metà cure per 2 s.' },
   Mago:      { range: 4, hp: 70,  atk: 10, def: 1, spd: 1.6, color: '#C08CFF', ability: 'Tempesta arcana', desc: 'Ogni 5 s scaglia un fulmine arcano: 250% dei danni, ignora l\'armatura.' },
@@ -517,7 +517,7 @@ function makeEnemies(s) {
 // Si torna a vita piena quando cambia la zona, quando la zona ricomincia dopo il boss o quando la squadra cade.
 function startBattle(s) {
   s.runHp = s.runHp || {};
-  const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', pos: -CLASSES[st.cls].range, idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: abilityOf(s.roster[id].species), abT: 0, dealt: 0, taken: 0 }; });
+  const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', pos: -reachOf(s.roster[id].species) / 20, idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: abilityOf(s.roster[id].species), abT: 0, dealt: 0, taken: 0 }; });
   s.mvTeam = teamMove(s);
   return { party, enemies: makeEnemies(s), time: 0, over: null, pause: 0 };
 }
@@ -525,7 +525,14 @@ function startBattle(s) {
 function alive(list) { return list.filter(u => u.hp > 0); }
 function ready(list) { return list.filter(u => u.hp > 0 && !(u.arrive > 0)); }
 // gittata: di base quella della classe, ma ogni creatura può averne una sua (SPECIES[..].range)
-function rangeOf(u) { const sp = SPECIES[u.species]; return (sp && sp.range) || (sp && sp.base && SPECIES[sp.base] && SPECIES[sp.base].range) || CLASSES[u.cls].range; }
+function rangeOf(u) { if (u.side === 'p') return reachOf(u.species) / 20; const sp = SPECIES[u.species]; return (sp && sp.range) || (sp && sp.base && SPECIES[sp.base] && SPECIES[sp.base].range) || CLASSES[u.cls].range; }
+// gittata della squadra, una per ogni creatura (20 = Brace, sempre il più avanti): Guerrieri 25-30, Arcieri 58-70, Maghi 72-86, Curatori 100-114
+const REACH_BAND = { Guerriero: [25, 30], Arciere: [58, 70], Mago: [72, 86], Curatore: [100, 114] };
+const REACH_FIX = { hero: 20, hero_arc: 62, hero_mag: 80 };
+const REACH = (() => { const r = {}, by = {}; for (const k in SPECIES) { const d = SPECIES[k]; if (d.base || k in REACH_FIX) continue; (by[d.cls] = by[d.cls] || []).push(k); }
+  for (const c in by) { const l = by[c], [a, z] = REACH_BAND[c]; l.forEach((k, i) => { r[k] = Math.round((a + (z - a) * ((i * 7) % l.length) / Math.max(1, l.length - 1)) * 10) / 10; }); }
+  return Object.assign(r, REACH_FIX); })();
+function reachOf(sp) { const d = SPECIES[sp]; if (!d) return 25; const k = d.base || sp; return REACH[k] || REACH_BAND[d.cls][0]; }
 function frontTarget(s, list) {
   const a = ready(list); if (!a.length) return null;
   // si colpisce solo il personaggio più vicino: gittata più bassa, poi chi sta più avanti nella fila
@@ -626,6 +633,8 @@ function timedAbility(s, b, u, ev) {
   }
   return false;
 }
+// i curatori curano anche fuori dal combattimento (tra una battaglia e l'altra, mentre la squadra cammina)
+function healIdle(s, b, dt, ev) { for (const u of b.party) { if (u.hp <= 0) continue; tickStatus(s, b, u, dt, ev); if (!u.ab || !['heal', 'healall', 'hot', 'shield'].includes(u.ab.k)) continue; u.abT = (u.abT || 0) + dt; if (u.abT >= u.ab.cd && timedAbility(s, b, u, ev)) u.abT = 0; } }
 // stati che durano nel tempo: bruciatura, stordimento, rallentamento, cecità, scudi, cure lente
 function tickStatus(s, b, u, dt, ev) {
   if (u.mark > 0) u.mark -= dt;
@@ -687,7 +696,7 @@ function abilityOf(sp) { const d = SPECIES[sp]; if (!d) return ABIL_CLS.Guerrier
 const RESPAWN_TIME = 120;
 function step(s, b, dt, ev) {
   s.clock = (s.clock || 0) + dt;
-  if (b.over) { b.pause -= dt; if (b.pause <= 0) finishBattle(s, b, ev); return; }
+  if (b.over) { b.pause -= dt; if (b.over === 'win') healIdle(s, b, dt, ev); if (b.pause <= 0) finishBattle(s, b, ev); return; }
   b.time += dt;
   if (!s.portal && !s.portalRun && s.cleared >= 1 && rnd(s) < dt / PORTAL_EVERY) { s.portal = { until: s.clock + PORTAL_OPEN }; if (ev) ev.push({ type: 'portal' }); }
   else if (s.portal && s.clock > s.portal.until) s.portal = null;
@@ -703,7 +712,7 @@ function step(s, b, dt, ev) {
     if (u.side === 'p' && u.ab && u.ab.cd) { u.abT = (u.abT || 0) + dt; if (u.abT >= u.ab.cd && timedAbility(s, b, u, ev)) u.abT = 0; }
     if (u.stunT > 0) continue; // stordito: non fa nulla
     u.t -= dt * (u.slowT > 0 ? 0.7 : 1);
-    if (u.side === 'p' && rangeOf(u) === 1) { // chi combatte in mischia deve prima raggiungere il bersaglio
+    if (u.side === 'p' && u.cls === 'Guerriero') { // chi combatte in mischia deve prima raggiungere il bersaglio
       const tg = frontTarget(s, u.side === 'p' ? b.enemies : b.party);
       if (tg) { const gap = Math.abs(u.pos - tg.pos); if (gap > 2.01) { u.pos += (tg.pos > u.pos ? 1 : -1) * Math.min(MELEE_STEP * dt, gap - 2); if (u.t < 0) u.t = 0; continue; } }
     }
@@ -1103,7 +1112,7 @@ function simulateOffline(s, seconds, noCap) {
 }
 
 function setEnemyTable(EH, EA) { E_HP = EH; E_ATK = EA; } // solo per la taratura
-const api = { ZONE_NAMES, abilityOf, ABIL, petList, movePet, petB, heroSpace, END_GOLD, EARLY_DROP, chestCap, BAG_BASE, OFFLINE_CAP, setEnemyTable, enemyHpScale, enemyAtkScale, goldScale, enemyScale, enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { reachOf, REACH, ZONE_NAMES, abilityOf, ABIL, petList, movePet, petB, heroSpace, END_GOLD, EARLY_DROP, chestCap, BAG_BASE, OFFLINE_CAP, setEnemyTable, enemyHpScale, enemyAtkScale, goldScale, enemyScale, enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   testAccount, autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
