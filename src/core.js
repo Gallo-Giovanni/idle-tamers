@@ -1029,7 +1029,7 @@ function missionsReady(s) { return ALL_SPECIES.filter(sp => missionReady(s, sp))
 function setZone(s, z) { if (z < 1 || z > s.maxZone) return false; s.zone = z; s.battle = 1; s.runHp = {}; s.zoneStart = s.clock || 0; return true; }
 function moveSpeed(s) { return 1 + B(s, 'move') + (s.mvTeam || 0); }
 // velocità di marcia dagli oggetti: media della squadra (chi non ha bonus conta zero), al massimo +100%
-function teamMove(s) { if (!s.team || !s.team.length) return 0; let t = 0; for (const id of s.team) t += memberStats(s, id).move || 0; return Math.min(MOVE_CAP, t / s.team.length); }
+function teamMove(s) { if (!s.team || !s.team.length) return 0; if (s.roster.hero && s.team.includes('hero')) return Math.min(MOVE_CAP, memberStats(s, 'hero').move || 0); let t = 0; for (const id of s.team) t += memberStats(s, id).move || 0; return Math.min(MOVE_CAP, t / s.team.length); } // la velocità di marcia la decide Brace: più corre lui, più corrono tutti
 function untank(o) { if (!o || typeof o !== 'object') return; if (o.cls === 'Tank') o.cls = 'Guerriero'; for (const k in o) untank(o[k]); }
 function migrate(s) {
   if (!s.scale2 && s.zone !== undefined) { // numeri ridimensionati: l'oro del vecchio salvataggio passa alla nuova scala (stesso valore in stelle)

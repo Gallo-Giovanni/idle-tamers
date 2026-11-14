@@ -748,7 +748,7 @@ const GUIDE = [
   ['Boss segreti', 'Molto di rado al posto del boss di zona compare la sua versione gigante: se la sconfiggi si unisce subito a te, più forte del 30%.'],
   ['Portale astrale', 'Ogni 2-3 giorni compare un portale sopra la battaglia: 3 ondate più forti, forzieri d\'oro e di Astri e il Guardiano del pianeta, che ogni tanto si cattura.'],
   ['Bestiario e missioni', 'Dalla Mappa apri il Bestiario: tutte le creature, dove trovarle e le missioni per ognuna. Sconfiggendone tante ricevi Astri e rune.'],
-  ['Velocità di movimento', 'Stivali e gambali (e alcuni bonus) fanno camminare la squadra più in fretta: battaglie più veloci, farm più rapido.'],
+  ['Velocità di marcia', 'La velocità la decide Brace: stivali e gambali indossati da lui (e le stelle di marcia) lo fanno correre di più, e tutta la squadra gli corre dietro. Battaglie più veloci, farm più rapido.'],
   ['Astri e potenziamenti', 'Gli Astri si guadagnano col regalo giornaliero, gli achievement, le missioni, il portale e vendendo le rune. Servono a potenziare gli slot dell\'equipaggiamento e nello Shop.'],
   ['Shop, seguaci e pet', 'Nello Shop trovi i seguaci di Brace, con un attacco tutto loro, pet che volano sopra la squadra con bonus cumulabili, il Pass Astrale (oro ed esperienza doppi, zaino più grande) e pacchetti di Astri e oro.'],
   ['Achievement, classifica e chat', 'Gli achievement danno Astri. In Stats trovi le tue statistiche, il contributo di ogni membro e la classifica; la chat è in alto a destra.'],
@@ -992,7 +992,7 @@ function showBonus() {
    <div class="bnscroll">
    <div class="bnh">Combattimento · tutta la squadra</div>
    ${pct('atk', 'Danni')}${pct('hp', 'Vita')}${pct('def', 'Difesa')}${pct('aspd', "Velocità d'attacco")}${pct('crit', 'Probabilità di critico')}${pct('critDmg', 'Danni critici')}${pct('block', 'Blocco')}${pct('dodge', 'Schivata')}${pct('heal', 'Cure')}
-   ${pct('move', 'Velocità di marcia', [['Equipaggiamento', S.mvTeam ? pc(S.mvTeam) : '', S.mvTeam || 0]])}
+   ${pct('move', 'Velocità di marcia', [['Stivali e gambali di Brace', S.mvTeam ? pc(S.mvTeam) : '', S.mvTeam || 0]])}
    <div class="bnh">Bonus di classe</div>${syn}
    <div class="bnh">Oro, esperienza e drop</div>
    ${mul('Oro', 'gold', [['Pass', pass ? 2 : 1], ['Fine del gioco', cap ? F.END_GOLD : 1]])}
