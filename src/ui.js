@@ -667,7 +667,7 @@ function showSellOpts() {
 function pZaino() {
   const inBag = selItem && S.inventory.find(x => x.id === selItem), inChest = selItem && S.chest.find(x => x.id === selItem);
   const det = inBag ? itemDetail(inBag, 'bag') : inChest ? itemDetail(inChest, 'chest') : '';
-  return `<div class="row2 bagbar"><button class="pb" data-act="equipall">Equipaggia tutto</button><label class="tg eqres"><input type="checkbox" data-act="eqres" ${S.settings.eqReserve ? 'checked' : ''}> riserva</label><button class="sb" data-act="fuseopen">Fusione</button><button class="sb" data-act="sellopts">Scarto e vendita</button></div>
+  return `<div class="row2 bagbar"><button class="pb" data-act="equipall">Equipaggia tutto</button><label class="tg eqres"><input type="checkbox" data-act="eqres" ${S.settings.eqReserve ? 'checked' : ''}> includi riserva</label><button class="sb" data-act="fuseopen">Fusione</button><button class="sb" data-act="sellopts">Scarto e vendita</button></div>
   <div class="ph"><h2 style="font-size:13px">Rune</h2><span></span></div>
   ${runeTiles()}
   <div class="ph"><h2 style="font-size:13px">Zaino</h2><span${S.inventory.length >= F.bagCap(S) ? ' style="color:#FF8A96"' : ''}>${S.inventory.length}/${F.bagCap(S)}</span></div>
@@ -738,22 +738,22 @@ function pNegozio() {
 const guideOpen = new Set(); // le voci aperte restano aperte anche quando il pannello si ridisegna
 document.addEventListener('toggle', e => { const d = e.target; if (d.classList && d.classList.contains('guide')) { const i = +d.dataset.g; if (d.open) guideOpen.add(i); else guideOpen.delete(i); } }, true);
 const GUIDE = [
-  ['Battaglie e zone', 'La squadra combatte da sola, anche a gioco chiuso. Ogni zona ha 30 battaglie e un boss: sconfiggilo per aprire la zona dopo. Le zone già finite servono per farmare. Se la squadra cade, la zona riparte dalla battaglia 1.'],
-  ['Squadra e classi', 'Guerrieri davanti a prendere i colpi, Arcieri, Maghi e Curatori dietro. Ogni classe ha la sua gittata e un\'abilità. Più classi uguali danno un bonus, e con tutte e 4 le classi in squadra hai +8% a tutti. Ogni 5 zone completate si apre un posto in più.'],
-  ['Cattura delle creature', 'Ogni nemico sconfitto ha una piccola probabilità di unirsi a te: le creature più rare sono più difficili da prendere ma più forti. Ogni creatura si cattura una sola volta.'],
-  ['Equipaggiamento e zaino', 'Gli oggetti cadono dai nemici e finiscono nello Zaino. Il triangolo verde indica che migliora qualcuno della squadra. Con lo zaino pieno gli oggetti nuovi vanno persi, quindi equipaggia e vendi spesso.'],
-  ['Livelli e punti', 'Le creature salgono di livello combattendo (solo chi è vivo prende esperienza). A ogni livello hai punti da assegnare a danni, vita, difesa o critico nella scheda del personaggio.'],
-  ['Costellazioni', 'Con l\'oro accendi le stelle: bonus permanenti per tutta la squadra, anche più tempo offline. Ogni stella costa più della precedente: un terzo basta per finire il gioco, le altre sono per chi continua a farmare.'],
-  ['Gioco offline', 'Quando chiudi il gioco la squadra continua a combattere fino a 6 ore (fino a 10 con le stelle). Al ritorno vedi il riepilogo di oro, oggetti e catture.'],
-  ['Rarità, rune e Mercante', 'Gli oggetti vanno da Comune a Segreto. Con le rune puoi alzare la rarità di un oggetto, con le pietre rimescolarne i bonus. Al Mercante vendi gli oggetti e compri rune e oggetti.'],
-  ['Scarto automatico e protezioni', 'Puoi far vendere da solo gli oggetti comuni (dalla zona 10, subito col Pass) e i non comuni (col Pass). Blocca gli oggetti che vuoi tenere e spunta le rarità da non vendere mai.'],
-  ['Boss segreti', 'Molto di rado al posto del boss di zona compare la sua versione gigante: se la sconfiggi si unisce subito a te, più forte del 30%.'],
-  ['Portale astrale', 'Ogni 2-3 giorni compare un portale sopra la battaglia: 3 ondate più forti, forzieri d\'oro e di Astri e il Guardiano del pianeta, che ogni tanto si cattura.'],
-  ['Bestiario e missioni', 'Dalla Mappa apri il Bestiario: tutte le creature, dove trovarle e le missioni per ognuna. Sconfiggendone tante ricevi Astri e rune.'],
-  ['Velocità di marcia', 'La velocità la decide Brace: stivali e gambali indossati da lui (e le stelle di marcia) lo fanno correre di più, e tutta la squadra gli corre dietro. Battaglie più veloci, farm più rapido.'],
-  ['Astri e potenziamenti', 'Gli Astri si guadagnano col regalo giornaliero, gli achievement, le missioni, il portale e vendendo le rune. Servono a potenziare gli slot dell\'equipaggiamento e nello Shop.'],
-  ['Shop, seguaci e pet', 'Nello Shop trovi i seguaci di Brace, con un attacco tutto loro, pet che volano sopra la squadra con bonus cumulabili, il Pass Astrale (oro ed esperienza doppi, zaino più grande) e pacchetti di Astri e oro.'],
-  ['Achievement, classifica e chat', 'Gli achievement danno Astri. In Stats trovi le tue statistiche, il contributo di ogni membro e la classifica; la chat è in alto a destra.'],
+  ['Battaglie e zone', 'La tua squadra combatte in automatico, anche quando sei offline. Ogni zona ha 30 battaglie e un boss finale: sconfiggilo per accedere alla zona successiva. Se vieni sconfitto, si ricomincia dalla prima battaglia della zona. Tornare nelle zone già completate serve a raccogliere risorse, potenziare la squadra o catturare nuovi compagni.'],
+  ['Squadra, classi e gittata', 'Le classi sono quattro: Guerriero, Arciere, Mago e Curatore. Ogni personaggio ha una gittata e un attacco propri, e si posiziona in base alla gittata: Brace è sempre in prima linea, dietro di lui i Guerrieri, poi Arcieri e Maghi, e in fondo i Curatori. I nemici colpiscono sempre chi è più vicino. Bonus di classe: 2 creature della stessa classe danno +5% a vita e danni di quella classe, 4 danno +12%, 6 danno +20%; schierare tutte e 4 le classi aggiunge +8% a tutta la squadra. Ogni 5 zone completate si sblocca un posto in più.'],
+  ['Cattura delle creature', 'Ogni nemico sconfitto ha una ridotta probabilità di unirsi alla squadra: le creature più rare sono più difficili da reclutare, ma decisamente più forti. Ogni creatura può essere catturata una sola volta.'],
+  ['Equipaggiamento e zaino', 'Il bottino dei nemici finisce nello Zaino. Un triangolo verde segnala un oggetto che migliora un membro della squadra. Se lo zaino è pieno, i nuovi oggetti vanno persi.'],
+  ['Livelli e punti', 'Le creature salgono di livello combattendo, ma solo quelle in vita ottengono esperienza. A ogni livello si ricevono punti statistica da assegnare nella scheda del personaggio.'],
+  ['Costellazioni', 'Spendendo oro si accendono le stelle, che danno bonus permanenti a tutta la squadra. Ogni stella costa più della precedente.'],
+  ['Gioco offline', 'Quando sei offline la squadra continua a combattere in automatico fino a 6 ore (estensibili a 10 con le stelle dedicate). Al rientro viene mostrato un riepilogo dei progressi ottenuti in tua assenza.'],
+  ['Rarità, rune e Mercante', 'La rarità degli oggetti va da Comune a Segreto. Le rune aumentano la rarità di un oggetto, le pietre del rimescolo ne cambiano i bonus. Dal Mercante si acquistano rune e nuovi oggetti.'],
+  ['Scarto automatico e protezioni', 'È possibile automatizzare la vendita degli oggetti Comuni (dalla zona 10, o da subito con il Pass) e Non comuni (solo con il Pass). Si possono inoltre bloccare gli oggetti da conservare e scegliere le rarità da escludere dalla vendita.'],
+  ['Boss segreti', 'Raramente, al posto del boss di zona, compare la sua versione gigante: sconfiggendola, si unisce subito alla squadra con statistiche maggiorate del 30%.'],
+  ['Portale astrale', 'Ogni 2-3 giorni compare un portale nell\'area di combattimento: 3 ondate di nemici potenziati, forzieri d\'oro e di Astri e il Guardiano del regno, che ha una probabilità di unirsi alla squadra.'],
+  ['Bestiario e missioni', 'Dalla Mappa si accede al Bestiario, che cataloga tutte le creature scoperte, dove trovarle e le missioni associate. Sconfiggi più volte lo stesso nemico per ottenere ricompense.'],
+  ['Velocità di marcia', 'Stivali, gambali e alcuni bonus aumentano la velocità della squadra: si sommano quelli di tutti i membri. Più è alta, più in fretta la squadra corre incontro ai nemici, riducendo i tempi tra gli scontri e accelerando la raccolta di risorse. Ogni personaggio corre comunque alla sua velocità.'],
+  ['Astri', 'Gli Astri si ottengono con le ricompense giornaliere, gli achievement, le missioni, il Portale e la vendita delle rune.'],
+  ['Shop', 'Nello Shop sono disponibili i seguaci di Brace, i pet, il Pass Astrale e pacchetti di Astri e oro.'],
+  ['Achievement, statistiche e chat', 'Completare gli achievement ricompensa con Astri. Nella sezione Stats puoi consultare i tuoi progressi e tutti i bonus dell\'account. La chat si trova in alto a destra.'],
 ];
 function pImpost() {
   return `<div class="ph"><h2>Guida al gioco</h2></div>
@@ -1348,7 +1348,7 @@ document.addEventListener('click', e => {
   else if (a === 'selrune') { selRune = selRune === t.dataset.k ? null : t.dataset.k; selItem = null; }
   else if (a === 'selshop') selShop = selShop === +t.dataset.i ? null : +t.dataset.i;
   else if (a === 'equipall') { const n = F.autoEquip(S); toast(n ? `Equipaggiati ${n} oggetti` : 'Nessun miglioramento disponibile'); }
-  else if (a === 'sellrest') { const r = F.sellRest(S); toast(r.n ? `Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro` : 'Niente da vendere'); }
+  else if (a === 'sellrest') { const r = F.sellRest(S); closeModal(); toast(r.n ? `Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro` : 'Niente da vendere'); }
   else if (a === 'eqto') { F.equipTo(S, item, id || $('#eqsel').value); selItem = null; eqSel = null; }
   else if (a === 'eqpick') { eqSel = eqSel === item ? null : item; }
   else if (a === 'protk') { F.toggleProtect(S, t.dataset.k); }
@@ -1364,7 +1364,7 @@ document.addEventListener('click', e => {
   else if (a === 'buy') { if (F.buyShop(S, +t.dataset.i)) toast('Acquistato: lo trovi nello zaino'); }
   else if (a === 'reroll') { selShop = null; if (F.rerollShop(S)) toast('Il mercante ha cambiato la merce', '#F49AC1'); }
   else if (a === 'skip') { skipTime(+t.dataset.h); return; }
-  else if (a === 'sellbelow') { const r = F.sellBelow(S); toast(r.n ? `Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro` : 'Niente sotto la soglia'); }
+  else if (a === 'sellbelow') { const r = F.sellBelow(S); closeModal(); toast(r.n ? `Venduti ${r.n} oggetti per ${cfmt(r.gold)} oro` : 'Niente sotto la soglia'); }
   else if (a === 'claim') { const r = F.claimMission(S, id); if (r) toast(`Missione completata: +${r.astri} Astri, +1 ${F.RUNE[r.rune[0]].label.toLowerCase()}`, '#F2C14E'); }
   else if (a === 'buyhero') { if (F.buyHero(S, id)) { snd('capture'); rebuild(); showHeroGet(id); } }
   else if (a === 'bagview') { bagView = t.dataset.v; selItem = null; }
@@ -1447,9 +1447,16 @@ function catchUp() {
   if (away > 30) { const id0 = S.nextId; const r = F.simulateOffline(S, away); r.since = id0; F.checkAch(S); save(); showOffline(r); }
   B = F.startBattle(S); buildScene();
 }
+let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) save();
-  else { catchUp(); last = performance.now(); dirty = true; }
+  if (document.hidden) { hiddenAt = Date.now(); save(); return; }
+  const away = hiddenAt ? (Date.now() - hiddenAt) / 1000 : 0; hiddenAt = 0;
+  if (away > 30 || !B) catchUp(); // assenza lunga: riepilogo come al rientro dal gioco chiuso
+  else if (away > 0 && S.net && !tutOn) { // assenza breve (es. una risposta su WhatsApp): la battaglia continua da dove era
+    const ev = [], sp = S.settings.tFast ? 10 : 1; let left = away * sp; while (left > 0) { const d = Math.min(0.05, left); F.step(S, B, d, ev); left -= d; }
+    S.stats.played += away; handle(ev.filter(e => !['dmg', 'atk', 'skill', 'heal', 'dodge', 'fx'].includes(e.type))); buildScene();
+  }
+  last = performance.now(); dirty = true;
 });
 window.addEventListener('pagehide', save);
 
