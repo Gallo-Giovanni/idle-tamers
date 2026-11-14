@@ -306,8 +306,8 @@ let marching = null;
 function updateScene() {
   const en = B.enemies.filter(u => u.hp > 0);
   // telecamera: quando la prima linea avanza, avanza tutta la squadra e la scena la segue (la squadra resta ferma sullo schermo)
-  const adv = u => (u.pos === undefined || u.cls !== 'Guerriero' || u.hp <= 0) ? 0 : u.pos + F.reachOf(u.species) / 20; // quanto il guerriero è avanzato verso il nemico
-  const cam = B.party.reduce((x, u) => Math.max(x, adv(u)), 0), moving = cam > (B._cam || 0) + 1e-6; B._cam = cam;
+  const adv = u => (u.pos === undefined || u.hp <= 0) ? 0 : u.pos + F.reachOf(u.species) / 20; // quanto è avanti (o indietro, mentre corre al suo posto) rispetto alla sua gittata
+  const cam = B.party.reduce((x, u) => u.cls === 'Guerriero' ? Math.max(x, adv(u)) : x, 0), moving = cam > (B._cam || 0) + 1e-6; B._cam = cam;
   const m = B.over === 'win' || moving || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
   { const left = en.length, fc = $('#foes'); const ft = (S.portalRun ? 'Portale · ondata ' + S.portalRun.wave + '/' + F.PORTAL_WAVES + ' · ' : '') + 'Nemici rimasti ' + left; if (fc && fc.dataset.n !== ft) { fc.dataset.n = ft; fc.textContent = ft; } }
@@ -317,7 +317,7 @@ function updateScene() {
   { const now = performance.now(), dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0; lastFrame = now;
     const n = partyOrder.length, step = partyStep(n); let k = 0;
     partyOrder.forEach(({ u }) => { const el = pEls[u.idx]; if (!el) return;
-      if (u.hp > 0) { const bx = unitX(u); k++; el._wx = undefined; el.style.left = (bx + (u.cls === 'Guerriero' ? (adv(u) - cam) * PX : 0)) + 'px'; return; }
+      if (u.hp > 0) { const bx = unitX(u); k++; el._wx = undefined; el.style.left = (bx + (adv(u) - (u.cls === 'Guerriero' ? cam : 0)) * PX) + 'px'; el.classList.toggle('walk', u.arrive > 0); return; }
       if (el._wx === undefined) { el._wx = parseFloat(el.style.left) || +el.dataset.x; el._cam0 = cam; el.classList.remove('pm'); }
       if (marching) el._wx -= dt * 75 * F.moveSpeed(S);
       el.style.left = (el._wx - (cam - el._cam0) * PU) + 'px'; }); }

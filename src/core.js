@@ -335,10 +335,10 @@ function xpNeed(l) { return Math.round(XP_0 * Math.pow(XP_R, l - 1)); } // circa
 // ---------- Statistiche degli oggetti ----------
 // Statistiche principali dal tipo; statistiche bonus casuali: 0 comune, 1 non comune, 2 rara, 3 epica, 4 leggendaria
 const STAT_LABEL = { move: 'Vel. movimento', atk: 'Danni', hp: 'PV massimi', def: 'Difesa', crit: 'Prob. critico', critDmg: 'Danni critici', aspd: "Vel. d'attacco", block: 'Blocco', dodge: 'Schivata' };
-let MOVE_BOOTS = 0.04, MOVE_CAP = 1; if (typeof process !== 'undefined' && process.env && process.env.MVB) MOVE_BOOTS = +process.env.MVB; if (typeof process !== 'undefined' && process.env && process.env.MVC) MOVE_CAP = +process.env.MVC;
+let MOVE_BOOTS = 0.003, MOVE_CAP = 1; if (typeof process !== 'undefined' && process.env && process.env.MVB) MOVE_BOOTS = +process.env.MVB; if (typeof process !== 'undefined' && process.env && process.env.MVC) MOVE_CAP = +process.env.MVC;
 const PCT_STATS = ['crit', 'critDmg', 'aspd', 'block', 'dodge', 'move'];
 const BONUS_KEYS = ['atk', 'hp', 'def', 'crit', 'critDmg', 'aspd', 'block', 'dodge', 'move'];
-const BONUS_DEF = { atk: 0.12, hp: 0.8, def: 0.04, crit: 0.02, critDmg: 0.08, aspd: 0.04, block: 0.03, dodge: 0.03, move: 0.05 };
+const BONUS_DEF = { atk: 0.12, hp: 0.8, def: 0.04, crit: 0.02, critDmg: 0.08, aspd: 0.04, block: 0.03, dodge: 0.03, move: 0.0036 }; // move: piccolo perché la velocità di marcia somma tutta la squadra
 const SUFFIX = { atk: 'della Furia', hp: 'del Gigante', def: 'della Roccia', crit: 'del Falco', critDmg: 'della Tempesta', aspd: 'del Vento', block: 'del Bastione', dodge: "dell'Ombra", move: 'della Cometa' };
 const BONUS_COUNT = { comune: 0, noncomune: 1, rara: 2, epica: 3, leggendaria: 4, mitico: 4, astrale: 4, arcano: 5, eterno: 5, segreto: 5 };
 const rarMult = k => ITEM_RARITY.find(r => r.key === k).mult;
@@ -480,6 +480,7 @@ function enemiesLeft(z, n) { let t = 0; for (let k = n + 1; k <= BOSS_BATTLE; k+
 // I nemici entrano uno alla volta da fuori schermo, ognuno con il suo passo: i Guerrieri corrono, arcieri e maghi arrivano dopo
 // i nemici entrano uno alla volta, a qualche secondo l'uno dall'altro e più lenti: all'inizio di ogni battaglia lo scontro è 1 contro 1
 const ENEMY_START = 10, ENEMY_SPACING = 10, ENEMY_GAP = 0.5, ENEMY_V = { Guerriero: 3.6, Arciere: 2.8, Mago: 2.8, Curatore: 2.5 };
+const PARTY_ENTRY = 2, PARTY_V = { Guerriero: 3.2, Arciere: 2.4, Mago: 2.2, Curatore: 2 }; // a inizio battaglia ognuno corre al suo posto alla sua velocità: prima i guerrieri, poi arcieri, maghi e curatori
 // i nemici aspettano in fila fuori schermo, uno dietro l'altro: ognuno parte verso la squadra dalla sua posizione col suo passo
 function arriveTime(i, cls) { return (ENEMY_START + i * ENEMY_SPACING - CLASSES[cls].range) / ENEMY_V[cls]; } // secondi per entrare in scena: i nemici arrivano insieme, in gruppo, alla stessa velocità
 // ---------------- Portale ----------------
@@ -517,7 +518,7 @@ function makeEnemies(s) {
 // Si torna a vita piena quando cambia la zona, quando la zona ricomincia dopo il boss o quando la squadra cade.
 function startBattle(s) {
   s.runHp = s.runHp || {};
-  const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', pos: -reachOf(s.roster[id].species) / 20, idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: abilityOf(s.roster[id].species), abT: 0, dealt: 0, taken: 0 }; });
+  const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', home: -reachOf(s.roster[id].species) / 20, arrive: 1, pos: -reachOf(s.roster[id].species) / 20 - PARTY_ENTRY, idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: abilityOf(s.roster[id].species), abT: 0, dealt: 0, taken: 0 }; });
   s.mvTeam = teamMove(s);
   return { party, enemies: makeEnemies(s), time: 0, over: null, pause: 0 };
 }
@@ -712,6 +713,7 @@ function step(s, b, dt, ev) {
       const was = u.arrive; u.arrive = u.pos > want + 1e-3 ? 1 : 0; if (u.arrive) continue;
       if (was) u.t = 0; // appena arrivato a tiro attacca subito, senza attesa
     }
+    if (u.side === 'p' && u.arrive) { u.pos = Math.min(u.home, u.pos + PARTY_V[u.cls] * speedOf(u.species) * moveSpeed(s) * dt); if (u.pos >= u.home - 1e-3) { u.arrive = 0; u.t = Math.min(u.t, 0); } else { tickStatus(s, b, u, dt, ev); continue; } }
     tickStatus(s, b, u, dt, ev); if (u.hp <= 0) continue;
     if (u.side === 'p' && u.ab && u.ab.cd) { u.abT = (u.abT || 0) + dt; if (u.abT >= u.ab.cd && timedAbility(s, b, u, ev)) u.abT = 0; }
     if (u.stunT > 0) continue; // stordito: non fa nulla
@@ -1029,7 +1031,7 @@ function missionsReady(s) { return ALL_SPECIES.filter(sp => missionReady(s, sp))
 function setZone(s, z) { if (z < 1 || z > s.maxZone) return false; s.zone = z; s.battle = 1; s.runHp = {}; s.zoneStart = s.clock || 0; return true; }
 function moveSpeed(s) { return 1 + B(s, 'move') + (s.mvTeam || 0); }
 // velocità di marcia dagli oggetti: media della squadra (chi non ha bonus conta zero), al massimo +100%
-function teamMove(s) { if (!s.team || !s.team.length) return 0; if (s.roster.hero && s.team.includes('hero')) return Math.min(MOVE_CAP, memberStats(s, 'hero').move || 0); let t = 0; for (const id of s.team) t += memberStats(s, id).move || 0; return Math.min(MOVE_CAP, t / s.team.length); } // la velocità di marcia la decide Brace: più corre lui, più corrono tutti
+function teamMove(s) { if (!s.team || !s.team.length) return 0; let t = 0; for (const id of s.team) t += memberStats(s, id).move || 0; return Math.min(MOVE_CAP, t); } // velocità di marcia: si somma quella di tutta la squadra
 function untank(o) { if (!o || typeof o !== 'object') return; if (o.cls === 'Tank') o.cls = 'Guerriero'; for (const k in o) untank(o[k]); }
 function migrate(s) {
   if (!s.scale2 && s.zone !== undefined) { // numeri ridimensionati: l'oro del vecchio salvataggio passa alla nuova scala (stesso valore in stelle)
