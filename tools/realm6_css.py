@@ -20,7 +20,7 @@ bg_ = h['gnd'] - 4; bf = bg_; bm = bf + max(6, S['fg'] - 4); bt = bm + max(6, S[
 print('basi piene', S, 'bottom fg/mid/mtn', bf, bm, bt)
 import io
 def enc(n):  # WebP senza perdita: stessa nitidezza del PNG, file molto più leggero
-    bf = io.BytesIO(); Image.open(f'{d}/{n}.png').save(bf, 'WEBP', lossless=True, method=6); return base64.b64encode(bf.getvalue()).decode()
+    bf = io.BytesIO(); Image.open(f'{d}/{n}.png').save(bf, 'WEBP', quality=int(sys.argv[6]) if len(sys.argv) > 6 else 92, method=6); return base64.b64encode(bf.getvalue()).decode()
 b = {n: enc(n) for n in L}
 k = f'r6{cls}'
 url = lambda n: f'url(data:image/webp;base64,{b[n]})'
@@ -29,7 +29,7 @@ css = f"""/* {cls}: sfondo a 6 livelli (strisce separate da ChatGPT, montate con
 #scene.{cls}{{background:{sky}!important;animation:none}}
 #scene.{cls} #stage{{height:100%}}
 #scene.{cls} #stage>*:not(#units):not(.l6){{display:none!important}}
-#scene.{cls} .l6{{display:block;position:absolute;left:0;right:0;image-rendering:pixelated;background-repeat:repeat-x;pointer-events:none}}
+#scene.{cls} .l6{{display:block;position:absolute;left:0;right:0;image-rendering:auto;background-repeat:repeat-x;pointer-events:none}}
 #scene.{cls} .l6.c1{{top:calc(var(--hh,52px) + 6px);height:{h['c1']}px;background-image:{url('c1')};background-size:{W}px {h['c1']}px;animation:{k} 170s linear infinite}}
 #scene.{cls} .l6.c2{{top:calc(var(--hh,52px) + {h['c1'] - 10}px);height:{h['c2']}px;background-image:{url('c2')};background-size:{W}px {h['c2']}px;background-position-x:{W // 3}px;opacity:.9;-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent);animation:{k} 115s linear infinite}}
 #scene.{cls} .l6.mtn{{bottom:{bt}px;height:{h['mtn']}px;background-image:{url('mtn')};background-size:{W}px {h['mtn']}px;animation:{k} calc(130s / var(--ms,1)) linear infinite paused}}
