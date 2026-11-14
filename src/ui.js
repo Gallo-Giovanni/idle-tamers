@@ -346,7 +346,7 @@ function stickArrow(el) {
   }, 250);
 }
 // la Succube lancia un cuore e il Negromante un teschio fantasma: volano dritti dalla mano al nemico lasciando una scia, poi scoppiano
-const PROJ = { heart: { p: 'heartp', w: 20, h: 18, tr: 'htrail', m: 'hmini', hit: 'hhit', d: 120, vfx: 'vfxhburst' }, skull: { p: 'skullp', w: 18, h: 18, tr: 'strail', m: 'smini', hit: 'shit', d: 170 } };
+const PROJ = { heart: { p: 'heartp', w: 20, h: 18, tr: 'htrail', m: 'hmini', hit: 'hhit', d: 120, vfx: 'vfxhburst' }, skull: { p: 'skullp', w: 18, h: 18, tr: 'strail', m: 'smini', hit: 'shit', d: 170, vfx: 'vfxsburst' } };
 function flyHeart(fromEl, toEl, kind) {
   if (!fromEl || !toEl) return;
   const P = PROJ[kind || 'heart'];
@@ -370,7 +370,7 @@ let floats = 0;
 // stati visibili sopra i personaggi: fiamme, stordimento, ghiaccio, cecità, scudo, provocazione, cubo nullo
 function stFx(el, u) { const c = el.classList, on = u.hp > 0; c.toggle('st-burn', on && u.burnT > 0); c.toggle('st-stun', on && u.stunT > 0); c.toggle('st-slow', on && u.slowT > 0); c.toggle('st-blind', on && u.blind > 0); c.toggle('st-shield', on && (u.shield > 0 || u.shellT > 0)); c.toggle('st-taunt', on && u.tauntT > 0); c.toggle('st-null', on && !!u.nullR); c.toggle('st-hot', on && u.hotT > 0); }
 // effetto del VFX Creator che parte una volta sopra un personaggio (anche se è appena caduto)
-function vfxAt(el, cls, ms) { if (!el || !el.isConnected) return; const sc = scene().getBoundingClientRect(), r = el.getBoundingClientRect(); const f = document.createElement('div'); f.className = cls; f.style.left = (r.left - sc.left + r.width / 2) + 'px'; f.style.top = (r.bottom - sc.top - 46) + 'px'; $('#fx').appendChild(f); setTimeout(() => f.remove(), ms); }
+function vfxAt(el, cls, ms, h) { if (!el || !el.isConnected) return; const sc = scene().getBoundingClientRect(), r = el.getBoundingClientRect(); const f = document.createElement('div'); f.className = cls; f.style.left = (r.left - sc.left + r.width / 2) + 'px'; f.style.top = (r.bottom - sc.top - (h || 46)) + 'px'; $('#fx').appendChild(f); setTimeout(() => f.remove(), ms); }
 function floatText(el, text, cls) {
   if (!el || floats > 24) return;
   const sc = scene().getBoundingClientRect(), r = el.getBoundingClientRect();
@@ -411,7 +411,7 @@ function handle(ev) {
     else if (e.type === 'atk' && e.side === 'p' && e.tgt !== undefined && B.party[e.idx] && B.party[e.idx].cls === 'Arciere') { stickArrow(eEls[e.tgt]); }
     if (e.type === 'atk') { lunge((e.side === 'p' ? pEls : eEls)[e.idx], e.side === 'p' ? 8 : -8); if (e.side === 'e') knAnim(eEls[e.idx], 'atk', 800); if (e.side === 'p') { const el = pEls[e.idx]; const two = el && (el._k = !el._k); knAnim(el, two ? 'atk2' : 'atk', two ? 400 : 450); } }
     else if (e.type === 'skill') { floatText(pEls[e.idx], e.name, 'skill'); knAnim(pEls[e.idx], 'sk', 450); }
-    else if (e.type === 'heal') { floatText(pEls[e.idx], '+' + cfmt(e.h), 'heal'); }
+    else if (e.type === 'heal') { floatText(pEls[e.idx], '+' + cfmt(e.h), 'heal'); if (e.soul) setTimeout(() => vfxAt(pEls[e.idx], 'vfxsoul', 750, 60), 430); }
     else if (e.type === 'dodge') { if (e.side === 'p') knAnim(pEls[e.idx], 'dg', 450); }
     else if (e.type === 'kill') { snd('kill'); dirty = true; }
     else if (e.type === 'drop') { const r = F.ITEM_RARITY.find(x => x.key === e.item.rarity); if (e.item.rarity !== 'comune') toast(`Trovato: <b class="${r.rainbow ? 'rbw' : ''}" style="color:${r.color}">${esc(F.itemName(e.item))}</b> · ${r.label}`, r.color); dirty = true; }
@@ -1182,7 +1182,10 @@ function showPreview(kind, id) {
   if (kind === 'hero') {
     const h = F.HERO_SHOP.find(x => x.id === id), sp = F.SPECIES[id], c = F.CLASSES[sp.cls], own = !!S.roster[id], hb = sp.hb || {};
     const big = id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div><i class="shopskull" aria-hidden="true"></i>' : id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div><i class="shopheart" aria-hidden="true"></i>' : sprite(id, 6);
-    body = `<div class="pvbig herocard"><div class="mspr">${big}</div></div>
+    const train = id === 'hero_mag' || id === 'hero_arc'; // i seguaci si allenano sul manichino: attacco, colpo in volo e impatto
+    body = train ? `<div class="pvbig herocard train"><div class="mspr">${id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div>' : '<div class="ar" aria-hidden="true"></div>'}</div><i class="${id === 'hero_mag' ? 'shopskull' : 'shopheart'} trproj" aria-hidden="true"></i><div class="dummy" aria-hidden="true"><i class="dimp ${id === 'hero_mag' ? 'sk' : 'hb'}"></i></div></div>`
+      : `<div class="pvbig herocard"><div class="mspr">${big}</div></div>`;
+    body += `
       <h2 class="pvt">${sp.name}</h2><div class="msub" style="text-align:center"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · gittata ${String(F.reachOf(id)).replace('.', ',')}</div>
       <div class="note" style="text-align:center"><i>“${sp.quote}”</i></div>
       <div class="stbox"><div class="srow2"><span>Vita (livello 1)</span><b>${Math.round(c.hp * (1 + (hb.hp || 0)))}</b></div><div class="srow2"><span>Danni</span><b>${Math.round(c.atk * (1 + (hb.atk || 0)))}</b></div><div class="srow2"><span>Difesa</span><b>${c.def}</b></div><div class="srow2"><span>Attacchi al secondo</span><b>${((1 + (hb.aspd || 0)) / c.spd).toFixed(2).replace('.', ',')}</b></div>${hb.crit ? `<div class="srow2"><span>Colpi critici</span><b>${Math.round(hb.crit * 100)}%</b></div>` : ''}</div>

@@ -632,7 +632,7 @@ function timedAbility(s, b, u, ev) {
     case 'taunt': { if (!frontTarget(s, b.enemies)) return false; u.tauntT = 3; sk(); if (ev) ev.push({ type: 'fx', side: 'p', idx: u.idx, fx: 'taunt' }); return true; }
     case 'null': { if (u.nullR) return false; u.nullR = 1; if (ev) ev.push({ type: 'fx', side: 'p', idx: u.idx, fx: 'nullon' }); return true; }
     case 'nuke': { const tg = frontTarget(s, b.enemies); if (!tg) return false; sk(); const r = dealDamage(s, b, u, tg, A.m, !!A.ign, ev);
-      if (A.leech && r) { const w = wounded(); if (w) { const h = Math.round(Math.min(w.maxHp - w.hp, r * A.leech)); if (h > 0) { w.hp += h; u.healed = (u.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: w.idx, h }); } } } // l'anima strappata cura l'alleato più ferito (di solito chi sta davanti)
+      if (A.leech && r) { const w = wounded(); if (w) { const h = Math.round(Math.min(w.maxHp - w.hp, r * A.leech)); if (h > 0) { w.hp += h; u.healed = (u.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: w.idx, h, soul: 1 }); } } } // l'anima strappata cura l'alleato più ferito (di solito chi sta davanti)
       if (A.burn && tg.hp > 0) addBurn(tg, u.atk * A.burn, 4, ev, u);
       if (A.again && tg.hp <= 0) { const t2 = frontTarget(s, b.enemies); if (t2) dealDamage(s, b, u, t2, A.m, true, ev); }
       return true; }
