@@ -1323,7 +1323,7 @@ function timedAbility(s, b, u, ev) {
     case 'taunt': { if (!frontTarget(s, b.enemies)) return false; u.tauntT = 3; sk(); if (ev) ev.push({ type: 'fx', side: 'p', idx: u.idx, fx: 'taunt' }); return true; }
     case 'null': { if (u.nullR) return false; u.nullR = 1; if (ev) ev.push({ type: 'fx', side: 'p', idx: u.idx, fx: 'nullon' }); return true; }
     case 'nuke': { const tg = frontTarget(s, b.enemies); if (!tg) return false; sk(); const r = dealDamage(s, b, u, tg, A.m, !!A.ign, ev);
-      if (A.leech && r) { const h = Math.round(Math.min(u.maxHp - u.hp, r * A.leech)); if (h > 0) { u.hp += h; if (ev) ev.push({ type: 'heal', idx: u.idx, h }); } }
+      if (A.leech && r) { const w = wounded(); if (w) { const h = Math.round(Math.min(w.maxHp - w.hp, r * A.leech)); if (h > 0) { w.hp += h; u.healed = (u.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: w.idx, h }); } } } // l'anima strappata cura l'alleato più ferito (di solito chi sta davanti)
       if (A.burn && tg.hp > 0) addBurn(tg, u.atk * A.burn, 4, ev, u);
       if (A.again && tg.hp <= 0) { const t2 = frontTarget(s, b.enemies); if (t2) dealDamage(s, b, u, t2, A.m, true, ev); }
       return true; }
@@ -1353,7 +1353,7 @@ function tickStatus(s, b, u, dt, ev) {
 const ABIL = {
   hero:        { name: 'Lama infernale',     k: 'hit', ev: 3, m: 1.8, burn: 0.6, desc: 'Ogni 3 colpi sferra un fendente infuocato: fa il 180% dei danni e il nemico brucia per 3 s.' },
   hero_arc:    { name: 'Cuore spezzato',     k: 'mark', ev: 3, desc: 'Ogni 3 colpi spezza il cuore del nemico: subisce il 30% di danni in più per 4 s.' },
-  hero_mag:    { name: "Teschio dell'anima", k: 'nuke', cd: 5, m: 2.5, ign: 1, leech: 0.25, desc: "Ogni 5 s lancia un teschio che ignora l'armatura: fa il 250% dei danni e il Negromante recupera come vita un quarto dei danni fatti." },
+  hero_mag:    { name: "Teschio dell'anima", k: 'nuke', cd: 5, m: 2.5, ign: 1, leech: 0.25, desc: "Ogni 5 s lancia un teschio che ignora l'armatura e fa il 250% dei danni. L'anima strappata al nemico cura l'alleato più ferito di un quarto dei danni fatti." },
   glimmo:      { name: 'Lampo di luce',      k: 'blind', ev: 3, desc: 'Ogni 3 colpi acceca il nemico: per 3 s manca il 30% dei suoi colpi.' },
   cometuga:    { name: 'Guscio cometa',      k: 'shell', ev: 4, desc: 'Ogni 4 colpi si chiude nel guscio: per 2 s subisce metà dei danni.' },
   sporello:    { name: 'Spore lunari',       k: 'heal', cd: 3, desc: "Ogni 3 s cura l'alleato più ferito: 6% della sua vita più il 100% del proprio attacco." },
@@ -2600,7 +2600,7 @@ function pImpost() {
   <button class="sb" data-act="testacc" data-k="full" style="width:100%;margin-top:6px">Tutto completo (massimo di tutto)</button>
   <button class="sb" data-act="testcap" style="width:100%;margin-top:6px">Mostra la finestra di cattura</button>
   <div class="ph"><h2>Salvataggio</h2></div>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>14/11 08:57</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>14/11 08:58</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function pBestiario() {
