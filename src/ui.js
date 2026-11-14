@@ -264,7 +264,7 @@ function buildScene() { setScroll();
     const bp = u.secret ? 4 : u.boss ? 3 : 2, r = isRanged(u.cls);
     const x = 0, y = 26; mk++; // i nemici si sovrappongono: ognuno sta esattamente alla sua gittata
     const el = document.createElement('div'); el.className = 'u' + (u.secret ? ' secret' : '') + (F.SPECIES[u.species].portal ? ' astral' : '') + (ANIM[(F.SPECIES[u.species].base || u.species)] ? ' anim' : ''); el.dataset.x = x; el.style.left = '420px'; el.style.bottom = y + 'px'; el.style.zIndex = 15 - (mk % 3);
-    el.innerHTML = `<div class="hpb"><b style="background:#FF5A6E"></b></div><div class="mk">${icon('dust', '#7ED36F', 10)}</div>${animHTML(u) || sprite(u.species, bp, { flip: true })}`;
+    el.innerHTML = `<div class="hpb"><b style="background:#FF5A6E"></b></div><div class="mk"><i class="vfxheart"></i></div>${animHTML(u) || sprite(u.species, bp, { flip: true })}`;
     sc.appendChild(el); eEls[u.idx] = el;
   });
   buildLog();
