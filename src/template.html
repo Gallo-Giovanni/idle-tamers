@@ -631,6 +631,19 @@ body.bigscene #scene{height:calc(55vh + var(--hh,52px))}
 .bnrow{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.04);margin-bottom:3px}.bnrow>div{flex:1;min-width:0}.bnrow b{display:block;font-size:13px;font-weight:600}.bnrow span{display:block;font-size:11px;color:var(--muted)}.bnrow em{font-style:normal;font-weight:800;font-size:14px;color:#FFD86B;white-space:nowrap}
 .bnbase{font-size:11.5px;line-height:1.45;color:var(--muted);padding:2px 8px 8px}.bnbase b{color:var(--txt)}
 .porow{display:flex;align-items:center;gap:10px;margin-top:6px}
+/* stati dei personaggi (attacchi propri) */
+.fl.burnt{color:#FF9A3C;font-size:10px}.fl.fxt{color:#BFF4FF;font-size:10px}
+.u.st-burn>*:not(.hpb){filter:drop-shadow(0 0 3px #FF6A1A) sepia(.35) saturate(1.6)}
+.u.st-burn::after{content:'';position:absolute;left:50%;bottom:6px;width:16px;height:20px;margin-left:-8px;pointer-events:none;background:radial-gradient(circle at 50% 75%,#FFE27A 0 20%,#FF8A1A 40%,rgba(255,60,0,.6) 60%,transparent 72%);border-radius:50% 50% 45% 45%;animation:stfire .35s steps(2) infinite alternate;z-index:3}
+@keyframes stfire{from{transform:scaleY(.8) translateY(2px);opacity:.75}to{transform:scaleY(1.15);opacity:1}}
+.u.st-slow>*:not(.hpb){filter:hue-rotate(160deg) saturate(.7) brightness(1.15) drop-shadow(0 0 3px #8FE8FF)}
+.u.st-blind>*:not(.hpb){filter:brightness(.45)}
+.u.st-stun::before{content:'✦ ✦';position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:9px;color:#FFE27A;text-shadow:0 0 3px #000;white-space:nowrap;animation:ststun .6s linear infinite;z-index:4;pointer-events:none}
+@keyframes ststun{0%{transform:translateX(-60%)}50%{transform:translateX(-40%)}100%{transform:translateX(-60%)}}
+.u.st-shield>*:not(.hpb){filter:drop-shadow(0 0 2px #BFF4FF) drop-shadow(0 0 4px #4FC8FF)}
+.u.st-taunt>*:not(.hpb){filter:drop-shadow(0 0 4px #FF4A5A) drop-shadow(0 0 2px #FF4A5A)}
+.u.st-null::before{content:'';position:absolute;left:50%;top:-12px;width:9px;height:9px;margin-left:-5px;border:2px solid #B7A6FF;background:rgba(80,60,160,.6);box-shadow:0 0 5px #B7A6FF;transform:rotate(45deg);pointer-events:none;z-index:4}
+.u.st-hot>*:not(.hpb){filter:drop-shadow(0 0 4px #7EFF8A)}
 </style>
 </head>
 <body>

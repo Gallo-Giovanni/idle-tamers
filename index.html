@@ -631,6 +631,19 @@ body.bigscene #scene{height:calc(55vh + var(--hh,52px))}
 .bnrow{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.04);margin-bottom:3px}.bnrow>div{flex:1;min-width:0}.bnrow b{display:block;font-size:13px;font-weight:600}.bnrow span{display:block;font-size:11px;color:var(--muted)}.bnrow em{font-style:normal;font-weight:800;font-size:14px;color:#FFD86B;white-space:nowrap}
 .bnbase{font-size:11.5px;line-height:1.45;color:var(--muted);padding:2px 8px 8px}.bnbase b{color:var(--txt)}
 .porow{display:flex;align-items:center;gap:10px;margin-top:6px}
+/* stati dei personaggi (attacchi propri) */
+.fl.burnt{color:#FF9A3C;font-size:10px}.fl.fxt{color:#BFF4FF;font-size:10px}
+.u.st-burn>*:not(.hpb){filter:drop-shadow(0 0 3px #FF6A1A) sepia(.35) saturate(1.6)}
+.u.st-burn::after{content:'';position:absolute;left:50%;bottom:6px;width:16px;height:20px;margin-left:-8px;pointer-events:none;background:radial-gradient(circle at 50% 75%,#FFE27A 0 20%,#FF8A1A 40%,rgba(255,60,0,.6) 60%,transparent 72%);border-radius:50% 50% 45% 45%;animation:stfire .35s steps(2) infinite alternate;z-index:3}
+@keyframes stfire{from{transform:scaleY(.8) translateY(2px);opacity:.75}to{transform:scaleY(1.15);opacity:1}}
+.u.st-slow>*:not(.hpb){filter:hue-rotate(160deg) saturate(.7) brightness(1.15) drop-shadow(0 0 3px #8FE8FF)}
+.u.st-blind>*:not(.hpb){filter:brightness(.45)}
+.u.st-stun::before{content:'✦ ✦';position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:9px;color:#FFE27A;text-shadow:0 0 3px #000;white-space:nowrap;animation:ststun .6s linear infinite;z-index:4;pointer-events:none}
+@keyframes ststun{0%{transform:translateX(-60%)}50%{transform:translateX(-40%)}100%{transform:translateX(-60%)}}
+.u.st-shield>*:not(.hpb){filter:drop-shadow(0 0 2px #BFF4FF) drop-shadow(0 0 4px #4FC8FF)}
+.u.st-taunt>*:not(.hpb){filter:drop-shadow(0 0 4px #FF4A5A) drop-shadow(0 0 2px #FF4A5A)}
+.u.st-null::before{content:'';position:absolute;left:50%;top:-12px;width:9px;height:9px;margin-left:-5px;border:2px solid #B7A6FF;background:rgba(80,60,160,.6);box-shadow:0 0 5px #B7A6FF;transform:rotate(45deg);pointer-events:none;z-index:4}
+.u.st-hot>*:not(.hpb){filter:drop-shadow(0 0 4px #7EFF8A)}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -1189,7 +1202,7 @@ function makeEnemies(s) {
 // Si torna a vita piena quando cambia la zona, quando la zona ricomincia dopo il boss o quando la squadra cade.
 function startBattle(s) {
   s.runHp = s.runHp || {};
-  const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', pos: -CLASSES[st.cls].range, idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0 }; });
+  const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', pos: -CLASSES[st.cls].range, idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: abilityOf(s.roster[id].species), abT: 0, dealt: 0, taken: 0 }; });
   s.mvTeam = teamMove(s);
   return { party, enemies: makeEnemies(s), time: 0, over: null, pause: 0 };
 }
@@ -1205,39 +1218,155 @@ function frontTarget(s, list) {
   for (const u of a) { const g = rangeOf(u), gb = rangeOf(best); if (g < gb || (g === gb && pr(u) < pr(best))) best = u; } return best;
 }
 
-function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
-  if (dst.dodge && rnd(s) < dst.dodge) { if (ev) ev.push({ type: 'dodge', side: dst.side, idx: dst.idx }); return; }
+function dealDamage(s, b, src, dst, mult, ignoreDef, ev, opt) {
+  opt = opt || {};
+  if (dst.hp <= 0) return 0;
+  if (src.blind > 0 && rnd(s) < 0.3) { if (ev) ev.push({ type: 'dodge', side: dst.side, idx: dst.idx }); return 0; } // accecato: manca il colpo
+  if (dst.dodge && rnd(s) < dst.dodge) { if (ev) ev.push({ type: 'dodge', side: dst.side, idx: dst.idx }); return 0; }
+  if (dst.nullR) { dst.nullR = 0; if (ev) ev.push({ type: 'fx', side: dst.side, idx: dst.idx, fx: 'null' }); return 0; } // Cubo nullo
   let dmg = src.atk * mult;
   let crit = false;
-  if (rnd(s) < src.crit) { dmg *= src.critDmg; crit = true; }
+  if (opt.crit || rnd(s) < src.crit) { dmg *= src.critDmg + (opt.cdm || 0); crit = true; }
   if (!ignoreDef) dmg *= src.atk / (src.atk + 1.5 * dst.def); // difesa a rendimento decrescente: niente muri impossibili
   if (dst.mark > 0) dmg *= 1.3;
   if (dst.block && rnd(s) < dst.block) dmg *= 0.5;
+  if (dst.shellT > 0 || dst.tauntT > 0) dmg *= dst.shellT > 0 ? 0.5 : 0.7;
+  if (dst.ab && dst.ab.k === 'rock' && dst.hp < dst.maxHp / 2) dmg *= 0.7;
   dmg = Math.max(1, Math.round(dmg));
+  if (dst.shield > 0) { const a = Math.min(dst.shield, dmg); dst.shield -= a; dmg -= a; if (!dmg) { if (ev) ev.push({ type: 'fx', side: dst.side, idx: dst.idx, fx: 'shieldhit' }); return 0; } }
   const real = Math.min(dmg, dst.hp); src.dealt += real; dst.taken += real;
   if (src.side === 'p') { const d = s.dmgLog || (s.dmgLog = { since: s.clock || 0, by: {} }); d.by[src.id] = (d.by[src.id] || 0) + real; }
   dst.hp -= dmg;
   if (ev) ev.push({ type: 'dmg', side: dst.side, idx: dst.idx, dmg, crit, fs: src.side, fi: src.idx }); // fs/fi: chi colpisce (per sincronizzare il numero con l'animazione)
   if (dst.hp <= 0) { dst.hp = 0; if (dst.side === 'e') onKill(s, b, dst, ev); }
+  // contraccolpi di chi viene colpito (solo dai colpi diretti, non da bruciature o riflessi)
+  if (!opt.raw && src.hp > 0 && dst.ab) {
+    if (dst.ab.k === 'reflect') rawDamage(s, b, dst, src, real * dst.ab.v, ev);
+    else if (dst.ab.k === 'thorns') addBurn(src, dst.atk * dst.ab.v, 3, ev, dst);
+  }
+  return real;
 }
+// danni senza difesa né critici (bruciature, riflessi)
+function rawDamage(s, b, src, dst, amount, ev) {
+  if (dst.hp <= 0) return; const dmg = Math.max(1, Math.round(amount)), real = Math.min(dmg, dst.hp);
+  src.dealt += real; dst.taken += real;
+  if (src.side === 'p') { const d = s.dmgLog || (s.dmgLog = { since: s.clock || 0, by: {} }); d.by[src.id] = (d.by[src.id] || 0) + real; }
+  dst.hp -= dmg; if (ev) ev.push({ type: 'dmg', side: dst.side, idx: dst.idx, dmg, burn: 1 });
+  if (dst.hp <= 0) { dst.hp = 0; if (dst.side === 'e') onKill(s, b, dst, ev); }
+}
+function addBurn(u, total, secs, ev, src) { u.burnT = secs; u.burnD = total / secs; u.burnK = 0; u.burnSrc = src || u.burnSrc; if (ev) ev.push({ type: 'fx', side: u.side, idx: u.idx, fx: 'burn' }); }
 
 function attack(s, b, u, ev) {
   if (u.chest) return; // i forzieri non attaccano
   const foes = u.side === 'p' ? b.enemies : b.party;
-  const tgt = frontTarget(s, foes); // entrambe le parti colpiscono chi è più vicino
+  let tgt = frontTarget(s, foes); // entrambe le parti colpiscono chi è più vicino
+  if (u.side === 'e') { const tt = ready(b.party).find(x => x.tauntT > 0); if (tt) tgt = tt; } // Abbraccio di quarzo: attira i colpi
   if (!tgt) return;
   u.hits++;
   if (ev) ev.push({ type: 'atk', side: u.side, idx: u.idx, tgt: tgt.idx });
-  if (u.side === 'p' && u.cls === 'Guerriero' && u.hits % 3 === 0) {
-    if (ev) ev.push({ type: 'skill', side: 'p', idx: u.idx, name: 'Fendente!' });
-    dealDamage(s, b, u, tgt, 2.2, false, ev);
-    return;
-  }
-  if (u.side === 'p' && u.cls === 'Arciere' && u.hits % 3 === 0) {
-    tgt.mark = 4; if (ev) ev.push({ type: 'skill', side: 'p', idx: u.idx, name: 'Marchio!' });
+  const A = u.ab;
+  if (u.side === 'p' && A && A.ev && u.hits % A.ev === 0) {
+    const sk = () => { if (ev) ev.push({ type: 'skill', side: 'p', idx: u.idx, name: A.name + '!' }); };
+    switch (A.k) {
+      case 'hit': sk(); dealDamage(s, b, u, tgt, A.m, false, ev, { crit: A.crit, cdm: A.cdm });
+        if (A.burn) addBurn(tgt, u.atk * A.burn, A.k === 'hit' && A.m >= 1.8 ? 3 : 4, ev, u);
+        if (A.stun && tgt.hp > 0) { tgt.stunT = A.stun; if (ev) ev.push({ type: 'fx', side: tgt.side, idx: tgt.idx, fx: 'stun' }); }
+        if (A.slow && tgt.hp > 0) { tgt.slowT = A.slow; if (ev) ev.push({ type: 'fx', side: tgt.side, idx: tgt.idx, fx: 'slow' }); }
+        return;
+      case 'mark': tgt.mark = 4; sk(); break;
+      case 'blind': tgt.blind = 3; sk(); if (ev) ev.push({ type: 'fx', side: tgt.side, idx: tgt.idx, fx: 'blind' }); break;
+      case 'shell': u.shellT = 2; sk(); if (ev) ev.push({ type: 'fx', side: 'p', idx: u.idx, fx: 'shield' }); break;
+      case 'hitall': sk(); for (const e of ready(b.enemies)) dealDamage(s, b, u, e, A.m, false, ev); return;
+      case 'pierce': { sk(); const nx = ready(b.enemies).filter(e => e !== tgt).sort((a, c) => a.pos - c.pos)[0]; dealDamage(s, b, u, tgt, 1.3, false, ev); if (nx) dealDamage(s, b, u, nx, 1, false, ev); return; }
+      case 'multi': { sk(); const es = ready(b.enemies).sort((a, c) => a.pos - c.pos); for (let i = 0; i < 3; i++) { const e = es.length ? es[i % es.length] : null; if (e && e.hp > 0) dealDamage(s, b, u, e, es.length >= 3 ? 1 : 0.8, false, ev); } return; }
+      case 'burnhit': sk(); dealDamage(s, b, u, tgt, 1, false, ev); if (tgt.hp > 0) addBurn(tgt, u.atk * A.burn, 4, ev, u); return;
+      case 'flurry': sk(); for (let i = 0; i < 3; i++) { const e = frontTarget(s, b.enemies); if (e) dealDamage(s, b, u, e, 0.8, false, ev); } return;
+    }
   }
   dealDamage(s, b, u, tgt, 1, false, ev);
 }
+
+// abilità a tempo (maghi, curatori e alcuni guerrieri)
+function timedAbility(s, b, u, ev) {
+  const A = u.ab; if (!A || !A.cd) return;
+  const sk = n => { if (ev) ev.push({ type: 'skill', side: 'p', idx: u.idx, name: (n || A.name) + '!' }); };
+  const party = alive(b.party), wounded = () => { let w = null; for (const a of party) if (a.hp < a.maxHp && (!w || a.hp / a.maxHp < w.hp / w.maxHp)) w = a; return w; };
+  const healMul = 1 + B(s, 'heal');
+  switch (A.k) {
+    case 'heal': { const w = wounded(); if (!w) return false; const fat = w.healT && b.time - w.healT < 2 ? 0.5 : 1; w.healT = b.time; // cure ravvicinate dimezzate: niente tank immortale
+      const h = Math.round(Math.min(w.maxHp - w.hp, (w.maxHp * 0.06 + u.atk * 1.0) * healMul * fat)); w.hp += h; u.healed = (u.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: w.idx, h }); return true; }
+    case 'healall': { if (!wounded()) return false; let tot = 0; for (const a of party) { const h = Math.round(Math.min(a.maxHp - a.hp, (a.maxHp * 0.03 + u.atk * 0.4) * healMul)); if (h > 0) { a.hp += h; tot += h; if (ev) ev.push({ type: 'heal', idx: a.idx, h }); } } u.healed = (u.healed || 0) + tot; sk(); return true; }
+    case 'hot': { const w = wounded(); if (!w) return false; w.hotT = 4; w.hotD = (w.maxHp * 0.08 + u.atk * 1.2) * healMul / 4; w.hotSrc = u; if (ev) ev.push({ type: 'fx', side: 'p', idx: w.idx, fx: 'hot' }); return true; }
+    case 'shield': { const w = wounded(); if (!w) return false; w.shield = Math.round((w.maxHp * 0.1 + u.atk) * healMul); w.shieldT = 6; if (ev) ev.push({ type: 'fx', side: 'p', idx: w.idx, fx: 'shield' }); u.healed = (u.healed || 0) + w.shield; return true; }
+    case 'taunt': { if (!frontTarget(s, b.enemies)) return false; u.tauntT = 3; sk(); if (ev) ev.push({ type: 'fx', side: 'p', idx: u.idx, fx: 'taunt' }); return true; }
+    case 'null': { if (u.nullR) return false; u.nullR = 1; if (ev) ev.push({ type: 'fx', side: 'p', idx: u.idx, fx: 'nullon' }); return true; }
+    case 'nuke': { const tg = frontTarget(s, b.enemies); if (!tg) return false; sk(); const r = dealDamage(s, b, u, tg, A.m, !!A.ign, ev);
+      if (A.leech && r) { const h = Math.round(Math.min(u.maxHp - u.hp, r * A.leech)); if (h > 0) { u.hp += h; if (ev) ev.push({ type: 'heal', idx: u.idx, h }); } }
+      if (A.burn && tg.hp > 0) addBurn(tg, u.atk * A.burn, 4, ev, u);
+      if (A.again && tg.hp <= 0) { const t2 = frontTarget(s, b.enemies); if (t2) dealDamage(s, b, u, t2, A.m, true, ev); }
+      return true; }
+    case 'aoe': { const es = ready(b.enemies); if (!es.length) return false; sk(); for (const e of es) dealDamage(s, b, u, e, A.m, false, ev); return true; }
+    case 'chain': { const es = ready(b.enemies).sort((a, c) => a.pos - c.pos); if (!es.length) return false; sk(); [1.8, 1.2, 0.8].forEach((m, i) => { const e = es[i % es.length]; if (e.hp > 0) dealDamage(s, b, u, e, m, false, ev); }); return true; }
+    case 'big': { const es = ready(b.enemies); if (!es.length) return false; const tg = es.reduce((a, c) => c.hp > a.hp ? c : a); sk(); dealDamage(s, b, u, tg, A.m, true, ev); return true; }
+  }
+  return false;
+}
+// stati che durano nel tempo: bruciatura, stordimento, rallentamento, cecità, scudi, cure lente
+function tickStatus(s, b, u, dt, ev) {
+  if (u.mark > 0) u.mark -= dt;
+  if (u.blind > 0) u.blind -= dt;
+  if (u.stunT > 0) u.stunT -= dt;
+  if (u.slowT > 0) u.slowT -= dt;
+  if (u.shellT > 0) u.shellT -= dt;
+  if (u.tauntT > 0) u.tauntT -= dt;
+  if (u.shieldT > 0) { u.shieldT -= dt; if (u.shieldT <= 0) u.shield = 0; }
+  if (u.burnT > 0) { const d = Math.min(dt, u.burnT); u.burnT -= dt; u.burnK = (u.burnK || 0) + u.burnD * d; if (u.burnK >= 1 && (u.burnK >= u.burnD * 0.5 || u.burnT <= 0)) { const src = u.burnSrc || u; rawDamage(s, b, src, u, u.burnK, ev); u.burnK = 0; } }
+  if (u.hotT > 0 && u.hp > 0) { const d = Math.min(dt, u.hotT); u.hotT -= dt; u.hotK = (u.hotK || 0) + u.hotD * d; if (u.hotK >= 1 && (u.hotK >= u.hotD * 0.5 || u.hotT <= 0)) { const h = Math.round(Math.min(u.maxHp - u.hp, u.hotK)); u.hotK = 0; if (h > 0) { u.hp += h; if (u.hotSrc) u.hotSrc.healed = (u.hotSrc.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: u.idx, h }); } } }
+}
+
+// ---------- Attacchi propri: ogni creatura e ogni seguace ha il suo (vale per la squadra; i nemici restano quelli di sempre) ----------
+// k: tipo di effetto · ev: ogni quanti colpi · cd: ogni quanti secondi (maghi, curatori e alcuni guerrieri)
+const ABIL = {
+  hero:        { name: 'Lama infernale',     k: 'hit', ev: 3, m: 1.8, burn: 0.6, desc: 'Ogni 3 colpi un fendente infuocato: 180% dei danni e il nemico brucia per 3 s.' },
+  hero_arc:    { name: 'Cuore spezzato',     k: 'mark', ev: 3, desc: 'Ogni 3 colpi spezza il cuore del nemico: subisce il 30% di danni in più per 4 s.' },
+  hero_mag:    { name: "Teschio dell'anima", k: 'nuke', cd: 5, m: 2.5, ign: 1, leech: 0.25, desc: "Ogni 5 s un teschio che ignora l'armatura: 250% dei danni, e recupera un quarto dei danni come vita." },
+  glimmo:      { name: 'Lampo di luce',      k: 'blind', ev: 3, desc: 'Ogni 3 colpi acceca il nemico: per 3 s manca il 30% dei suoi colpi.' },
+  cometuga:    { name: 'Guscio cometa',      k: 'shell', ev: 4, desc: 'Ogni 4 colpi si chiude nel guscio: per 2 s subisce metà dei danni.' },
+  sporello:    { name: 'Spore lunari',       k: 'heal', cd: 3, desc: "Ogni 3 s cura l'alleato più ferito: 6% della sua vita più il 100% del proprio attacco." },
+  bzzt:        { name: 'Martellata',         k: 'hit', ev: 3, m: 1.8, stun: 1, desc: 'Ogni 3 colpi una martellata: 180% dei danni e il nemico resta stordito per 1 s.' },
+  astrillo:    { name: 'Guscio riflettente', k: 'reflect', v: 0.2, desc: 'Rimanda a chi lo colpisce il 20% dei danni che riceve.' },
+  nebulina:    { name: 'Nebbia stellare',    k: 'aoe', cd: 5, m: 1.4, desc: 'Ogni 5 s una nebbia di stelle colpisce tutti i nemici: 140% dei danni.' },
+  revuoto:     { name: 'Corona del vuoto',   k: 'hitall', ev: 4, m: 1.5, desc: "Ogni 4 colpi un'onda del vuoto colpisce tutti i nemici: 150% dei danni." },
+  scheggia:    { name: 'Morso di ghiaccio',  k: 'hit', ev: 3, m: 1.8, slow: 3, desc: 'Ogni 3 colpi un morso gelato: 180% dei danni e il nemico attacca più piano del 30% per 3 s.' },
+  geodino:     { name: 'Pelle di roccia',    k: 'rock', desc: 'Sotto metà vita la sua pelle diventa roccia: subisce il 30% di danni in meno.' },
+  lumispettro: { name: 'Luce spettrale',     k: 'healall', cd: 4, desc: 'Ogni 4 s cura tutta la squadra: 3% della vita di ognuno più il 40% del proprio attacco.' },
+  gemmerla:    { name: 'Piuma di cristallo', k: 'pierce', ev: 3, desc: 'Ogni 3 colpi la piuma trapassa: 130% dei danni al bersaglio e 100% al nemico dietro.' },
+  quarzillo:   { name: 'Abbraccio di quarzo', k: 'taunt', cd: 8, desc: 'Ogni 8 s attira su di sé tutti i colpi per 3 s, subendo il 30% di danni in meno.' },
+  prismella:   { name: 'Raggio prismatico',  k: 'chain', cd: 5, desc: 'Ogni 5 s un raggio rimbalza su 3 nemici: 180%, 120% e 80% dei danni.' },
+  reginaquarzo:{ name: 'Pioggia di cristalli', k: 'multi', ev: 3, desc: 'Ogni 3 colpi scocca 3 frecce su 3 nemici diversi (100% ciascuna).' },
+  braciolo:    { name: 'Testata rovente',    k: 'hit', ev: 3, m: 1.6, burn: 0.8, desc: 'Ogni 3 colpi una testata rovente: 160% dei danni e il nemico brucia per 4 s.' },
+  lavarospo:   { name: 'Pelle di lava',      k: 'thorns', v: 0.35, desc: 'Chi lo colpisce si brucia: subisce il 35% del suo attacco in 3 s.' },
+  magmolo:     { name: 'Calore',             k: 'hot', cd: 3, desc: "Ogni 3 s scalda l'alleato più ferito, che recupera vita per 4 s: in tutto 8% della sua vita più il 120% del proprio attacco." },
+  lapillo:     { name: 'Lapillo infuocato',  k: 'burnhit', ev: 3, burn: 1.2, desc: 'Ogni 3 colpi la freccia incendia il nemico: brucia per il 120% dei danni in 4 s.' },
+  fiammella:   { name: 'Fiammata',           k: 'nuke', cd: 5, m: 2, ign: 1, burn: 0.8, desc: "Ogni 5 s una fiammata che ignora l'armatura: 200% dei danni e il nemico brucia per 4 s." },
+  draghetto:   { name: 'Soffio di brace',    k: 'aoe', cd: 6, m: 1.7, desc: 'Ogni 6 s soffia fuoco su tutti i nemici: 170% dei danni.' },
+  imperatore:  { name: 'Eruzione',           k: 'aoe', cd: 6, m: 1.3, desc: 'Ogni 6 s fa piovere lava su tutti i nemici: 130% dei danni.' },
+  ombretto:    { name: "Pugnalata d'ombra",  k: 'hit', ev: 3, m: 1.6, crit: 1, desc: "Ogni 3 colpi una pugnalata d'ombra: 160% dei danni ed è sempre un colpo critico." },
+  nullo:       { name: 'Cubo nullo',         k: 'null', cd: 10, desc: 'Ogni 10 s annulla del tutto il colpo successivo che riceve.' },
+  abissale:    { name: "Scudo dell'abisso",  k: 'shield', cd: 4, desc: "Ogni 4 s dà uno scudo all'alleato più ferito: assorbe danni pari al 10% della sua vita più il 100% del proprio attacco." },
+  corvonero:   { name: 'Becco nero',         k: 'hit', ev: 3, m: 1, crit: 1, cdm: 0.5, desc: 'Ogni 3 colpi una beccata sempre critica, con danni critici più alti del 50%.' },
+  tentacula:   { name: 'Otto braccia',       k: 'flurry', ev: 3, desc: 'Ogni 3 attacchi tre colpi veloci di fila: 80% dei danni ciascuno.' },
+  stellanera:  { name: 'Buco nero',          k: 'big', cd: 6, m: 3, desc: "Ogni 6 s un buco nero sul nemico con più vita: 300% dei danni, ignora l'armatura." },
+  divoratore:  { name: 'Divora stelle',      k: 'nuke', cd: 6, m: 2.5, ign: 1, again: 1, desc: "Ogni 6 s divora il nemico: 250% dei danni, ignora l'armatura; se lo uccide, ripete subito su un altro." },
+};
+// creature senza attacco proprio (non presenti nelle zone): quello della classe
+const ABIL_CLS = {
+  Guerriero: { name: 'Fendente', k: 'hit', ev: 3, m: 2.2, desc: 'Ogni 3 colpi un colpo pesante: 220% dei danni.' },
+  Arciere: { name: 'Marchio', k: 'mark', ev: 3, desc: 'Ogni 3 colpi marchia il bersaglio: +30% danni subiti per 4 s.' },
+  Mago: { name: 'Tempesta arcana', k: 'nuke', cd: 5, m: 2.5, ign: 1, desc: "Ogni 5 s scaglia un fulmine arcano: 250% dei danni, ignora l'armatura." },
+  Curatore: { name: 'Luce curativa', k: 'heal', cd: 3, desc: "Ogni 3 s cura l'alleato più ferito: 6% della sua vita più il 100% del proprio attacco." },
+};
+function abilityOf(sp) { const d = SPECIES[sp]; if (!d) return ABIL_CLS.Guerriero; const k = d.base || sp; return ABIL[k] || ABIL_CLS[d.cls]; }
 
 // Chi cade in battaglia torna a vita piena dopo 2 minuti di gioco
 const RESPAWN_TIME = 120;
@@ -1255,21 +1384,10 @@ function step(s, b, dt, ev) {
       const was = u.arrive; u.arrive = u.pos > want + 1e-3 ? 1 : 0; if (u.arrive) continue;
       if (was) u.t = 0; // appena arrivato a tiro attacca subito, senza attesa
     }
-    if (u.mark > 0) u.mark -= dt;
-    if (u.side === 'p' && u.cls === 'Curatore') {
-      u.ab += dt;
-      if (u.ab >= 3) {
-        let w = null; for (const a of b.party) if (a.hp > 0 && a.hp < a.maxHp && (!w || a.hp / a.maxHp < w.hp / w.maxHp)) w = a;
-        if (w) { u.ab = 0; const fat = w.healT && b.time - w.healT < 2 ? 0.5 : 1; w.healT = b.time; // cure ravvicinate dimezzate: niente tank immortale
-          const h = Math.round(Math.min(w.maxHp - w.hp, (w.maxHp * 0.06 + u.atk * 1.0) * (u.side === 'p' ? 1 + B(s, 'heal') : 1) * fat)); w.hp += h; u.healed = (u.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: w.idx, h }); }
-      }
-    }
-    if (u.side === 'p' && u.cls === 'Mago') {
-      u.ab += dt;
-      const tg = frontTarget(s, b.enemies);
-      if (u.ab >= 5 && tg) { u.ab = 0; if (ev) ev.push({ type: 'skill', side: 'p', idx: u.idx, name: 'Fulmine arcano!' }); dealDamage(s, b, u, tg, 2.5, true, ev); }
-    }
-    u.t -= dt;
+    tickStatus(s, b, u, dt, ev); if (u.hp <= 0) continue;
+    if (u.side === 'p' && u.ab && u.ab.cd) { u.abT = (u.abT || 0) + dt; if (u.abT >= u.ab.cd && timedAbility(s, b, u, ev)) u.abT = 0; }
+    if (u.stunT > 0) continue; // stordito: non fa nulla
+    u.t -= dt * (u.slowT > 0 ? 0.7 : 1);
     if (u.side === 'p' && rangeOf(u) === 1) { // chi combatte in mischia deve prima raggiungere il bersaglio
       const tg = frontTarget(s, u.side === 'p' ? b.enemies : b.party);
       if (tg) { const gap = Math.abs(u.pos - tg.pos); if (gap > 2.01) { u.pos += (tg.pos > u.pos ? 1 : -1) * Math.min(MELEE_STEP * dt, gap - 2); if (u.t < 0) u.t = 0; continue; } }
@@ -1670,7 +1788,7 @@ function simulateOffline(s, seconds, noCap) {
 }
 
 function setEnemyTable(EH, EA) { E_HP = EH; E_ATK = EA; } // solo per la taratura
-const api = { petList, movePet, petB, heroSpace, END_GOLD, EARLY_DROP, chestCap, BAG_BASE, OFFLINE_CAP, setEnemyTable, enemyHpScale, enemyAtkScale, goldScale, enemyScale, enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { abilityOf, ABIL, petList, movePet, petB, heroSpace, END_GOLD, EARLY_DROP, chestCap, BAG_BASE, OFFLINE_CAP, setEnemyTable, enemyHpScale, enemyAtkScale, goldScale, enemyScale, enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   testAccount, autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
@@ -1989,7 +2107,7 @@ function updateScene() {
   const m = B.over === 'win' || moving || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
   { const left = en.length, fc = $('#foes'); const ft = (S.portalRun ? 'Portale · ondata ' + S.portalRun.wave + '/' + F.PORTAL_WAVES + ' · ' : '') + 'Nemici rimasti ' + left; if (fc && fc.dataset.n !== ft) { fc.dataset.n = ft; fc.textContent = ft; } }
-  B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0);
+  B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); stFx(el, u);
     if (u.hp <= 0 && !el._gone) { el._gone = 1; const again = deadSeen.has(u.id); deadSeen.add(u.id); if (again) el.classList.add('gone'); else setTimeout(() => el.classList.add('gone'), 2500); } });
   // chi cade resta dove è caduto (scorre via col terreno); gli altri avanzano a prendere il suo posto
   { const now = performance.now(), dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0; lastFrame = now;
@@ -2004,7 +2122,7 @@ function updateScene() {
   // i nemici si posizionano rispetto all'alleato che stanno colpendo davvero (se cade il guerriero e resta un arciere, si fermano davanti all'arciere, non sopra)
   const prr = u => u.id === 'hero' ? -1 : u.idx; let ft = null; for (const u of B.party) if (u.hp > 0 && (!ft || F.rangeOf(u) < F.rangeOf(ft) || (F.rangeOf(u) === F.rangeOf(ft) && prr(u) < prr(ft)))) ft = u;
   const ftEl = ft && pEls[ft.idx], ftX = ftEl ? parseFloat(ftEl.style.left) : NaN;
-  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (isNaN(ftX) ? FRONT + 35 + (u.pos - 1) * PU - B._cam * PU : ftX + 20 + (u.pos - ft.pos - 1) * PU) + tx + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
+  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (isNaN(ftX) ? FRONT + 35 + (u.pos - 1) * PU - B._cam * PU : ftX + 20 + (u.pos - ft.pos - 1) * PU) + tx + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); stFx(el, u); el.classList.toggle('marked', u.mark > 0); });
   updateLog();
 }
 // frecce degli arcieri che restano conficcate nel nemico (al massimo 5, spariscono con lui)
@@ -2038,6 +2156,8 @@ function flyHeart(fromEl, toEl, kind) {
   }, P.d);
 }
 let floats = 0;
+// stati visibili sopra i personaggi: fiamme, stordimento, ghiaccio, cecità, scudo, provocazione, cubo nullo
+function stFx(el, u) { const c = el.classList, on = u.hp > 0; c.toggle('st-burn', on && u.burnT > 0); c.toggle('st-stun', on && u.stunT > 0); c.toggle('st-slow', on && u.slowT > 0); c.toggle('st-blind', on && u.blind > 0); c.toggle('st-shield', on && (u.shield > 0 || u.shellT > 0)); c.toggle('st-taunt', on && u.tauntT > 0); c.toggle('st-null', on && !!u.nullR); c.toggle('st-hot', on && u.hotT > 0); }
 function floatText(el, text, cls) {
   if (!el || floats > 24) return;
   const sc = scene().getBoundingClientRect(), r = el.getBoundingClientRect();
@@ -2070,7 +2190,8 @@ const capQueue = [];
 let lvlToastAt = 0;
 function handle(ev) {
   for (const e of ev) {
-    if (e.type === 'dmg') { const el = (e.side === 'p' ? pEls : eEls)[e.idx], d = impactDelay(e), show = () => { if (e.side === 'e') snd(e.crit ? 'crit' : 'hit'); floatText(el, cfmt(e.dmg), e.crit ? 'crit' : (e.side === 'p' ? 'hurt' : '')); }; if (d) setTimeout(show, d); else show(); }
+    if (e.type === 'dmg') { const el = (e.side === 'p' ? pEls : eEls)[e.idx], d = impactDelay(e), show = () => { if (e.side === 'e') snd(e.crit ? 'crit' : 'hit'); floatText(el, cfmt(e.dmg), e.burn ? 'burnt' : e.crit ? 'crit' : (e.side === 'p' ? 'hurt' : '')); }; if (d && !e.burn) setTimeout(show, d); else show(); }
+    else if (e.type === 'fx') { const el = (e.side === 'p' ? pEls : eEls)[e.idx], L = { null: 'Annullato!', shieldhit: 'Assorbito!', stun: 'Stordito!', blind: 'Accecato!', slow: 'Rallentato!' }; if (L[e.fx]) floatText(el, L[e.fx], 'fxt'); }
     else if (e.type === 'atk' && e.side === 'p' && e.tgt !== undefined && B.party[e.idx] && B.party[e.idx].id === 'hero_arc') { flyHeart(pEls[e.idx], eEls[e.tgt]); }
     else if (e.type === 'atk' && e.side === 'p' && e.tgt !== undefined && B.party[e.idx] && B.party[e.idx].id === 'hero_mag') { flyHeart(pEls[e.idx], eEls[e.tgt], 'skull'); }
     else if (e.type === 'atk' && e.side === 'p' && e.tgt !== undefined && B.party[e.idx] && B.party[e.idx].cls === 'Arciere') { stickArrow(eEls[e.tgt]); }
@@ -2177,7 +2298,7 @@ function memberRow(id, inTeam, i) {
     html += `<div class="card detail">
     ${fullStats(st)}
     <button class="sb" data-act="cmppick" data-id="${id}" style="width:100%;margin:6px 0">Confronta con un'altra creatura</button>
-    <div class="abil"><b style="color:${CC(cls)}">${F.CLASSES[cls].ability}</b> · ${F.CLASSES[cls].desc}</div>
+    <div class="abil"><b style="color:${CC(cls)}">${F.abilityOf(m.species).name}</b> · ${F.abilityOf(m.species).desc}</div>
     ${ptsHTML(id)}
     <div class="row2"><label class="tg"><input type="checkbox" data-act="lockm" data-id="${id}" ${m.locked ? 'checked' : ''}> Blocca equipaggiamento</label>${inTeam && !F.isHero(id) ? `<button class="sb" data-act="bench" data-id="${id}">Metti in riserva</button>` : ''}</div>
     ${F.isHero(id) ? `<form class="rename" data-id="${id}"><label for="rn-${id}">Nome</label><input id="rn-${id}" maxlength="16" value="${esc(m.name)}"><button class="sb" type="submit">Salva</button></form>` : ''}
@@ -2364,7 +2485,7 @@ function pShop() {
   <div class="note" style="color:#9BFFB8;text-align:center">Versione di prova: per ora gli acquisti sono gratis, nessun pagamento reale.</div>
   <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min.`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
   <div class="ph"><h2 style="font-size:13px">Seguaci</h2><span>non occupano posti in squadra</span></div>
-  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr" data-act="preview" data-kind="hero" data-id="${h.id}" role="button" aria-label="Guarda ${sp.name}">${h.id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div><i class="shopskull" aria-hidden="true"></i>' : h.id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div><i class="shopheart" aria-hidden="true"></i>' : sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub" style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
+  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr" data-act="preview" data-kind="hero" data-id="${h.id}" role="button" aria-label="Guarda ${sp.name}">${h.id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div><i class="shopskull" aria-hidden="true"></i>' : h.id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div><i class="shopheart" aria-hidden="true"></i>' : sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.abilityOf(h.id).name}</div><div class="msub" style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
   <div class="ph" id="shop-pet"><h2 style="font-size:13px">Pet</h2><span>non combattono · i bonus si sommano</span></div>
   ${F.petList(S).length > 1 ? '<button class="sb wide" data-act="petorder" style="width:100%;margin-bottom:6px">Cambia l\'ordine dei pet</button>' : ''}
   ${S.welcomePack || !Object.keys(F.PETS).some(k => !F.PETS[k].astri && !(S.pets && S.pets[k])) ? '' : `<div class="card welcome"><b>Pacchetto Benvenuto · 4,99 €</b><div class="msub">500 ${icon('gem', '#F49AC1', 11)} + un pet a scelta · una sola volta</div>
@@ -2448,7 +2569,7 @@ function pImpost() {
   <button class="sb" data-act="testacc" data-k="full" style="width:100%;margin-top:6px">Tutto completo (massimo di tutto)</button>
   <button class="sb" data-act="testcap" style="width:100%;margin-top:6px">Mostra la finestra di cattura</button>
   <div class="ph"><h2>Salvataggio</h2></div>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>14/11 07:16</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>14/11 07:37</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function pBestiario() {
@@ -2692,7 +2813,7 @@ function showHeroGet(id) {
    <h2 id="capname" class="capname">${esc(d.name)}</h2>
    <div class="badges"><span class="rb" style="background:${col};color:#141836">Seguace</span><span class="cb" style="background:${CC(d.cls)}">${d.cls}</span></div>
    <p class="quote">«${esc(d.quote)}»</p>
-   <div class="capskill"><b style="color:${CC(d.cls)}">${F.CLASSES[d.cls].ability}</b><span>${F.CLASSES[d.cls].desc}</span></div>
+   <div class="capskill"><b style="color:${CC(d.cls)}">${F.abilityOf(id).name}</b><span>${F.abilityOf(id).desc}</span></div>
    <div class="capinfo"><span style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</span><span>non occupa posti in squadra</span></div>
    <button class="pb wide" data-act="close">Continua</button>
   </div>`;
@@ -2711,7 +2832,7 @@ function showCapture(sp) {
    <div class="badges"><span class="rb${d.secret ? ' rbw' : ''}" style="background:${col};color:#141836">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}${d.tough ? ' robusto' : ''}</span></div>
    ${d.secret ? `<div class="capwait"><b class="rbw">+${Math.round((F.SECRET_MULT - 1) * 100)}%</b><span>vita, attacco e difesa</span></div>` : `<div class="capwait"><b>${fmt(m.waitKills)}</b><span>incontri prima di catturarla</span></div>`}
    <p class="quote">«${esc(d.quote)}»</p>
-   <div class="capinfo"><span>${F.planetOf(F.zoneOf(sp)).name}</span><span style="color:${CC(cls)}">${F.CLASSES[cls].ability}</span>${d.tough ? `<span>vita e difesa ×${F.TOUGH.hp}</span>` : ''}</div>
+   <div class="capinfo"><span>${F.planetOf(F.zoneOf(sp)).name}</span><span style="color:${CC(cls)}">${F.abilityOf(sp).name}</span>${d.tough ? `<span>vita e difesa ×${F.TOUGH.hp}</span>` : ''}</div>
    ${inTeam ? '<div class="note" style="text-align:center">È già entrata in squadra.</div>' : `<button class="pb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
    <button class="sb wide" data-act="close" style="margin-top:6px">Continua</button>
   </div>`;
@@ -2847,7 +2968,7 @@ function showPreview(kind, id) {
       <h2 class="pvt">${sp.name}</h2><div class="msub" style="text-align:center"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · gittata ${F.rangeOf({ species: id, cls: sp.cls })}</div>
       <div class="note" style="text-align:center"><i>“${sp.quote}”</i></div>
       <div class="stbox"><div class="srow2"><span>Vita (livello 1)</span><b>${Math.round(c.hp * (1 + (hb.hp || 0)))}</b></div><div class="srow2"><span>Danni</span><b>${Math.round(c.atk * (1 + (hb.atk || 0)))}</b></div><div class="srow2"><span>Difesa</span><b>${c.def}</b></div><div class="srow2"><span>Attacchi al secondo</span><b>${((1 + (hb.aspd || 0)) / c.spd).toFixed(2).replace('.', ',')}</b></div>${hb.crit ? `<div class="srow2"><span>Colpi critici</span><b>${Math.round(hb.crit * 100)}%</b></div>` : ''}</div>
-      <div class="stbox"><div class="srow2"><span>Abilità</span><b style="color:${CC(sp.cls)}">${c.ability}</b></div><div class="msub">${c.desc}</div></div>
+      <div class="stbox"><div class="srow2"><span>Attacco</span><b style="color:${CC(sp.cls)}">${F.abilityOf(id).name}</b></div><div class="msub">${F.abilityOf(id).desc}</div></div>
       <div class="stbox"><div class="srow2"><span>Bonus</span><b style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</b></div><div class="msub">I seguaci non occupano posti in squadra.</div></div>
       ${own ? '<div class="note" style="text-align:center">Già nella tua squadra</div>' : `<button class="pb" style="width:100%" data-act="buyhero" data-id="${id}">Acquista · ${h.price}</button>`}`;
   } else {

@@ -513,7 +513,7 @@ function makeEnemies(s) {
 // Si torna a vita piena quando cambia la zona, quando la zona ricomincia dopo il boss o quando la squadra cade.
 function startBattle(s) {
   s.runHp = s.runHp || {};
-  const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', pos: -CLASSES[st.cls].range, idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: 0, dealt: 0, taken: 0 }; });
+  const party = s.team.map((id, i) => { const st = memberStats(s, id), fr = s.runHp[id] === undefined ? 1 : s.runHp[id]; return { side: 'p', pos: -CLASSES[st.cls].range, idx: i, id, species: s.roster[id].species, cls: st.cls, hp: Math.round(st.hp * fr), maxHp: st.hp, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, critDmg: st.critDmg, block: st.block, dodge: st.dodge, t: rnd(s) * st.spd, mark: 0, hits: 0, ab: abilityOf(s.roster[id].species), abT: 0, dealt: 0, taken: 0 }; });
   s.mvTeam = teamMove(s);
   return { party, enemies: makeEnemies(s), time: 0, over: null, pause: 0 };
 }
@@ -529,39 +529,155 @@ function frontTarget(s, list) {
   for (const u of a) { const g = rangeOf(u), gb = rangeOf(best); if (g < gb || (g === gb && pr(u) < pr(best))) best = u; } return best;
 }
 
-function dealDamage(s, b, src, dst, mult, ignoreDef, ev) {
-  if (dst.dodge && rnd(s) < dst.dodge) { if (ev) ev.push({ type: 'dodge', side: dst.side, idx: dst.idx }); return; }
+function dealDamage(s, b, src, dst, mult, ignoreDef, ev, opt) {
+  opt = opt || {};
+  if (dst.hp <= 0) return 0;
+  if (src.blind > 0 && rnd(s) < 0.3) { if (ev) ev.push({ type: 'dodge', side: dst.side, idx: dst.idx }); return 0; } // accecato: manca il colpo
+  if (dst.dodge && rnd(s) < dst.dodge) { if (ev) ev.push({ type: 'dodge', side: dst.side, idx: dst.idx }); return 0; }
+  if (dst.nullR) { dst.nullR = 0; if (ev) ev.push({ type: 'fx', side: dst.side, idx: dst.idx, fx: 'null' }); return 0; } // Cubo nullo
   let dmg = src.atk * mult;
   let crit = false;
-  if (rnd(s) < src.crit) { dmg *= src.critDmg; crit = true; }
+  if (opt.crit || rnd(s) < src.crit) { dmg *= src.critDmg + (opt.cdm || 0); crit = true; }
   if (!ignoreDef) dmg *= src.atk / (src.atk + 1.5 * dst.def); // difesa a rendimento decrescente: niente muri impossibili
   if (dst.mark > 0) dmg *= 1.3;
   if (dst.block && rnd(s) < dst.block) dmg *= 0.5;
+  if (dst.shellT > 0 || dst.tauntT > 0) dmg *= dst.shellT > 0 ? 0.5 : 0.7;
+  if (dst.ab && dst.ab.k === 'rock' && dst.hp < dst.maxHp / 2) dmg *= 0.7;
   dmg = Math.max(1, Math.round(dmg));
+  if (dst.shield > 0) { const a = Math.min(dst.shield, dmg); dst.shield -= a; dmg -= a; if (!dmg) { if (ev) ev.push({ type: 'fx', side: dst.side, idx: dst.idx, fx: 'shieldhit' }); return 0; } }
   const real = Math.min(dmg, dst.hp); src.dealt += real; dst.taken += real;
   if (src.side === 'p') { const d = s.dmgLog || (s.dmgLog = { since: s.clock || 0, by: {} }); d.by[src.id] = (d.by[src.id] || 0) + real; }
   dst.hp -= dmg;
   if (ev) ev.push({ type: 'dmg', side: dst.side, idx: dst.idx, dmg, crit, fs: src.side, fi: src.idx }); // fs/fi: chi colpisce (per sincronizzare il numero con l'animazione)
   if (dst.hp <= 0) { dst.hp = 0; if (dst.side === 'e') onKill(s, b, dst, ev); }
+  // contraccolpi di chi viene colpito (solo dai colpi diretti, non da bruciature o riflessi)
+  if (!opt.raw && src.hp > 0 && dst.ab) {
+    if (dst.ab.k === 'reflect') rawDamage(s, b, dst, src, real * dst.ab.v, ev);
+    else if (dst.ab.k === 'thorns') addBurn(src, dst.atk * dst.ab.v, 3, ev, dst);
+  }
+  return real;
 }
+// danni senza difesa né critici (bruciature, riflessi)
+function rawDamage(s, b, src, dst, amount, ev) {
+  if (dst.hp <= 0) return; const dmg = Math.max(1, Math.round(amount)), real = Math.min(dmg, dst.hp);
+  src.dealt += real; dst.taken += real;
+  if (src.side === 'p') { const d = s.dmgLog || (s.dmgLog = { since: s.clock || 0, by: {} }); d.by[src.id] = (d.by[src.id] || 0) + real; }
+  dst.hp -= dmg; if (ev) ev.push({ type: 'dmg', side: dst.side, idx: dst.idx, dmg, burn: 1 });
+  if (dst.hp <= 0) { dst.hp = 0; if (dst.side === 'e') onKill(s, b, dst, ev); }
+}
+function addBurn(u, total, secs, ev, src) { u.burnT = secs; u.burnD = total / secs; u.burnK = 0; u.burnSrc = src || u.burnSrc; if (ev) ev.push({ type: 'fx', side: u.side, idx: u.idx, fx: 'burn' }); }
 
 function attack(s, b, u, ev) {
   if (u.chest) return; // i forzieri non attaccano
   const foes = u.side === 'p' ? b.enemies : b.party;
-  const tgt = frontTarget(s, foes); // entrambe le parti colpiscono chi è più vicino
+  let tgt = frontTarget(s, foes); // entrambe le parti colpiscono chi è più vicino
+  if (u.side === 'e') { const tt = ready(b.party).find(x => x.tauntT > 0); if (tt) tgt = tt; } // Abbraccio di quarzo: attira i colpi
   if (!tgt) return;
   u.hits++;
   if (ev) ev.push({ type: 'atk', side: u.side, idx: u.idx, tgt: tgt.idx });
-  if (u.side === 'p' && u.cls === 'Guerriero' && u.hits % 3 === 0) {
-    if (ev) ev.push({ type: 'skill', side: 'p', idx: u.idx, name: 'Fendente!' });
-    dealDamage(s, b, u, tgt, 2.2, false, ev);
-    return;
-  }
-  if (u.side === 'p' && u.cls === 'Arciere' && u.hits % 3 === 0) {
-    tgt.mark = 4; if (ev) ev.push({ type: 'skill', side: 'p', idx: u.idx, name: 'Marchio!' });
+  const A = u.ab;
+  if (u.side === 'p' && A && A.ev && u.hits % A.ev === 0) {
+    const sk = () => { if (ev) ev.push({ type: 'skill', side: 'p', idx: u.idx, name: A.name + '!' }); };
+    switch (A.k) {
+      case 'hit': sk(); dealDamage(s, b, u, tgt, A.m, false, ev, { crit: A.crit, cdm: A.cdm });
+        if (A.burn) addBurn(tgt, u.atk * A.burn, A.k === 'hit' && A.m >= 1.8 ? 3 : 4, ev, u);
+        if (A.stun && tgt.hp > 0) { tgt.stunT = A.stun; if (ev) ev.push({ type: 'fx', side: tgt.side, idx: tgt.idx, fx: 'stun' }); }
+        if (A.slow && tgt.hp > 0) { tgt.slowT = A.slow; if (ev) ev.push({ type: 'fx', side: tgt.side, idx: tgt.idx, fx: 'slow' }); }
+        return;
+      case 'mark': tgt.mark = 4; sk(); break;
+      case 'blind': tgt.blind = 3; sk(); if (ev) ev.push({ type: 'fx', side: tgt.side, idx: tgt.idx, fx: 'blind' }); break;
+      case 'shell': u.shellT = 2; sk(); if (ev) ev.push({ type: 'fx', side: 'p', idx: u.idx, fx: 'shield' }); break;
+      case 'hitall': sk(); for (const e of ready(b.enemies)) dealDamage(s, b, u, e, A.m, false, ev); return;
+      case 'pierce': { sk(); const nx = ready(b.enemies).filter(e => e !== tgt).sort((a, c) => a.pos - c.pos)[0]; dealDamage(s, b, u, tgt, 1.3, false, ev); if (nx) dealDamage(s, b, u, nx, 1, false, ev); return; }
+      case 'multi': { sk(); const es = ready(b.enemies).sort((a, c) => a.pos - c.pos); for (let i = 0; i < 3; i++) { const e = es.length ? es[i % es.length] : null; if (e && e.hp > 0) dealDamage(s, b, u, e, es.length >= 3 ? 1 : 0.8, false, ev); } return; }
+      case 'burnhit': sk(); dealDamage(s, b, u, tgt, 1, false, ev); if (tgt.hp > 0) addBurn(tgt, u.atk * A.burn, 4, ev, u); return;
+      case 'flurry': sk(); for (let i = 0; i < 3; i++) { const e = frontTarget(s, b.enemies); if (e) dealDamage(s, b, u, e, 0.8, false, ev); } return;
+    }
   }
   dealDamage(s, b, u, tgt, 1, false, ev);
 }
+
+// abilità a tempo (maghi, curatori e alcuni guerrieri)
+function timedAbility(s, b, u, ev) {
+  const A = u.ab; if (!A || !A.cd) return;
+  const sk = n => { if (ev) ev.push({ type: 'skill', side: 'p', idx: u.idx, name: (n || A.name) + '!' }); };
+  const party = alive(b.party), wounded = () => { let w = null; for (const a of party) if (a.hp < a.maxHp && (!w || a.hp / a.maxHp < w.hp / w.maxHp)) w = a; return w; };
+  const healMul = 1 + B(s, 'heal');
+  switch (A.k) {
+    case 'heal': { const w = wounded(); if (!w) return false; const fat = w.healT && b.time - w.healT < 2 ? 0.5 : 1; w.healT = b.time; // cure ravvicinate dimezzate: niente tank immortale
+      const h = Math.round(Math.min(w.maxHp - w.hp, (w.maxHp * 0.06 + u.atk * 1.0) * healMul * fat)); w.hp += h; u.healed = (u.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: w.idx, h }); return true; }
+    case 'healall': { if (!wounded()) return false; let tot = 0; for (const a of party) { const h = Math.round(Math.min(a.maxHp - a.hp, (a.maxHp * 0.03 + u.atk * 0.4) * healMul)); if (h > 0) { a.hp += h; tot += h; if (ev) ev.push({ type: 'heal', idx: a.idx, h }); } } u.healed = (u.healed || 0) + tot; sk(); return true; }
+    case 'hot': { const w = wounded(); if (!w) return false; w.hotT = 4; w.hotD = (w.maxHp * 0.08 + u.atk * 1.2) * healMul / 4; w.hotSrc = u; if (ev) ev.push({ type: 'fx', side: 'p', idx: w.idx, fx: 'hot' }); return true; }
+    case 'shield': { const w = wounded(); if (!w) return false; w.shield = Math.round((w.maxHp * 0.1 + u.atk) * healMul); w.shieldT = 6; if (ev) ev.push({ type: 'fx', side: 'p', idx: w.idx, fx: 'shield' }); u.healed = (u.healed || 0) + w.shield; return true; }
+    case 'taunt': { if (!frontTarget(s, b.enemies)) return false; u.tauntT = 3; sk(); if (ev) ev.push({ type: 'fx', side: 'p', idx: u.idx, fx: 'taunt' }); return true; }
+    case 'null': { if (u.nullR) return false; u.nullR = 1; if (ev) ev.push({ type: 'fx', side: 'p', idx: u.idx, fx: 'nullon' }); return true; }
+    case 'nuke': { const tg = frontTarget(s, b.enemies); if (!tg) return false; sk(); const r = dealDamage(s, b, u, tg, A.m, !!A.ign, ev);
+      if (A.leech && r) { const h = Math.round(Math.min(u.maxHp - u.hp, r * A.leech)); if (h > 0) { u.hp += h; if (ev) ev.push({ type: 'heal', idx: u.idx, h }); } }
+      if (A.burn && tg.hp > 0) addBurn(tg, u.atk * A.burn, 4, ev, u);
+      if (A.again && tg.hp <= 0) { const t2 = frontTarget(s, b.enemies); if (t2) dealDamage(s, b, u, t2, A.m, true, ev); }
+      return true; }
+    case 'aoe': { const es = ready(b.enemies); if (!es.length) return false; sk(); for (const e of es) dealDamage(s, b, u, e, A.m, false, ev); return true; }
+    case 'chain': { const es = ready(b.enemies).sort((a, c) => a.pos - c.pos); if (!es.length) return false; sk(); [1.8, 1.2, 0.8].forEach((m, i) => { const e = es[i % es.length]; if (e.hp > 0) dealDamage(s, b, u, e, m, false, ev); }); return true; }
+    case 'big': { const es = ready(b.enemies); if (!es.length) return false; const tg = es.reduce((a, c) => c.hp > a.hp ? c : a); sk(); dealDamage(s, b, u, tg, A.m, true, ev); return true; }
+  }
+  return false;
+}
+// stati che durano nel tempo: bruciatura, stordimento, rallentamento, cecità, scudi, cure lente
+function tickStatus(s, b, u, dt, ev) {
+  if (u.mark > 0) u.mark -= dt;
+  if (u.blind > 0) u.blind -= dt;
+  if (u.stunT > 0) u.stunT -= dt;
+  if (u.slowT > 0) u.slowT -= dt;
+  if (u.shellT > 0) u.shellT -= dt;
+  if (u.tauntT > 0) u.tauntT -= dt;
+  if (u.shieldT > 0) { u.shieldT -= dt; if (u.shieldT <= 0) u.shield = 0; }
+  if (u.burnT > 0) { const d = Math.min(dt, u.burnT); u.burnT -= dt; u.burnK = (u.burnK || 0) + u.burnD * d; if (u.burnK >= 1 && (u.burnK >= u.burnD * 0.5 || u.burnT <= 0)) { const src = u.burnSrc || u; rawDamage(s, b, src, u, u.burnK, ev); u.burnK = 0; } }
+  if (u.hotT > 0 && u.hp > 0) { const d = Math.min(dt, u.hotT); u.hotT -= dt; u.hotK = (u.hotK || 0) + u.hotD * d; if (u.hotK >= 1 && (u.hotK >= u.hotD * 0.5 || u.hotT <= 0)) { const h = Math.round(Math.min(u.maxHp - u.hp, u.hotK)); u.hotK = 0; if (h > 0) { u.hp += h; if (u.hotSrc) u.hotSrc.healed = (u.hotSrc.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: u.idx, h }); } } }
+}
+
+// ---------- Attacchi propri: ogni creatura e ogni seguace ha il suo (vale per la squadra; i nemici restano quelli di sempre) ----------
+// k: tipo di effetto · ev: ogni quanti colpi · cd: ogni quanti secondi (maghi, curatori e alcuni guerrieri)
+const ABIL = {
+  hero:        { name: 'Lama infernale',     k: 'hit', ev: 3, m: 1.8, burn: 0.6, desc: 'Ogni 3 colpi un fendente infuocato: 180% dei danni e il nemico brucia per 3 s.' },
+  hero_arc:    { name: 'Cuore spezzato',     k: 'mark', ev: 3, desc: 'Ogni 3 colpi spezza il cuore del nemico: subisce il 30% di danni in più per 4 s.' },
+  hero_mag:    { name: "Teschio dell'anima", k: 'nuke', cd: 5, m: 2.5, ign: 1, leech: 0.25, desc: "Ogni 5 s un teschio che ignora l'armatura: 250% dei danni, e recupera un quarto dei danni come vita." },
+  glimmo:      { name: 'Lampo di luce',      k: 'blind', ev: 3, desc: 'Ogni 3 colpi acceca il nemico: per 3 s manca il 30% dei suoi colpi.' },
+  cometuga:    { name: 'Guscio cometa',      k: 'shell', ev: 4, desc: 'Ogni 4 colpi si chiude nel guscio: per 2 s subisce metà dei danni.' },
+  sporello:    { name: 'Spore lunari',       k: 'heal', cd: 3, desc: "Ogni 3 s cura l'alleato più ferito: 6% della sua vita più il 100% del proprio attacco." },
+  bzzt:        { name: 'Martellata',         k: 'hit', ev: 3, m: 1.8, stun: 1, desc: 'Ogni 3 colpi una martellata: 180% dei danni e il nemico resta stordito per 1 s.' },
+  astrillo:    { name: 'Guscio riflettente', k: 'reflect', v: 0.2, desc: 'Rimanda a chi lo colpisce il 20% dei danni che riceve.' },
+  nebulina:    { name: 'Nebbia stellare',    k: 'aoe', cd: 5, m: 1.4, desc: 'Ogni 5 s una nebbia di stelle colpisce tutti i nemici: 140% dei danni.' },
+  revuoto:     { name: 'Corona del vuoto',   k: 'hitall', ev: 4, m: 1.5, desc: "Ogni 4 colpi un'onda del vuoto colpisce tutti i nemici: 150% dei danni." },
+  scheggia:    { name: 'Morso di ghiaccio',  k: 'hit', ev: 3, m: 1.8, slow: 3, desc: 'Ogni 3 colpi un morso gelato: 180% dei danni e il nemico attacca più piano del 30% per 3 s.' },
+  geodino:     { name: 'Pelle di roccia',    k: 'rock', desc: 'Sotto metà vita la sua pelle diventa roccia: subisce il 30% di danni in meno.' },
+  lumispettro: { name: 'Luce spettrale',     k: 'healall', cd: 4, desc: 'Ogni 4 s cura tutta la squadra: 3% della vita di ognuno più il 40% del proprio attacco.' },
+  gemmerla:    { name: 'Piuma di cristallo', k: 'pierce', ev: 3, desc: 'Ogni 3 colpi la piuma trapassa: 130% dei danni al bersaglio e 100% al nemico dietro.' },
+  quarzillo:   { name: 'Abbraccio di quarzo', k: 'taunt', cd: 8, desc: 'Ogni 8 s attira su di sé tutti i colpi per 3 s, subendo il 30% di danni in meno.' },
+  prismella:   { name: 'Raggio prismatico',  k: 'chain', cd: 5, desc: 'Ogni 5 s un raggio rimbalza su 3 nemici: 180%, 120% e 80% dei danni.' },
+  reginaquarzo:{ name: 'Pioggia di cristalli', k: 'multi', ev: 3, desc: 'Ogni 3 colpi scocca 3 frecce su 3 nemici diversi (100% ciascuna).' },
+  braciolo:    { name: 'Testata rovente',    k: 'hit', ev: 3, m: 1.6, burn: 0.8, desc: 'Ogni 3 colpi una testata rovente: 160% dei danni e il nemico brucia per 4 s.' },
+  lavarospo:   { name: 'Pelle di lava',      k: 'thorns', v: 0.35, desc: 'Chi lo colpisce si brucia: subisce il 35% del suo attacco in 3 s.' },
+  magmolo:     { name: 'Calore',             k: 'hot', cd: 3, desc: "Ogni 3 s scalda l'alleato più ferito, che recupera vita per 4 s: in tutto 8% della sua vita più il 120% del proprio attacco." },
+  lapillo:     { name: 'Lapillo infuocato',  k: 'burnhit', ev: 3, burn: 1.2, desc: 'Ogni 3 colpi la freccia incendia il nemico: brucia per il 120% dei danni in 4 s.' },
+  fiammella:   { name: 'Fiammata',           k: 'nuke', cd: 5, m: 2, ign: 1, burn: 0.8, desc: "Ogni 5 s una fiammata che ignora l'armatura: 200% dei danni e il nemico brucia per 4 s." },
+  draghetto:   { name: 'Soffio di brace',    k: 'aoe', cd: 6, m: 1.7, desc: 'Ogni 6 s soffia fuoco su tutti i nemici: 170% dei danni.' },
+  imperatore:  { name: 'Eruzione',           k: 'aoe', cd: 6, m: 1.3, desc: 'Ogni 6 s fa piovere lava su tutti i nemici: 130% dei danni.' },
+  ombretto:    { name: "Pugnalata d'ombra",  k: 'hit', ev: 3, m: 1.6, crit: 1, desc: "Ogni 3 colpi una pugnalata d'ombra: 160% dei danni ed è sempre un colpo critico." },
+  nullo:       { name: 'Cubo nullo',         k: 'null', cd: 10, desc: 'Ogni 10 s annulla del tutto il colpo successivo che riceve.' },
+  abissale:    { name: "Scudo dell'abisso",  k: 'shield', cd: 4, desc: "Ogni 4 s dà uno scudo all'alleato più ferito: assorbe danni pari al 10% della sua vita più il 100% del proprio attacco." },
+  corvonero:   { name: 'Becco nero',         k: 'hit', ev: 3, m: 1, crit: 1, cdm: 0.5, desc: 'Ogni 3 colpi una beccata sempre critica, con danni critici più alti del 50%.' },
+  tentacula:   { name: 'Otto braccia',       k: 'flurry', ev: 3, desc: 'Ogni 3 attacchi tre colpi veloci di fila: 80% dei danni ciascuno.' },
+  stellanera:  { name: 'Buco nero',          k: 'big', cd: 6, m: 3, desc: "Ogni 6 s un buco nero sul nemico con più vita: 300% dei danni, ignora l'armatura." },
+  divoratore:  { name: 'Divora stelle',      k: 'nuke', cd: 6, m: 2.5, ign: 1, again: 1, desc: "Ogni 6 s divora il nemico: 250% dei danni, ignora l'armatura; se lo uccide, ripete subito su un altro." },
+};
+// creature senza attacco proprio (non presenti nelle zone): quello della classe
+const ABIL_CLS = {
+  Guerriero: { name: 'Fendente', k: 'hit', ev: 3, m: 2.2, desc: 'Ogni 3 colpi un colpo pesante: 220% dei danni.' },
+  Arciere: { name: 'Marchio', k: 'mark', ev: 3, desc: 'Ogni 3 colpi marchia il bersaglio: +30% danni subiti per 4 s.' },
+  Mago: { name: 'Tempesta arcana', k: 'nuke', cd: 5, m: 2.5, ign: 1, desc: "Ogni 5 s scaglia un fulmine arcano: 250% dei danni, ignora l'armatura." },
+  Curatore: { name: 'Luce curativa', k: 'heal', cd: 3, desc: "Ogni 3 s cura l'alleato più ferito: 6% della sua vita più il 100% del proprio attacco." },
+};
+function abilityOf(sp) { const d = SPECIES[sp]; if (!d) return ABIL_CLS.Guerriero; const k = d.base || sp; return ABIL[k] || ABIL_CLS[d.cls]; }
 
 // Chi cade in battaglia torna a vita piena dopo 2 minuti di gioco
 const RESPAWN_TIME = 120;
@@ -579,21 +695,10 @@ function step(s, b, dt, ev) {
       const was = u.arrive; u.arrive = u.pos > want + 1e-3 ? 1 : 0; if (u.arrive) continue;
       if (was) u.t = 0; // appena arrivato a tiro attacca subito, senza attesa
     }
-    if (u.mark > 0) u.mark -= dt;
-    if (u.side === 'p' && u.cls === 'Curatore') {
-      u.ab += dt;
-      if (u.ab >= 3) {
-        let w = null; for (const a of b.party) if (a.hp > 0 && a.hp < a.maxHp && (!w || a.hp / a.maxHp < w.hp / w.maxHp)) w = a;
-        if (w) { u.ab = 0; const fat = w.healT && b.time - w.healT < 2 ? 0.5 : 1; w.healT = b.time; // cure ravvicinate dimezzate: niente tank immortale
-          const h = Math.round(Math.min(w.maxHp - w.hp, (w.maxHp * 0.06 + u.atk * 1.0) * (u.side === 'p' ? 1 + B(s, 'heal') : 1) * fat)); w.hp += h; u.healed = (u.healed || 0) + h; if (ev) ev.push({ type: 'heal', idx: w.idx, h }); }
-      }
-    }
-    if (u.side === 'p' && u.cls === 'Mago') {
-      u.ab += dt;
-      const tg = frontTarget(s, b.enemies);
-      if (u.ab >= 5 && tg) { u.ab = 0; if (ev) ev.push({ type: 'skill', side: 'p', idx: u.idx, name: 'Fulmine arcano!' }); dealDamage(s, b, u, tg, 2.5, true, ev); }
-    }
-    u.t -= dt;
+    tickStatus(s, b, u, dt, ev); if (u.hp <= 0) continue;
+    if (u.side === 'p' && u.ab && u.ab.cd) { u.abT = (u.abT || 0) + dt; if (u.abT >= u.ab.cd && timedAbility(s, b, u, ev)) u.abT = 0; }
+    if (u.stunT > 0) continue; // stordito: non fa nulla
+    u.t -= dt * (u.slowT > 0 ? 0.7 : 1);
     if (u.side === 'p' && rangeOf(u) === 1) { // chi combatte in mischia deve prima raggiungere il bersaglio
       const tg = frontTarget(s, u.side === 'p' ? b.enemies : b.party);
       if (tg) { const gap = Math.abs(u.pos - tg.pos); if (gap > 2.01) { u.pos += (tg.pos > u.pos ? 1 : -1) * Math.min(MELEE_STEP * dt, gap - 2); if (u.t < 0) u.t = 0; continue; } }
@@ -994,7 +1099,7 @@ function simulateOffline(s, seconds, noCap) {
 }
 
 function setEnemyTable(EH, EA) { E_HP = EH; E_ATK = EA; } // solo per la taratura
-const api = { petList, movePet, petB, heroSpace, END_GOLD, EARLY_DROP, chestCap, BAG_BASE, OFFLINE_CAP, setEnemyTable, enemyHpScale, enemyAtkScale, goldScale, enemyScale, enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { abilityOf, ABIL, petList, movePet, petB, heroSpace, END_GOLD, EARLY_DROP, chestCap, BAG_BASE, OFFLINE_CAP, setEnemyTable, enemyHpScale, enemyAtkScale, goldScale, enemyScale, enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   testAccount, autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;

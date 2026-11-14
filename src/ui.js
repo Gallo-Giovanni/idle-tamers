@@ -309,7 +309,7 @@ function updateScene() {
   const m = B.over === 'win' || moving || (en.length > 0 && en.every(u => u.arrive > 0));
   if (m !== marching) { marching = m; scene().classList.toggle('march', m); }
   { const left = en.length, fc = $('#foes'); const ft = (S.portalRun ? 'Portale · ondata ' + S.portalRun.wave + '/' + F.PORTAL_WAVES + ' · ' : '') + 'Nemici rimasti ' + left; if (fc && fc.dataset.n !== ft) { fc.dataset.n = ft; fc.textContent = ft; } }
-  B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0);
+  B.party.forEach(u => { const el = pEls[u.idx]; if (!el) return; el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); stFx(el, u);
     if (u.hp <= 0 && !el._gone) { el._gone = 1; const again = deadSeen.has(u.id); deadSeen.add(u.id); if (again) el.classList.add('gone'); else setTimeout(() => el.classList.add('gone'), 2500); } });
   // chi cade resta dove è caduto (scorre via col terreno); gli altri avanzano a prendere il suo posto
   { const now = performance.now(), dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0; lastFrame = now;
@@ -324,7 +324,7 @@ function updateScene() {
   // i nemici si posizionano rispetto all'alleato che stanno colpendo davvero (se cade il guerriero e resta un arciere, si fermano davanti all'arciere, non sopra)
   const prr = u => u.id === 'hero' ? -1 : u.idx; let ft = null; for (const u of B.party) if (u.hp > 0 && (!ft || F.rangeOf(u) < F.rangeOf(ft) || (F.rangeOf(u) === F.rangeOf(ft) && prr(u) < prr(ft)))) ft = u;
   const ftEl = ft && pEls[ft.idx], ftX = ftEl ? parseFloat(ftEl.style.left) : NaN;
-  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (isNaN(ftX) ? FRONT + 35 + (u.pos - 1) * PU - B._cam * PU : ftX + 20 + (u.pos - ft.pos - 1) * PU) + tx + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); el.classList.toggle('marked', u.mark > 0); });
+  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (isNaN(ftX) ? FRONT + 35 + (u.pos - 1) * PU - B._cam * PU : ftX + 20 + (u.pos - ft.pos - 1) * PU) + tx + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); stFx(el, u); el.classList.toggle('marked', u.mark > 0); });
   updateLog();
 }
 // frecce degli arcieri che restano conficcate nel nemico (al massimo 5, spariscono con lui)
@@ -358,6 +358,8 @@ function flyHeart(fromEl, toEl, kind) {
   }, P.d);
 }
 let floats = 0;
+// stati visibili sopra i personaggi: fiamme, stordimento, ghiaccio, cecità, scudo, provocazione, cubo nullo
+function stFx(el, u) { const c = el.classList, on = u.hp > 0; c.toggle('st-burn', on && u.burnT > 0); c.toggle('st-stun', on && u.stunT > 0); c.toggle('st-slow', on && u.slowT > 0); c.toggle('st-blind', on && u.blind > 0); c.toggle('st-shield', on && (u.shield > 0 || u.shellT > 0)); c.toggle('st-taunt', on && u.tauntT > 0); c.toggle('st-null', on && !!u.nullR); c.toggle('st-hot', on && u.hotT > 0); }
 function floatText(el, text, cls) {
   if (!el || floats > 24) return;
   const sc = scene().getBoundingClientRect(), r = el.getBoundingClientRect();
@@ -390,7 +392,8 @@ const capQueue = [];
 let lvlToastAt = 0;
 function handle(ev) {
   for (const e of ev) {
-    if (e.type === 'dmg') { const el = (e.side === 'p' ? pEls : eEls)[e.idx], d = impactDelay(e), show = () => { if (e.side === 'e') snd(e.crit ? 'crit' : 'hit'); floatText(el, cfmt(e.dmg), e.crit ? 'crit' : (e.side === 'p' ? 'hurt' : '')); }; if (d) setTimeout(show, d); else show(); }
+    if (e.type === 'dmg') { const el = (e.side === 'p' ? pEls : eEls)[e.idx], d = impactDelay(e), show = () => { if (e.side === 'e') snd(e.crit ? 'crit' : 'hit'); floatText(el, cfmt(e.dmg), e.burn ? 'burnt' : e.crit ? 'crit' : (e.side === 'p' ? 'hurt' : '')); }; if (d && !e.burn) setTimeout(show, d); else show(); }
+    else if (e.type === 'fx') { const el = (e.side === 'p' ? pEls : eEls)[e.idx], L = { null: 'Annullato!', shieldhit: 'Assorbito!', stun: 'Stordito!', blind: 'Accecato!', slow: 'Rallentato!' }; if (L[e.fx]) floatText(el, L[e.fx], 'fxt'); }
     else if (e.type === 'atk' && e.side === 'p' && e.tgt !== undefined && B.party[e.idx] && B.party[e.idx].id === 'hero_arc') { flyHeart(pEls[e.idx], eEls[e.tgt]); }
     else if (e.type === 'atk' && e.side === 'p' && e.tgt !== undefined && B.party[e.idx] && B.party[e.idx].id === 'hero_mag') { flyHeart(pEls[e.idx], eEls[e.tgt], 'skull'); }
     else if (e.type === 'atk' && e.side === 'p' && e.tgt !== undefined && B.party[e.idx] && B.party[e.idx].cls === 'Arciere') { stickArrow(eEls[e.tgt]); }
@@ -497,7 +500,7 @@ function memberRow(id, inTeam, i) {
     html += `<div class="card detail">
     ${fullStats(st)}
     <button class="sb" data-act="cmppick" data-id="${id}" style="width:100%;margin:6px 0">Confronta con un'altra creatura</button>
-    <div class="abil"><b style="color:${CC(cls)}">${F.CLASSES[cls].ability}</b> · ${F.CLASSES[cls].desc}</div>
+    <div class="abil"><b style="color:${CC(cls)}">${F.abilityOf(m.species).name}</b> · ${F.abilityOf(m.species).desc}</div>
     ${ptsHTML(id)}
     <div class="row2"><label class="tg"><input type="checkbox" data-act="lockm" data-id="${id}" ${m.locked ? 'checked' : ''}> Blocca equipaggiamento</label>${inTeam && !F.isHero(id) ? `<button class="sb" data-act="bench" data-id="${id}">Metti in riserva</button>` : ''}</div>
     ${F.isHero(id) ? `<form class="rename" data-id="${id}"><label for="rn-${id}">Nome</label><input id="rn-${id}" maxlength="16" value="${esc(m.name)}"><button class="sb" type="submit">Salva</button></form>` : ''}
@@ -684,7 +687,7 @@ function pShop() {
   <div class="note" style="color:#9BFFB8;text-align:center">Versione di prova: per ora gli acquisti sono gratis, nessun pagamento reale.</div>
   <div class="card daily"><div style="flex:1"><b>Regalo del giorno</b><div class="msub">${ready ? 'Gratis, una volta al giorno.' : `Già riscosso. Il prossimo tra ${h} h ${mi} min.`}</div></div><div class="big">${F.DAILY_ASTRI} ${icon('gem', '#F49AC1', 18)}</div><button class="pb" data-act="daily" ${ready ? '' : 'disabled'}>${ready ? 'Riscuoti' : 'Fatto'}</button></div>
   <div class="ph"><h2 style="font-size:13px">Seguaci</h2><span>non occupano posti in squadra</span></div>
-  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr" data-act="preview" data-kind="hero" data-id="${h.id}" role="button" aria-label="Guarda ${sp.name}">${h.id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div><i class="shopskull" aria-hidden="true"></i>' : h.id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div><i class="shopheart" aria-hidden="true"></i>' : sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.CLASSES[sp.cls].ability}</div><div class="msub" style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
+  ${F.HERO_SHOP.map(h => { const sp = F.SPECIES[h.id], own = !!S.roster[h.id]; return `<div class="card herocard"><div class="mspr" data-act="preview" data-kind="hero" data-id="${h.id}" role="button" aria-label="Guarda ${sp.name}">${h.id === 'hero_mag' ? '<div class="mg" aria-hidden="true"></div><i class="shopskull" aria-hidden="true"></i>' : h.id === 'hero_arc' ? '<div class="ar" aria-hidden="true"></div><i class="shopheart" aria-hidden="true"></i>' : sprite(h.id, 3)}</div><div style="flex:1"><b>${sp.name}</b><div class="msub"><span style="color:${CC(sp.cls)}">${sp.cls}${sp.tough ? ' robusto' : ''}</span> · ${F.abilityOf(h.id).name}</div><div class="msub" style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</div><div class="msub"><i>“${sp.quote}”</i></div></div>${own ? '<span class="zdone">Nella squadra</span>' : `<button class="pb" data-act="buyhero" data-id="${h.id}">${h.price}</button>`}</div>`; }).join('')}
   <div class="ph" id="shop-pet"><h2 style="font-size:13px">Pet</h2><span>non combattono · i bonus si sommano</span></div>
   ${F.petList(S).length > 1 ? '<button class="sb wide" data-act="petorder" style="width:100%;margin-bottom:6px">Cambia l\'ordine dei pet</button>' : ''}
   ${S.welcomePack || !Object.keys(F.PETS).some(k => !F.PETS[k].astri && !(S.pets && S.pets[k])) ? '' : `<div class="card welcome"><b>Pacchetto Benvenuto · 4,99 €</b><div class="msub">500 ${icon('gem', '#F49AC1', 11)} + un pet a scelta · una sola volta</div>
@@ -1012,7 +1015,7 @@ function showHeroGet(id) {
    <h2 id="capname" class="capname">${esc(d.name)}</h2>
    <div class="badges"><span class="rb" style="background:${col};color:#141836">Seguace</span><span class="cb" style="background:${CC(d.cls)}">${d.cls}</span></div>
    <p class="quote">«${esc(d.quote)}»</p>
-   <div class="capskill"><b style="color:${CC(d.cls)}">${F.CLASSES[d.cls].ability}</b><span>${F.CLASSES[d.cls].desc}</span></div>
+   <div class="capskill"><b style="color:${CC(d.cls)}">${F.abilityOf(id).name}</b><span>${F.abilityOf(id).desc}</span></div>
    <div class="capinfo"><span style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</span><span>non occupa posti in squadra</span></div>
    <button class="pb wide" data-act="close">Continua</button>
   </div>`;
@@ -1031,7 +1034,7 @@ function showCapture(sp) {
    <div class="badges"><span class="rb${d.secret ? ' rbw' : ''}" style="background:${col};color:#141836">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}${d.tough ? ' robusto' : ''}</span></div>
    ${d.secret ? `<div class="capwait"><b class="rbw">+${Math.round((F.SECRET_MULT - 1) * 100)}%</b><span>vita, attacco e difesa</span></div>` : `<div class="capwait"><b>${fmt(m.waitKills)}</b><span>incontri prima di catturarla</span></div>`}
    <p class="quote">«${esc(d.quote)}»</p>
-   <div class="capinfo"><span>${F.planetOf(F.zoneOf(sp)).name}</span><span style="color:${CC(cls)}">${F.CLASSES[cls].ability}</span>${d.tough ? `<span>vita e difesa ×${F.TOUGH.hp}</span>` : ''}</div>
+   <div class="capinfo"><span>${F.planetOf(F.zoneOf(sp)).name}</span><span style="color:${CC(cls)}">${F.abilityOf(sp).name}</span>${d.tough ? `<span>vita e difesa ×${F.TOUGH.hp}</span>` : ''}</div>
    ${inTeam ? '<div class="note" style="text-align:center">È già entrata in squadra.</div>' : `<button class="pb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
    <button class="sb wide" data-act="close" style="margin-top:6px">Continua</button>
   </div>`;
@@ -1167,7 +1170,7 @@ function showPreview(kind, id) {
       <h2 class="pvt">${sp.name}</h2><div class="msub" style="text-align:center"><span style="color:${CC(sp.cls)}">${sp.cls}</span> · gittata ${F.rangeOf({ species: id, cls: sp.cls })}</div>
       <div class="note" style="text-align:center"><i>“${sp.quote}”</i></div>
       <div class="stbox"><div class="srow2"><span>Vita (livello 1)</span><b>${Math.round(c.hp * (1 + (hb.hp || 0)))}</b></div><div class="srow2"><span>Danni</span><b>${Math.round(c.atk * (1 + (hb.atk || 0)))}</b></div><div class="srow2"><span>Difesa</span><b>${c.def}</b></div><div class="srow2"><span>Attacchi al secondo</span><b>${((1 + (hb.aspd || 0)) / c.spd).toFixed(2).replace('.', ',')}</b></div>${hb.crit ? `<div class="srow2"><span>Colpi critici</span><b>${Math.round(hb.crit * 100)}%</b></div>` : ''}</div>
-      <div class="stbox"><div class="srow2"><span>Abilità</span><b style="color:${CC(sp.cls)}">${c.ability}</b></div><div class="msub">${c.desc}</div></div>
+      <div class="stbox"><div class="srow2"><span>Attacco</span><b style="color:${CC(sp.cls)}">${F.abilityOf(id).name}</b></div><div class="msub">${F.abilityOf(id).desc}</div></div>
       <div class="stbox"><div class="srow2"><span>Bonus</span><b style="color:#9BFFB8">+${h.space} zaino · +${h.space} forziere</b></div><div class="msub">I seguaci non occupano posti in squadra.</div></div>
       ${own ? '<div class="note" style="text-align:center">Già nella tua squadra</div>' : `<button class="pb" style="width:100%" data-act="buyhero" data-id="${id}">Acquista · ${h.price}</button>`}`;
   } else {
