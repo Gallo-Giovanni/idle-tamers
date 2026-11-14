@@ -362,6 +362,8 @@ function flyHeart(fromEl, toEl, kind) {
 let floats = 0;
 // stati visibili sopra i personaggi: fiamme, stordimento, ghiaccio, cecità, scudo, provocazione, cubo nullo
 function stFx(el, u) { const c = el.classList, on = u.hp > 0; c.toggle('st-burn', on && u.burnT > 0); c.toggle('st-stun', on && u.stunT > 0); c.toggle('st-slow', on && u.slowT > 0); c.toggle('st-blind', on && u.blind > 0); c.toggle('st-shield', on && (u.shield > 0 || u.shellT > 0)); c.toggle('st-taunt', on && u.tauntT > 0); c.toggle('st-null', on && !!u.nullR); c.toggle('st-hot', on && u.hotT > 0); }
+// effetto del VFX Creator che parte una volta sopra un personaggio (anche se è appena caduto)
+function vfxAt(el, cls, ms) { if (!el || !el.isConnected) return; const sc = scene().getBoundingClientRect(), r = el.getBoundingClientRect(); const f = document.createElement('div'); f.className = cls; f.style.left = (r.left - sc.left + r.width / 2) + 'px'; f.style.top = (r.bottom - sc.top - 46) + 'px'; $('#fx').appendChild(f); setTimeout(() => f.remove(), ms); }
 function floatText(el, text, cls) {
   if (!el || floats > 24) return;
   const sc = scene().getBoundingClientRect(), r = el.getBoundingClientRect();
@@ -395,6 +397,7 @@ let lvlToastAt = 0;
 function handle(ev) {
   for (const e of ev) {
     if (e.type === 'dmg') { const el = (e.side === 'p' ? pEls : eEls)[e.idx], d = impactDelay(e), show = () => { if (e.side === 'e') snd(e.crit ? 'crit' : 'hit'); floatText(el, cfmt(e.dmg), e.burn ? 'burnt' : e.crit ? 'crit' : (e.side === 'p' ? 'hurt' : '')); }; if (d && !e.burn) setTimeout(show, d); else show(); }
+    else if (e.type === 'fx' && e.fx === 'burn') { const el = (e.side === 'p' ? pEls : eEls)[e.idx]; setTimeout(() => vfxAt(el, 'vfxflame', 800), 80); }
     else if (e.type === 'fx') { const el = (e.side === 'p' ? pEls : eEls)[e.idx], L = { null: 'Annullato!', shieldhit: 'Assorbito!', stun: 'Stordito!', blind: 'Accecato!', slow: 'Rallentato!' }; if (L[e.fx]) floatText(el, L[e.fx], 'fxt'); }
     else if (e.type === 'atk' && e.side === 'p' && e.tgt !== undefined && B.party[e.idx] && B.party[e.idx].id === 'hero_arc') { flyHeart(pEls[e.idx], eEls[e.tgt]); }
     else if (e.type === 'atk' && e.side === 'p' && e.tgt !== undefined && B.party[e.idx] && B.party[e.idx].id === 'hero_mag') { flyHeart(pEls[e.idx], eEls[e.tgt], 'skull'); }
