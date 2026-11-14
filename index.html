@@ -603,7 +603,7 @@ body.bigscene #scene{height:55vh}
 @keyframes capm{from{transform:translateY(-50%) scale(0) rotate(-20deg)}}
 .capshadow{position:absolute;left:50%;bottom:22px;width:90px;height:12px;margin-left:-45px;border-radius:50%;background:rgba(0,0,0,.45)}
 .capname{font-family:'Pixelify Sans',sans-serif;font-size:26px;margin:2px 0 6px;color:#fff}
-.capwait{margin:10px auto 2px;display:flex;flex-direction:column;align-items:center}.capwait b{font-family:'Pixelify Sans',sans-serif;font-size:28px;color:var(--c);line-height:1}.capwait span{font-size:11px;color:var(--muted)}
+.capwait{margin:10px auto 2px;display:flex;flex-direction:column;align-items:center}.capwait b{font-family:Inter,system-ui,sans-serif;font-weight:800;font-size:26px;color:var(--c);line-height:1}.capwait span{font-size:11px;color:var(--muted)}
 .capinfo{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:4px 0 12px}.capinfo span{font-size:11px;background:#1A1F4A;border:1px solid var(--line);border-radius:999px;padding:3px 9px}
 .capx .pb.wide,.capx .sb.wide{width:100%}
 #modal.wfull{top:0;align-items:flex-start;padding-top:22vh;overflow-y:auto}#modal.wfull:focus-within{padding-top:12px}
@@ -645,6 +645,7 @@ body.bigscene #scene{height:calc(55vh + var(--hh,52px))}
 .u.st-null::before{content:'';position:absolute;left:50%;top:-12px;width:9px;height:9px;margin-left:-5px;border:2px solid #B7A6FF;background:rgba(80,60,160,.6);box-shadow:0 0 5px #B7A6FF;transform:rotate(45deg);pointer-events:none;z-index:4}
 .u.st-hot>*:not(.hpb){filter:drop-shadow(0 0 4px #7EFF8A)}
 .zname{display:block;font-size:11.5px;font-weight:600;color:var(--gold);margin-top:1px}
+.capwhere{font-size:12.5px;color:var(--muted);margin:6px 0 0}.capwhere b{color:var(--txt)}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E24">
@@ -2574,7 +2575,7 @@ function pImpost() {
   <button class="sb" data-act="testacc" data-k="full" style="width:100%;margin-top:6px">Tutto completo (massimo di tutto)</button>
   <button class="sb" data-act="testcap" style="width:100%;margin-top:6px">Mostra la finestra di cattura</button>
   <div class="ph"><h2>Salvataggio</h2></div>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>14/11 07:52</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>14/11 07:55</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function pBestiario() {
@@ -2837,9 +2838,10 @@ function showCapture(sp) {
    <div class="badges"><span class="rb${d.secret ? ' rbw' : ''}" style="background:${col};color:#141836">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}${d.tough ? ' robusto' : ''}</span></div>
    ${d.secret ? `<div class="capwait"><b class="rbw">+${Math.round((F.SECRET_MULT - 1) * 100)}%</b><span>vita, attacco e difesa</span></div>` : `<div class="capwait"><b>${fmt(m.waitKills)}</b><span>incontri prima di catturarla</span></div>`}
    <p class="quote">«${esc(d.quote)}»</p>
-   <div class="capinfo"><span>${F.planetOf(F.zoneOf(sp)).name}</span><span style="color:${CC(cls)}">${F.abilityOf(sp).name}</span>${d.tough ? `<span>vita e difesa ×${F.TOUGH.hp}</span>` : ''}</div>
-   ${inTeam ? '<div class="note" style="text-align:center">È già entrata in squadra.</div>' : `<button class="pb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
-   <button class="sb wide" data-act="close" style="margin-top:6px">Continua</button>
+   <div class="capwhere">Trovata in <b>${F.planetOf(F.zoneOf(sp)).name}</b>, zona ${F.zoneOf(sp)} · ${F.ZONE_NAMES[F.zoneOf(sp)] || ''}</div>
+   <div class="capskill"><b style="color:${CC(cls)}">${F.abilityOf(sp).name}</b><span>${F.abilityOf(sp).desc}</span></div>
+   ${inTeam ? '<div class="note" style="text-align:center">È già entrata in squadra.</div>' : `<button class="sb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
+   <button class="pb wide" data-act="close" style="margin-top:6px">Continua</button>
   </div>`;
   m$.hidden = false;
 }

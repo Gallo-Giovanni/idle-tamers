@@ -1034,9 +1034,10 @@ function showCapture(sp) {
    <div class="badges"><span class="rb${d.secret ? ' rbw' : ''}" style="background:${col};color:#141836">${F.RARITY[d.rarity].label}</span><span class="cb" style="background:${CC(cls)}">${cls}${d.tough ? ' robusto' : ''}</span></div>
    ${d.secret ? `<div class="capwait"><b class="rbw">+${Math.round((F.SECRET_MULT - 1) * 100)}%</b><span>vita, attacco e difesa</span></div>` : `<div class="capwait"><b>${fmt(m.waitKills)}</b><span>incontri prima di catturarla</span></div>`}
    <p class="quote">«${esc(d.quote)}»</p>
-   <div class="capinfo"><span>${F.planetOf(F.zoneOf(sp)).name}</span><span style="color:${CC(cls)}">${F.abilityOf(sp).name}</span>${d.tough ? `<span>vita e difesa ×${F.TOUGH.hp}</span>` : ''}</div>
-   ${inTeam ? '<div class="note" style="text-align:center">È già entrata in squadra.</div>' : `<button class="pb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
-   <button class="sb wide" data-act="close" style="margin-top:6px">Continua</button>
+   <div class="capwhere">Trovata in <b>${F.planetOf(F.zoneOf(sp)).name}</b>, zona ${F.zoneOf(sp)} · ${F.ZONE_NAMES[F.zoneOf(sp)] || ''}</div>
+   <div class="capskill"><b style="color:${CC(cls)}">${F.abilityOf(sp).name}</b><span>${F.abilityOf(sp).desc}</span></div>
+   ${inTeam ? '<div class="note" style="text-align:center">È già entrata in squadra.</div>' : `<button class="sb wide" data-act="capadd" data-id="${sp}" ${F.teamFull(S) ? 'disabled' : ''}>${F.teamFull(S) ? 'Squadra piena: resta in riserva' : 'Metti in squadra'}</button>`}
+   <button class="pb wide" data-act="close" style="margin-top:6px">Continua</button>
   </div>`;
   m$.hidden = false;
 }
