@@ -327,7 +327,12 @@ function updateScene() {
   // i nemici si posizionano rispetto all'alleato che stanno colpendo davvero (se cade il guerriero e resta un arciere, si fermano davanti all'arciere, non sopra)
   const prr = u => u.id === 'hero' ? -1 : u.idx; let ft = null; for (const u of B.party) if (u.hp > 0 && (!ft || F.rangeOf(u) < F.rangeOf(ft) || (F.rangeOf(u) === F.rangeOf(ft) && prr(u) < prr(ft)))) ft = u;
   const ftEl = ft && pEls[ft.idx], ftX = ftEl ? parseFloat(ftEl.style.left) : NaN;
-  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; el.style.left = (worldX(u.pos - cam) + tx) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); stFx(el, u); el.classList.toggle('marked', u.mark > 0); });
+  const enow = performance.now(), edt = updateScene._et ? Math.min(0.1, (enow - updateScene._et) / 1000) : 0; updateScene._et = enow;
+  B.enemies.forEach(u => { const el = eEls[u.idx]; if (!el) return; const tx = +el.dataset.x; if (u.hp <= 0) { // morto: il corpo resta fermo sul terreno (scorre con lo sfondo), la squadra gli passa accanto, poi svanisce
+      if (el._wx === undefined) { el._wx = parseFloat(el.style.left) || 0; el._cam0 = cam; el._t0 = performance.now(); el.classList.add('edie'); el.classList.remove('walk'); setTimeout(() => el.classList.add('gone'), 1400); }
+      if (marching) el._wx -= edt * 75 * F.moveSpeed(S);
+      el.style.left = (el._wx - (cam - el._cam0) * PX) + 'px'; el.classList.toggle('dead', true); return; }
+    el.style.left = (worldX(u.pos - cam) + tx) + 'px'; el.classList.toggle('walk', u.arrive > 0); el.firstChild.firstChild.style.width = (100 * u.hp / u.maxHp) + '%'; el.classList.toggle('dead', u.hp <= 0); stFx(el, u); el.classList.toggle('marked', u.mark > 0); });
   updateLog();
 }
 // frecce degli arcieri che restano conficcate nel nemico (al massimo 5, spariscono con lui)
