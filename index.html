@@ -1224,6 +1224,10 @@ const REACH_FIX = { hero: 20, hero_arc: 62, hero_mag: 80 };
 const REACH = (() => { const r = {}, by = {}; for (const k in SPECIES) { const d = SPECIES[k]; if (d.base || k in REACH_FIX) continue; (by[d.cls] = by[d.cls] || []).push(k); }
   for (const c in by) { const l = by[c], [a, z] = REACH_BAND[c]; l.forEach((k, i) => { r[k] = Math.round((a + (z - a) * ((i * 7) % l.length) / Math.max(1, l.length - 1)) * 10) / 10; }); }
   return Object.assign(r, REACH_FIX); })();
+// velocità di movimento: ogni creatura ha la sua (da 0,75 a 1,3 volte quella della classe)
+const SPEED_FIX = { hero: 1, hero_arc: 1.15, hero_mag: 0.9, revuoto: 0.8, reginaquarzo: 0.85, imperatore: 0.75, divoratore: 0.8, cometuga: 0.75, astrillo: 0.8, geodino: 0.8, nullo: 0.85, glimmo: 1.3, bzzt: 1.2, ombretto: 1.3, corvonero: 1.25, scheggia: 1.2, lapillo: 1.15, sporello: 0.9, magmolo: 0.85, lavarospo: 0.85 };
+function speedOf(sp) { const d = SPECIES[sp]; if (!d) return 1; const k = d.base || sp; if (SPEED_FIX[k]) return SPEED_FIX[k]; let h = 0; for (const c of k) h = (h * 31 + c.charCodeAt(0)) % 997; return Math.round((0.8 + (h % 46) / 100) * 100) / 100; }
+function zoneSpeed(z) { const Z = ZONES[z]; if (!Z) return 1; const l = Z.pool.map(speedOf); return l.reduce((a, b) => a + b, 0) / l.length; } // così ogni zona resta veloce come prima, in media
 function reachOf(sp) { const d = SPECIES[sp]; if (!d) return 25; const k = d.base || sp; return REACH[k] || REACH_BAND[d.cls][0]; }
 function frontTarget(s, list) {
   const a = ready(list); if (!a.length) return null;
@@ -1396,7 +1400,7 @@ function step(s, b, dt, ev) {
     if (u.hp <= 0) continue;
     if (u.side === 'e') { // ogni nemico si ferma esattamente alla sua gittata dal primo alleato in piedi; se quello cade, avanza fino al successivo
       const ft = frontTarget(s, b.party), want = (ft ? ft.pos : 0) + rangeOf(u);
-      if (u.pos > want + 1e-3) { u.pos = Math.max(want, u.pos - ENEMY_V[u.cls] * moveSpeed(s) * dt); }
+      if (u.pos > want + 1e-3) { u.pos = Math.max(want, u.pos - ENEMY_V[u.cls] * speedOf(u.species) / zoneSpeed(s.zone) * moveSpeed(s) * dt); }
       const was = u.arrive; u.arrive = u.pos > want + 1e-3 ? 1 : 0; if (u.arrive) continue;
       if (was) u.t = 0; // appena arrivato a tiro attacca subito, senza attesa
     }
@@ -1406,7 +1410,7 @@ function step(s, b, dt, ev) {
     u.t -= dt * (u.slowT > 0 ? 0.7 : 1);
     if (u.side === 'p' && u.cls === 'Guerriero') { // chi combatte in mischia deve prima raggiungere il bersaglio
       const tg = frontTarget(s, u.side === 'p' ? b.enemies : b.party);
-      if (tg) { const gap = Math.abs(u.pos - tg.pos); if (gap > 2.01) { u.pos += (tg.pos > u.pos ? 1 : -1) * Math.min(MELEE_STEP * dt, gap - 2); if (u.t < 0) u.t = 0; continue; } }
+      if (tg) { const gap = Math.abs(u.pos - tg.pos); if (gap > 2.01) { u.pos += (tg.pos > u.pos ? 1 : -1) * Math.min(MELEE_STEP * speedOf(u.species) * dt, gap - 2); if (u.t < 0) u.t = 0; continue; } }
     }
     // la squadra tiene il colpo pronto mentre aspetta: appena il nemico è a tiro attacca subito, senza attesa
     if (u.side === 'p' && u.t <= 0 && !frontTarget(s, b.enemies)) { u.t = 0; continue; }
@@ -1804,7 +1808,7 @@ function simulateOffline(s, seconds, noCap) {
 }
 
 function setEnemyTable(EH, EA) { E_HP = EH; E_ATK = EA; } // solo per la taratura
-const api = { reachOf, REACH, ZONE_NAMES, abilityOf, ABIL, petList, movePet, petB, heroSpace, END_GOLD, EARLY_DROP, chestCap, BAG_BASE, OFFLINE_CAP, setEnemyTable, enemyHpScale, enemyAtkScale, goldScale, enemyScale, enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
+const api = { speedOf, reachOf, REACH, ZONE_NAMES, abilityOf, ABIL, petList, movePet, petB, heroSpace, END_GOLD, EARLY_DROP, chestCap, BAG_BASE, OFFLINE_CAP, setEnemyTable, enemyHpScale, enemyAtkScale, goldScale, enemyScale, enterPortal, portalGuardian, PORTAL_SPECIES, PORTAL_ASTRI, PORTAL_WAVES, teamMove, rangeOf, protectSet, toggleProtect, isUpgrade, FREE_FILTER_ZONE, HERO_SPACE, bareStats, speciesBonus, RAR_MULT, PETS, buyPet, buyWelcome, SLOT_STEP, astriFirst, ASTRI_PACKS, buyAstri, skyCost, enemyCount, enemiesLeft, deactivatePass, TOUGH, SECRET_SPECIES, SECRET_MULT, rerollCost, rerollBonus, FUSE_N, FUSE_MAX, fusable, fuse, PTS_PER_LEVEL, ATTRS, ptsOf, ptsFree, addPts, resetPts, autoPts, synergy, SYN_SAME, SYN_ALL, buyBack, SKY, SKY_SECTORS, SKY_GATES, skyOwned, skyCanBuy, skyBuy, skyReset, skyRingOpen, tb, autoSky, MAX_ITEM_LEVEL, itemLevel, SLOT_BUY_ZONES, TIERS, openTiers, tierOf, starCap, SLOT_PRICES, slotsBuyable, nextSlotPrice, buySlot, GOLD_PACKS, goldPack, buyGold, SPACE_PACK, spaceLeft, buySpace, PASS_MAX_FILTER, toggleLock, STARMAP, starOpen, RUNE_BUY, buyRune, protectIdx, isProtected, nextSlotZone, SLOT_UNLOCKS, BASE_SLOTS, DAILY_ASTRI, dailyReady, claimDaily, nextMidnight, hasPass, maxFilter, minKeep, bagCap, chestCap, toChest, fromChest, offlineCap, isHero, creaturesInTeam, teamFull, CREATURE_SLOTS, HERO_SHOP, PASS_PRICE, buyHero, RARE_FEED, activatePass, targetSlot, itemStats, mainStats, bonusValue, STAT_LABEL, PCT_STATS, missionGoal, missionReward, missionTier, missionReady, claimMission, missionsReady, CLASSES, RARITY, SPECIES, PLANETS, ZONES, MAX_ZONE, ALL_SPECIES, planetOf, zoneOf, gIndex, setZone, ITEM_RARITY, SLOTS, KINDS, kindOf, SLOT_LABEL, TREE, ACH, OFFLINE_CAP, BOSS_BATTLE,
   LEVEL_CAP, newState, startBattle, step, memberStats, memberPower, itemPower, itemName, upgradeCost, sellValue, canUse, classCounts, slotCount, capturedCount, xpNeed,
   testAccount, autoEquip, sellRest, sellBelow, rarityIndex, RUNE, RUNE_DROP, totalRunes, nextRarity, canRaise, raiseRarity, slotRune, slotCost, upgradeSlot, sellRunes, ensureShop, buyShop, rerollShop, REROLL_COST, moveSpeed, cheapestStar, autoStars, nextRefresh, migrate, SHOP_PRICE, equipTo, unequip, sellItem, buyTree, resetTree, moveMember, addToTeam, removeFromTeam, checkAch, simulateOffline, avgLevel };
 if (typeof module !== 'undefined') module.exports = api; else root.FA = api;
@@ -2293,7 +2297,7 @@ function statsHTML(it, lv) {
 }
 function fullStats(st, sp) {
   const pc = v => (v * 100).toFixed(1).replace('.', ',') + '%';
-  const rows = [['Gittata', sp ? String(F.reachOf(sp)).replace('.', ',') : String(F.CLASSES[st.cls].range)], ['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)], ['Vel. movimento', '+' + pc(st.move || 0)]];
+  const rows = [['Gittata', sp ? String(F.reachOf(sp)).replace('.', ',') : String(F.CLASSES[st.cls].range)], ...(sp ? [['Velocità di movimento', '×' + String(F.speedOf(sp)).replace('.', ',')]] : []), ['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)], ['Vel. movimento', '+' + pc(st.move || 0)]];
   return `<div class="fstats">${rows.map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join('')}</div>`;
 }
 function ptsHTML(id) {
@@ -2590,7 +2594,7 @@ function pImpost() {
   <button class="sb" data-act="testacc" data-k="full" style="width:100%;margin-top:6px">Tutto completo (massimo di tutto)</button>
   <button class="sb" data-act="testcap" style="width:100%;margin-top:6px">Mostra la finestra di cattura</button>
   <div class="ph"><h2>Salvataggio</h2></div>
-  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>14/11 08:17</b></div>
+  <div class="note">Il salvataggio resta in questo browser. Versione del gioco: <b>14/11 08:20</b></div>
   <button class="sb wide danger" data-act="reset">${confirmReset > Date.now() ? 'Tocca di nuovo: cancella tutto' : 'Ricomincia da zero'}</button>`;
 }
 function pBestiario() {

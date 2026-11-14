@@ -479,7 +479,7 @@ function statsHTML(it, lv) {
 }
 function fullStats(st, sp) {
   const pc = v => (v * 100).toFixed(1).replace('.', ',') + '%';
-  const rows = [['Gittata', sp ? String(F.reachOf(sp)).replace('.', ',') : String(F.CLASSES[st.cls].range)], ['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)], ['Vel. movimento', '+' + pc(st.move || 0)]];
+  const rows = [['Gittata', sp ? String(F.reachOf(sp)).replace('.', ',') : String(F.CLASSES[st.cls].range)], ...(sp ? [['Velocità di movimento', '×' + String(F.speedOf(sp)).replace('.', ',')]] : []), ['Vita', fmt(st.hp)], ['Attacco', fmt(st.atk)], ['Difesa', String(st.def).replace('.', ',')], ['Attacchi al secondo', (1 / st.spd).toFixed(2).replace('.', ',')], ["Vel. d'attacco", '+' + pc(st.aspd)], ['Prob. critico', pc(st.crit)], ['Danni critici', pc(st.critDmg)], ['Blocco', pc(st.block)], ['Schivata', pc(st.dodge)], ['Vel. movimento', '+' + pc(st.move || 0)]];
   return `<div class="fstats">${rows.map(([l, v]) => `<div><span>${l}</span><b>${v}</b></div>`).join('')}</div>`;
 }
 function ptsHTML(id) {
